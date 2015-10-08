@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-#include "PatternRecognition.h"
+#include "ConformalTracking.h"
 #include "DDRec/API/IDDecoder.h"
 
 #include "MarlinTrk/Factory.h"
@@ -61,7 +61,7 @@ using namespace std;
 using namespace DD4hep;
 using namespace AIDA;
 
-PatternRecognition aPatternRecognition;
+ConformalTracking aConformalTracking;
 
 /*
  
@@ -69,9 +69,9 @@ PatternRecognition aPatternRecognition;
  
  */
 
-PatternRecognition::PatternRecognition() : Processor("PatternRecognition") {
+ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
   // Processor description
-  _description = "PatternRecognition constructs tracks using a combined conformal mapping and cellular automaton approach.";
+  _description = "ConformalTracking constructs tracks using a combined conformal mapping and cellular automaton approach.";
 
   // Input collections - tracker hits
   std::vector<std::string> inputTrackerHitCollections;
@@ -120,7 +120,7 @@ bool sort_by_cellWeight(Cell* cell1, Cell* cell2) {
   return (weight1 > weight2);
 }
 
-void PatternRecognition::init() {
+void ConformalTracking::init() {
   // Print the initial parameters
   printParameters();
 
@@ -181,10 +181,10 @@ void PatternRecognition::init() {
   Global::EVENTSEEDER->registerProcessor(this);
 }
 
-void PatternRecognition::processRunHeader(LCRunHeader* run) { ++m_runNumber; }
+void ConformalTracking::processRunHeader(LCRunHeader* run) { ++m_runNumber; }
 
 // The main code, run over each event
-void PatternRecognition::processEvent(LCEvent* evt) {
+void ConformalTracking::processEvent(LCEvent* evt) {
   //------------------------------------------------------------------------------------------------------------------
   // This pattern recognition algorithm is based on two concepts: conformal mapping and cellular automaton. Broadly
   // speaking, the 2D xy projection of all hits is transformed such that circles (helix projections) become straight
@@ -678,16 +678,16 @@ void PatternRecognition::processEvent(LCEvent* evt) {
   m_eventNumber++;
 }
 
-void PatternRecognition::check(LCEvent* evt) {
+void ConformalTracking::check(LCEvent* evt) {
   // nothing to check here - could be used to fill checkplots in reconstruction processor
 }
 
-void PatternRecognition::end() {
+void ConformalTracking::end() {
   streamlog_out(MESSAGE) << " end()  " << name() << " processed " << m_eventNumber << " events in " << m_runNumber
                          << " runs " << std::endl;
 }
 
-void PatternRecognition::getCollection(LCCollection*& collection, std::string collectionName, LCEvent* evt) {
+void ConformalTracking::getCollection(LCCollection*& collection, std::string collectionName, LCEvent* evt) {
   try {
     collection = evt->getCollection(collectionName);
   } catch (DataNotAvailableException& e) {
@@ -697,8 +697,8 @@ void PatternRecognition::getCollection(LCCollection*& collection, std::string co
   return;
 }
 
-void PatternRecognition::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCluster*, bool> used,
-                                         KDTree* nearestNeighbours, bool extendingTrack) {
+void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCluster*, bool> used,
+                                        KDTree* nearestNeighbours, bool extendingTrack) {
   int nCells   = 0;
   int depth    = 0;
   int startPos = 0;
@@ -786,7 +786,7 @@ void PatternRecognition::extendSeedCells(std::vector<Cell*>& cells, std::map<KDC
   // No more downstream cells can be added
 }
 
-void PatternRecognition::drawline(KDCluster* hitStart, KDCluster* hitEnd, int colour) {
+void ConformalTracking::drawline(KDCluster* hitStart, KDCluster* hitEnd, int colour) {
   //  std::cout<<"Plotting initial cell"<<std::endl;
 
   TLine* line = new TLine(hitStart->getU(), hitStart->getV(), hitEnd->getU(), hitEnd->getV());
@@ -795,7 +795,7 @@ void PatternRecognition::drawline(KDCluster* hitStart, KDCluster* hitEnd, int co
 }
 
 // TODO: check the logic in used cell notation, branching, weights of cells being followed
-std::vector<cellularTrack> PatternRecognition::createTracks(Cell* seedCell, std::map<Cell*, bool>& usedCells) {
+std::vector<cellularTrack> ConformalTracking::createTracks(Cell* seedCell, std::map<Cell*, bool>& usedCells) {
   //  std::cout<<" - Creating tracks"<<std::endl;
   cellularTrack seedTrack;
   seedTrack.push_back(seedCell);
@@ -822,7 +822,7 @@ std::vector<cellularTrack> PatternRecognition::createTracks(Cell* seedCell, std:
   return cellularTracks;
 }
 
-bool PatternRecognition::toBeUpdated(std::vector<cellularTrack> cellularTracks) {
+bool ConformalTracking::toBeUpdated(std::vector<cellularTrack> cellularTracks) {
   bool update = false;
   for (int iTrack = 0; iTrack < cellularTracks.size(); iTrack++)
     if (cellularTracks[iTrack].back()->getWeight() > 0) {
@@ -832,8 +832,8 @@ bool PatternRecognition::toBeUpdated(std::vector<cellularTrack> cellularTracks) 
   return update;
 }
 
-void PatternRecognition::followPath(std::vector<cellularTrack>& cellularTracks, int trackNumber,
-                                    std::map<Cell*, bool>& usedCells, int& removeTrack) {
+void ConformalTracking::followPath(std::vector<cellularTrack>& cellularTracks, int trackNumber,
+                                   std::map<Cell*, bool>& usedCells, int& removeTrack) {
   Cell* cell = cellularTracks[trackNumber].back();
 
   if (cell->getWeight() == 0)
@@ -884,7 +884,7 @@ void PatternRecognition::followPath(std::vector<cellularTrack>& cellularTracks, 
   return;
 }
 
-cellularTrack PatternRecognition::getLowestChi2(std::vector<cellularTrack> candidateTracks) {
+cellularTrack ConformalTracking::getLowestChi2(std::vector<cellularTrack> candidateTracks) {
   //  std::cout<<"GETTING lowest chi2"<<std::endl;
   double bestChi2ndof = 1000000.;
   int    bestTrack    = -1;
@@ -920,7 +920,7 @@ cellularTrack PatternRecognition::getLowestChi2(std::vector<cellularTrack> candi
   return candidateTracks[bestTrack];
 }
 
-void PatternRecognition::updateCell(Cell* cell) {
+void ConformalTracking::updateCell(Cell* cell) {
   if (cell->getTo().size() != 0) {
     for (int i = 0; i < cell->getTo().size(); i++) {
       cell->getTo()[i]->update(cell);
@@ -931,7 +931,7 @@ void PatternRecognition::updateCell(Cell* cell) {
 
 // Function to extrapolate along a cell in conformal space, producing a fake hit
 // a given distance away from the cell endpoint
-KDCluster* PatternRecognition::extrapolateCell(Cell* cell, double distance) {
+KDCluster* ConformalTracking::extrapolateCell(Cell* cell, double distance) {
   // Fake cluster to be returned
   KDCluster* extrapolatedCluster = new KDCluster();
 

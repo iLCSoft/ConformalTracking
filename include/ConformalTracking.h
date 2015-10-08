@@ -1,5 +1,5 @@
-#ifndef PatternRecognition_h
-#define PatternRecognition_h 1
+#ifndef ConformalTracking_h
+#define ConformalTracking_h 1
 
 #include "marlin/Processor.h"
 
@@ -30,11 +30,11 @@ using namespace lcio;
 using namespace marlin;
 using namespace AIDA;
 
-class PatternRecognition : public Processor {
+class ConformalTracking : public Processor {
 public:
-  virtual Processor* newProcessor() { return new PatternRecognition; }
+  virtual Processor* newProcessor() { return new ConformalTracking; }
 
-  PatternRecognition();
+  ConformalTracking();
 
   // Initialisation - run at the beginning to start histograms, etc.
   virtual void init();
