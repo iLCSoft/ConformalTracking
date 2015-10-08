@@ -286,10 +286,10 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         m_cellAngleInverseRadiusMC->Fill(1. / cluster2->getR(), cell->getAngle(cell1));
         m_gradientRadiusMC->Fill(cluster2->getR(), cell1->getGradient());
 
-        double xpos = hit->getPosition()[0];
-        double ypos = hit->getPosition()[1];
-
-        double radius = sqrt(xpos * xpos + ypos * ypos);
+        //        double xpos = hit->getPosition()[0];
+        //        double ypos = hit->getPosition()[1];
+        //
+        //        double radius = sqrt(xpos*xpos + ypos*ypos);
       }
     }
     canv2->cd();
@@ -544,7 +544,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         // Store track for later TODO: is this necessary? Twice performing best chi2... (first for all tracks from one seed, second for all "best" tracks)
         cellTracks.push_back(bestTrack);
 
-        for (int trackCell = 0; trackCell < bestTrack.size(); trackCell++) {
+        for (unsigned int trackCell = 0; trackCell < bestTrack.size(); trackCell++) {
           usedCells[bestTrack[trackCell]] = true;
         }
       }
@@ -562,7 +562,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       // Mark all hits as having been used
       KDCluster* kdStart = bestTrack[0]->getStart();
       used[kdStart]      = true;
-      for (int trackCell = 0; trackCell < bestTrack.size(); trackCell++) {
+      for (unsigned int trackCell = 0; trackCell < bestTrack.size(); trackCell++) {
         KDCluster* kdEnd = bestTrack[trackCell]->getEnd();
         used[kdEnd]      = true;
       }
@@ -580,7 +580,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   std::cout << "*** CA has made " << finalCAtracks.size() << " tracks ***" << std::endl;
 
   // Loop over all track candidates
-  for (int caTrack = 0; caTrack < finalCAtracks.size(); caTrack++) {
+  for (unsigned int caTrack = 0; caTrack < finalCAtracks.size(); caTrack++) {
     // Vector of all the hits on the track
     std::vector<TrackerHit*> trackHits;
 
@@ -593,7 +593,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
                           << kdEnd->getSubdetector() << std::endl;
 
     // Loop over all cells and get the hit that they connect to
-    for (int trackCell = 0; trackCell < finalCAtracks[caTrack].size(); trackCell++) {
+    for (unsigned int trackCell = 0; trackCell < finalCAtracks[caTrack].size(); trackCell++) {
       KDCluster* kdStart = finalCAtracks[caTrack][trackCell]->getStart();
 
       // Debug info on hit added
@@ -610,7 +610,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     }
 
     // Only make tracks with n or more hits
-    if (trackHits.size() < m_minClustersOnTrack)
+    if (trackHits.size() < (unsigned int)m_minClustersOnTrack)
       continue;
     streamlog_out(DEBUG5) << "Made a track with " << trackHits.size() << " hits" << std::endl;
 
@@ -645,7 +645,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     if (track->getChi2() == 0.) {
       std::cout << "Fit failed. Track has " << track->getTrackerHits().size() << " hits" << std::endl;
       std::cout << "Fit fail error " << fitError << std::endl;
-      for (int p = 0; p < trackfitHits.size(); p++) {
+      for (unsigned int p = 0; p < trackfitHits.size(); p++) {
         track->addHit(trackfitHits[p]);
       }
     }  // delete track; delete marlinTrack; continue;}
@@ -699,9 +699,9 @@ void ConformalTracking::getCollection(LCCollection*& collection, std::string col
 
 void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCluster*, bool> used,
                                         KDTree* nearestNeighbours, bool extendingTrack) {
-  int nCells   = 0;
-  int depth    = 0;
-  int startPos = 0;
+  unsigned int nCells   = 0;
+  int          depth    = 0;
+  int          startPos = 0;
 
   // If extending an existing track, don't redo the search from the beginning of the track. Just extend from
   // the last cell
@@ -717,7 +717,7 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCl
   while (cells.size() != nCells) {
     // Extend all cells with depth N. In the next iteration, look at cells with depth N+1
     nCells = cells.size();
-    for (int itCell = startPos; itCell < nCells; itCell++) {
+    for (unsigned int itCell = startPos; itCell < nCells; itCell++) {
       // Get the end point of the cell (to search for neighbouring hits to form new cells connected to this one)
       KDCluster* hit = cells[itCell]->getEnd();
 
@@ -727,7 +727,7 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCl
       nearestNeighbours->allNeighboursInRadius(fakeHit, m_maxDistance / 2., results);
 
       // Make new cells pointing inwards
-      for (int neighbour = 0; neighbour < results.size(); neighbour++) {
+      for (unsigned int neighbour = 0; neighbour < results.size(); neighbour++) {
         // Get the neighbouring hit
         KDCluster* nhit = results[neighbour];
 
@@ -824,7 +824,7 @@ std::vector<cellularTrack> ConformalTracking::createTracks(Cell* seedCell, std::
 
 bool ConformalTracking::toBeUpdated(std::vector<cellularTrack> cellularTracks) {
   bool update = false;
-  for (int iTrack = 0; iTrack < cellularTracks.size(); iTrack++)
+  for (unsigned int iTrack = 0; iTrack < cellularTracks.size(); iTrack++)
     if (cellularTracks[iTrack].back()->getWeight() > 0) {
       update = true;
       break;
@@ -853,7 +853,7 @@ void ConformalTracking::followPath(std::vector<cellularTrack>& cellularTracks, i
         //        std::cout<<"  -- created branch 0"<<std::endl;
       }
     }
-    for (int itCell = 1; itCell < cell->getFrom().size(); itCell++) {
+    for (unsigned int itCell = 1; itCell < cell->getFrom().size(); itCell++) {
       if (usedCells.count(cell->getFrom()[itCell])) {
         continue;
       } else {
@@ -888,7 +888,7 @@ cellularTrack ConformalTracking::getLowestChi2(std::vector<cellularTrack> candid
   //  std::cout<<"GETTING lowest chi2"<<std::endl;
   double bestChi2ndof = 1000000.;
   int    bestTrack    = -1;
-  for (int itTrack = 0; itTrack < candidateTracks.size(); itTrack++) {
+  for (unsigned int itTrack = 0; itTrack < candidateTracks.size(); itTrack++) {
     //    std::cout<<" - track "<<itTrack<<std::endl;
     TLinearFitter* fitter = new TLinearFitter(1);
 
@@ -900,7 +900,7 @@ cellularTrack ConformalTracking::getLowestChi2(std::vector<cellularTrack> candid
     fitter->AddPoint(u, kdStart->getV(), 1. / kdStart->getR());
     npoints++;
 
-    for (int trackCell = 0; trackCell < candidateTracks[itTrack].size(); trackCell++) {
+    for (unsigned int trackCell = 0; trackCell < candidateTracks[itTrack].size(); trackCell++) {
       KDCluster* kdEnd = candidateTracks[itTrack][trackCell]->getEnd();
       u[0]             = kdEnd->getU();
       fitter->AddPoint(u, kdEnd->getV(), 1. / kdEnd->getR());
@@ -922,7 +922,7 @@ cellularTrack ConformalTracking::getLowestChi2(std::vector<cellularTrack> candid
 
 void ConformalTracking::updateCell(Cell* cell) {
   if (cell->getTo().size() != 0) {
-    for (int i = 0; i < cell->getTo().size(); i++) {
+    for (unsigned int i = 0; i < cell->getTo().size(); i++) {
       cell->getTo()[i]->update(cell);
       updateCell(cell->getTo()[i]);
     }
