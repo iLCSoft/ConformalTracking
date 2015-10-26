@@ -389,8 +389,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
       // Create tracks by following a path along cells
       int nCells = cells.size();
-      for (int itCell = 0; itCell < nCells; itCell++) {  //TODO: make a function
-
+      for (int itCell = 0; itCell < nCells; itCell++) {
         // Check if this cell has already been used
         if (usedCells.count(cells[itCell]))
           continue;
@@ -445,7 +444,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
     // Loop over all current hits
     for (unsigned int nKDHit = 0; nKDHit < nKDHits; nKDHit++) {
-      // Get the next kdHit and check if it has already been used (assigned to a track)
+      // Get the kdHit and check if it has already been used (assigned to a track)
       KDCluster* kdhit = kdClusters[nKDHit];
       if (used.count(kdhit))
         continue;
@@ -490,13 +489,15 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         if (kdhit->getZ() < 0 && nhit->getZ() > kdhit->getZ())
           continue;
 
+        // Once we are far enough away we can never fulfil the distance requirements
+        if ((kdhit->getR() - nhit->getR()) > m_maxDistance)
+          break;
+
         // If nearest neighbours in theta, must put a distance cut
         double distance2 = (nhit->getU() - kdhit->getU()) * (nhit->getU() - kdhit->getU()) +
                            (nhit->getV() - kdhit->getV()) * (nhit->getV() - kdhit->getV());
         if (distance2 > (m_maxDistance * m_maxDistance))
           continue;
-
-        // break on radius difference > max distance
 
         // Create the new seed cell
         Cell* cell = new Cell(kdhit, nhit);
@@ -574,6 +575,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     // Now finished looking at this collection. All tracks which can have extra hits added
     // have had them added, and no new tracks were possible using the sum of all collections
     // till now. Add the next collection and try again...
+    delete nearestNeighbours;
   }
 
   // Now make tracks from all of the candidates
@@ -650,7 +652,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       }
     }  // delete track; delete marlinTrack; continue;}
 
-    // Add hit information - this is just a fudge for the moment, since we only use vertex hits. Should do for each subdetector once enabled
+    // Add hit information TODO: this is just a fudge for the moment, since we only use vertex hits. Should do for each subdetector once enabled
     track->subdetectorHitNumbers().resize(2 * lcio::ILDDetID::ETD);
     track->subdetectorHitNumbers()[2 * lcio::ILDDetID::VXD - 2] = trackHits.size();
 
@@ -725,13 +727,14 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCl
       KDCluster* fakeHit = extrapolateCell(cells[itCell], m_maxDistance / 2.);
       VecCluster results;
       nearestNeighbours->allNeighboursInRadius(fakeHit, m_maxDistance / 2., results);
+      delete fakeHit;
 
       // Make new cells pointing inwards
       for (unsigned int neighbour = 0; neighbour < results.size(); neighbour++) {
         // Get the neighbouring hit
         KDCluster* nhit = results[neighbour];
 
-        // Check that it is not used, is not on the same detector layer, points inwards and has real z pointing away from IP - TODO: function for this? Code 40 lines above
+        // Check that it is not used, is not on the same detector layer, points inwards and has real z pointing away from IP
         if (used.count(nhit))
           continue;
         if (hit->sameLayer(nhit))
@@ -794,7 +797,8 @@ void ConformalTracking::drawline(KDCluster* hitStart, KDCluster* hitEnd, int col
   line->Draw();
 }
 
-// TODO: check the logic in used cell notation, branching, weights of cells being followed
+// TODO: check the logic in used cell notation, branching, weights of cells being followed. In particular if we increase weight and make continuously connected
+// cells with non-continuous weight...
 std::vector<cellularTrack> ConformalTracking::createTracks(Cell* seedCell, std::map<Cell*, bool>& usedCells) {
   //  std::cout<<" - Creating tracks"<<std::endl;
   cellularTrack seedTrack;
