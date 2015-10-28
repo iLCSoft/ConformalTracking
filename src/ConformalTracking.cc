@@ -298,6 +298,8 @@ void ConformalTracking::processEvent(LCEvent* evt) {
           drawline(cluster0, cluster1, itHit + 1);
           drawline(cluster1, cluster2, itHit + 2);
         }
+        delete cell;
+        delete cell1;
       }
     }
 
@@ -746,13 +748,14 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCl
     nCells = cells.size();
     for (unsigned int itCell = startPos; itCell < nCells; itCell++) {
       // Get the end point of the cell (to search for neighbouring hits to form new cells connected to this one)
-      KDCluster* hit = cells[itCell]->getEnd();
+      KDCluster* hit            = cells[itCell]->getEnd();
+      double     searchDistance = hit->getR();
 
       // Extrapolate along the cell and then make a 2D nearest neighbour search at this extrapolated point
       KDCluster* fakeHit =
-          extrapolateCell(cells[itCell], m_maxDistance / 2.);  // TODO: make this search a function of radius
+          extrapolateCell(cells[itCell], searchDistance / 2.);  // TODO: make this search a function of radius
       VecCluster results;
-      nearestNeighbours->allNeighboursInRadius(fakeHit, m_maxDistance / 2., results);
+      nearestNeighbours->allNeighboursInRadius(fakeHit, searchDistance / 2., results);
       delete fakeHit;
 
       // Make new cells pointing inwards
@@ -793,6 +796,7 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCl
 
         // Check if the new cell is compatible with the previous cell (angle between the two is acceptable)
         if (cells[itCell]->getAngle(cell) > (m_maxCellAngle * exp(-0.0015 / nhit->getR()))) {
+          //        if( cells[itCell]->getAngle(cell) > m_maxCellAngle ){
           delete cell;
           continue;
         }
