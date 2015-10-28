@@ -156,22 +156,26 @@ void ConformalTracking::init() {
     AIDAProcessor::histogramFactory(this);
     
     // Histogram initailisation
-    m_theta = new TH1F("m_theta","m_theta",1256,-6.28,6.28);
-    m_cellAngle = new TH1F("m_cellAngle","m_cellAngle",1256,0,0.15);
-    m_cellAngleRadius = new TH2F("m_cellAngleRadius","m_cellAngleRadius",400,0,0.04,1500,0,0.03);
-    m_cellAngleInverseRadius = new TH2F("m_cellAngleInverseRadius","m_cellAngleInverseRadius",400,0,400,1500,0,0.03);
-    m_conformalEvents = new TH2F("m_conformalEvents","m_conformalEvents",1000,-0.05,0.05,1000,-0.05,0.05);
-    m_nonconformalEvents = new TH2F("m_nonconformalEvents","m_nonconformalEvents",500,-1500,1500,500,-1500,1500);
-    m_conformalEventsRTheta = new TH2F("m_conformalEventsRTheta","m_conformalEventsRTheta",200,0,0.05,632,-3.16,3.16);
     
-    m_conformalEventsZU = new TH2F("m_conformalEventsZU","m_conformalEventsZU",1000,-50,50,1000,-2000,2000);
-    m_conformalEventsZV = new TH2F("m_conformalEventsZV","m_conformalEventsZV",1000,-50,50,1000,-2000,2000);
-    m_conformalEvents3D = new TH3F("m_conformalEvents3D","m_conformalEvents3D",200,-0.05,0.05,200,-0.05,0.05,500,0,1);
+    // Histograms for tuning parameters (cell angle cut, cell length cut)
+    m_cellAngle = new TH1F("cellAngle","cellAngle",1250,0,0.05);
+    m_cellAngleRadius = new TH2F("cellAngleRadius","cellAngleRadius",400,0,0.04,1000,0,0.04);
+    m_cellLengthRadius = new TH2F("cellLengthRadius","cellLengthRadius",300,0,0.03,1000,0,0.04);
+    m_cellAngleLength = new TH2F("cellAngleLength","cellAngleLength",400,0,0.04,300,0,0.03);
     
-    m_cellAngleMC = new TH1F("m_cellAngleMC","m_cellAngleMC",3000,0,0.03);
-    m_cellAngleRadiusMC = new TH2F("m_cellAngleRadiusMC","m_cellAngleRadiusMC",400,0,0.04,500,0,0.05);
-    m_cellAngleInverseRadiusMC = new TH2F("m_cellAngleInverseRadiusMC","m_cellAngleInverseRadiusMC",400,0,4000,1500,0,0.03);
-    m_gradientRadiusMC = new TH2F("m_gradientRadiusMC","m_gradientRadiusMC",400,0,0.04,1500,-5,5);
+    m_cellAngleMC = new TH1F("cellAngleMC","cellAngleMC",1250,0,0.05);
+    m_cellAngleRadiusMC = new TH2F("cellAngleRadiusMC","cellAngleRadiusMC",400,0,0.04,1000,0,0.04);
+    m_cellLengthRadiusMC = new TH2F("cellLengthRadiusMC","cellLengthRadiusMC",300,0,0.03,1000,0,0.04);
+    m_cellAngleLengthMC = new TH2F("cellAngleLengthMC","cellAngleLengthMC",400,0,0.04,300,0,0.03);
+    
+    // Histograms for "event display"
+    m_conformalEvents = new TH2F("conformalEvents","conformalEvents",1000,-0.05,0.05,1000,-0.05,0.05);
+    m_nonconformalEvents = new TH2F("nonconformalEvents","nonconformalEvents",500,-1500,1500,500,-1500,1500);
+    m_conformalEventsRTheta = new TH2F("conformalEventsRTheta","conformalEventsRTheta",200,0,0.05,632,-3.16,3.16);
+    m_conformalEventsMC = new TH2F("conformalEventsMC","conformalEventsMC",1000,-0.05,0.05,1000,-0.05,0.05);
+    
+    m_canvConformalEventDisplay = new TCanvas("canvConformalEventDisplay","canvConformalEventDisplay");
+    m_canvConformalEventDisplayMC = new TCanvas("canvConformalEventDisplayMC","canvConformalEventDisplayMC");
     
   }
   
@@ -230,17 +234,19 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
   trackCollection->setFlag( trkFlag.getFlag()  ) ;
   
   /*
-   Debug plotting
+   Debug plotting. This section picks up tracks reconstructed using the cheated pattern recognition (TruthTrackFinder) and uses it to show
+   values which are cut on during the tracking. This can be used to tune the cut ranges.
    */
   
   if(m_debugPlots){
     
-    TH2F* conformalEventDisplayMC = new TH2F("conformalEventDisplayMC","conformalEventDisplayMC",2000,-0.04,0.04,2000,-0.04,0.04);
-    TCanvas* canv2 = new TCanvas("eventDisplayMC","eventDisplayMC");
-    canv2->cd();
-    conformalEventDisplayMC->DrawCopy("");
+    // Draw the empty event display onto the canvas, so that cells can be added sequentially
+    if(m_eventNumber == 0){
+      m_canvConformalEventDisplayMC->cd();
+      m_conformalEventsMC->DrawCopy("");
+    }
     
-    // Get the collection of tracks
+    // Get the collection of cheated tracks
     LCCollection* trueTrackCollection = 0 ;
     getCollection(trueTrackCollection, "SiTracks", evt); if(trackCollection == 0) return;
     
@@ -256,46 +262,59 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       
       // Loop over hits and check the MC particle that they correspond to, and which subdetector they are on
       int nHits = hitVector.size();
-      
-      std::cout<<"- New MC track with size "<<nHits<<std::endl;
+      streamlog_out( DEBUG4 )<<"- New MC track with size "<<nHits<<std::endl;
       
       for(int itHit=0;itHit<(nHits-2);itHit++){
-        // Get the tracker hit
+        
+        // Get the 3 tracker hits
         TrackerHitPlane* hit = dynamic_cast<TrackerHitPlane*>(hitVector.at(itHit));
         TrackerHitPlane* nexthit = dynamic_cast<TrackerHitPlane*>(hitVector.at(itHit+1));
         TrackerHitPlane* nextnexthit = dynamic_cast<TrackerHitPlane*>(hitVector.at(itHit+2));
         
+        // Form the conformal clusters
         KDCluster* cluster0 = new KDCluster(hit);
         KDCluster* cluster1 = new KDCluster(nexthit);
         KDCluster* cluster2 = new KDCluster(nextnexthit);
         
-        conformalEventDisplayMC->Fill( cluster0->getU(),cluster0->getV() );
-        conformalEventDisplayMC->Fill( cluster1->getU(),cluster1->getV() );
-        conformalEventDisplayMC->Fill( cluster2->getU(),cluster2->getV() );
-        
+        // Make the two cells connecting these three hits
         Cell* cell = new Cell(cluster0,cluster1);
         cell->setWeight(itHit);
         Cell* cell1 = new Cell(cluster1,cluster2);
         cell1->setWeight(itHit+1);
         
-        canv2->cd();
-        drawline(cluster0,cluster1,itHit+1);
-        drawline(cluster1,cluster2,itHit+2);
+        // Fill the debug/tuning plots
+        double angleBetweenCells = cell->getAngle(cell1);
+        double cell0Length = sqrt( pow(cluster0->getU() - cluster1->getU(),2) + pow(cluster0->getV() - cluster1->getV(),2) );
+        double cell1Length = sqrt( pow(cluster1->getU() - cluster2->getU(),2) + pow(cluster1->getV() - cluster2->getV(),2) );
         
-        m_cellAngleMC->Fill(cell->getAngle(cell1));
-        m_cellAngleRadiusMC->Fill(cluster2->getR(),cell->getAngle(cell1));
-        m_cellAngleInverseRadiusMC->Fill(1./cluster2->getR(),cell->getAngle(cell1));
-        m_gradientRadiusMC->Fill(cluster2->getR(),cell1->getGradient());
+        m_cellAngleMC->Fill(angleBetweenCells);
+        m_cellAngleRadiusMC->Fill(cluster2->getR(),angleBetweenCells);
+        m_cellLengthRadiusMC->Fill(cluster0->getR(),cell0Length);
+        m_cellAngleLengthMC->Fill(cell1Length,angleBetweenCells);
         
-//        double xpos = hit->getPosition()[0];
-//        double ypos = hit->getPosition()[1];
-//        
-//        double radius = sqrt(xpos*xpos + ypos*ypos);
+        // Draw cells on the first event
+        if(m_eventNumber == 0){
+          // Fill the event display
+          m_conformalEventsMC->Fill( cluster0->getU(),cluster0->getV() );
+          m_conformalEventsMC->Fill( cluster1->getU(),cluster1->getV() );
+          m_conformalEventsMC->Fill( cluster2->getU(),cluster2->getV() );
+          // Draw the cell lines on the event display
+          m_canvConformalEventDisplayMC->cd();
+          drawline(cluster0,cluster1,itHit+1);
+          drawline(cluster1,cluster2,itHit+2);
+        }
+        
       }
     }
-    canv2->cd();
-    conformalEventDisplayMC->DrawCopy("same");
     
+    // Draw the final set of conformal hits (on top of the cell lines)
+    if(m_eventNumber == 0){
+      m_canvConformalEventDisplayMC->cd();
+      m_conformalEventsMC->DrawCopy("same");
+      // Draw the non-MC event display
+      m_canvConformalEventDisplay->cd();
+      m_conformalEvents->DrawCopy("");
+    }
   }
   
   /*
@@ -304,12 +323,6 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
   
   // Set up ID decoder
   UTIL::BitField64 m_encoder( lcio::ILDCellID0::encoder_string ) ;
-  
-  // Debug for CA
-  TCanvas* canv = new TCanvas("eventDisplay","eventDisplay");
-  TH2F* conformalEventDisplay = new TH2F("conformalEventDisplay","conformalEventDisplay",2000,-0.04,0.04,2000,-0.04,0.04);
-  canv->cd();
-  conformalEventDisplay->DrawCopy("");
   
   // Some global containers to be used throughout the tracking. A collection of conformal hits will be made, with a link
   // pointing back to the corresponding cluster. A record of all used hits will be kept.
@@ -345,12 +358,10 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       kdClusters.push_back(kdhit);
       
       // Debug histogramming
-      if(m_debugPlots){
-        m_conformalEvents->Fill( kdhit->getU(), kdhit->getV() );
-        conformalEventDisplay->Fill( kdhit->getU(), kdhit->getV() );
+      if(m_debugPlots && m_eventNumber == 0){
+        m_conformalEvents->Fill( kdhit->getU(),kdhit->getV() );
         m_nonconformalEvents->Fill( hit->getPosition()[0], hit->getPosition()[1] );
         m_conformalEventsRTheta->Fill( kdhit->getR(), kdhit->getTheta() );
-        m_theta->Fill( kdhit->getTheta() );
       }
       
     }
@@ -453,6 +464,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       // Get the kdHit and check if it has already been used (assigned to a track)
       KDCluster* kdhit = kdClusters[nKDHit];
       if(used.count(kdhit)) continue;
+      if(kdhit->getR() < 0.001) break; // new cut - once we get to inner radius we will never make tracks. temp? TODO: make parameter?
       
       // The tracking differentiates between the first and all subsequent hits on a chain.
       // First, take the seed hit and look for sensible hits nearby to make an initial set
@@ -466,7 +478,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       // theta slice around the hit. Check that they are at lower radius and further from the IP
       double theta = kdhit->getTheta();
       VecCluster results;
-//      nearestNeighbours->allNeighboursInRadius(kdhit, m_maxDistance, results);
+      //      nearestNeighbours->allNeighboursInRadius(kdhit, m_maxDistance, results);
       nearestNeighbours->allNeighboursInTheta(theta, m_thetaRange, results);
       
       // Sort the neighbours from outer to inner radius
@@ -491,7 +503,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         
         // Once we are far enough away we can never fulfil the distance requirements
         if( (kdhit->getR() - nhit->getR()) > m_maxDistance ) break;
-
+        
         // If nearest neighbours in theta, must put a distance cut
         double distance2 = (nhit->getU()-kdhit->getU())*(nhit->getU()-kdhit->getU()) + (nhit->getV()-kdhit->getV())*(nhit->getV()-kdhit->getV());
         if( distance2 > (m_maxDistance*m_maxDistance) ) continue;
@@ -504,10 +516,10 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       
       // All seed cells have been created, now try create all "downstream" cells until no more can be added
       extendSeedCells(cells, used, nearestNeighbours, false);
-
+      
       // Now have all cells stemming from this seed hit. If it is possible to produce a track (ie. cells with depth X) then we will now...
-//      if(depth < (m_minClustersOnTrack-1)) continue; // TODO: check if this is correct
-
+      //      if(depth < (m_minClustersOnTrack-1)) continue; // TODO: check if this is correct
+      
       // We create all acceptable tracks by looping over all cells with high enough weight to create
       // a track and trace their route back to the seed hit. We then have to choose the best candidate
       // at the end (by minimum chi2 of a linear fit)
@@ -516,7 +528,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       
       // Sort Cells from highest to lowest weight
       std::sort(cells.begin(),cells.end(),sort_by_cellWeight);
-
+      
       // Create tracks by following a path along cells
       int nCells = cells.size();
       for(int itCell=0;itCell<nCells;itCell++){
@@ -563,7 +575,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         KDCluster* kdEnd = bestTrack[trackCell]->getEnd();
         used[kdEnd] = true;
       }
-
+      
       // Store the track
       finalCAtracks.push_back(bestTrack);
       
@@ -603,8 +615,30 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       trackHits.push_back(kdClusterMap[kdStart]);
       
       // Debug plotting
-      canv->cd();
-      drawline(finalCAtracks[caTrack][trackCell]->getStart(),finalCAtracks[caTrack][trackCell]->getEnd(),finalCAtracks[caTrack].size()-trackCell);
+      if(m_debugPlots){
+        
+        // Draw the cells for event 0
+        if(m_eventNumber == 0){
+          m_canvConformalEventDisplay->cd();
+          drawline(finalCAtracks[caTrack][trackCell]->getStart(),finalCAtracks[caTrack][trackCell]->getEnd(),finalCAtracks[caTrack].size()-trackCell);
+        }
+        
+        // Fill the debug/tuning plots
+        if(trackCell == finalCAtracks[caTrack].size() - 1) continue;
+        double angleBetweenCells = finalCAtracks[caTrack][trackCell]->getAngle(finalCAtracks[caTrack][trackCell+1]);
+        KDCluster* cluster0 = finalCAtracks[caTrack][trackCell]->getStart();
+        KDCluster* cluster1 = finalCAtracks[caTrack][trackCell]->getEnd();
+        KDCluster* cluster2 = finalCAtracks[caTrack][trackCell+1]->getEnd();
+        
+        double cell0Length = sqrt( pow(cluster0->getU() - cluster1->getU(),2) + pow(cluster0->getV() - cluster1->getV(),2) );
+        double cell1Length = sqrt( pow(cluster1->getU() - cluster2->getU(),2) + pow(cluster1->getV() - cluster2->getV(),2) );
+        
+        m_cellAngle->Fill(angleBetweenCells);
+        m_cellAngleRadius->Fill(cluster2->getR(),angleBetweenCells);
+        m_cellLengthRadius->Fill(cluster0->getR(),cell0Length);
+        m_cellAngleLength->Fill(cell1Length,angleBetweenCells);
+        
+      }
     }
     
     // Only make tracks with n or more hits
@@ -655,18 +689,11 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     
   }
   
-  // Debug plotting
-//  canv->cd();
-//  conformalEventDisplay->DrawCopy("same");
-  
-  // Temporary file output with CA information
-//  TFile* file = new TFile("CADisplay.root","RECREATE");
-//  file->cd();
-//  canv->Write();
-//  canv2->Write();
-//  conformalEventDisplay->Write();
-//  conformalEventDisplayMC->Write();
-//  file->Close();
+  // Draw the conformal event display hits for debugging
+  if(m_debugPlots && m_eventNumber == 0){
+    m_canvConformalEventDisplay->cd();
+    m_conformalEvents->DrawCopy("same");
+  }
   
   // Save the output track collection
   evt->addCollection( trackCollection , m_outputTrackCollection ) ;
@@ -687,6 +714,9 @@ void ConformalTracking::end(){
   streamlog_out(MESSAGE) << " end()  " << name()
   << " processed " << m_eventNumber << " events in " << m_runNumber << " runs "
   << std::endl ;
+  
+  m_canvConformalEventDisplay->Write();
+  m_canvConformalEventDisplayMC->Write();
   
 }
 
@@ -715,7 +745,7 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCl
   
   // Keep track of existing cells in case there are branches in the track
   std::map<KDCluster*, std::vector<Cell*> > existingCells;
-
+  
   // Try to create all "downstream" cells until no more can be added
   while(cells.size() != nCells){
     
@@ -727,7 +757,7 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCl
       KDCluster* hit = cells[itCell]->getEnd();
       
       // Extrapolate along the cell and then make a 2D nearest neighbour search at this extrapolated point
-      KDCluster* fakeHit = extrapolateCell(cells[itCell],m_maxDistance/2.);
+      KDCluster* fakeHit = extrapolateCell(cells[itCell],m_maxDistance/2.); // TODO: make this search a function of radius
       VecCluster results;
       nearestNeighbours->allNeighboursInRadius(fakeHit, m_maxDistance/2., results);
       delete fakeHit;
@@ -783,7 +813,7 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCl
     startPos=nCells;
     depth++;
   }
-
+  
   // No more downstream cells can be added
   
 }
