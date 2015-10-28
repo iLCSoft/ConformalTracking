@@ -89,21 +89,23 @@ protected:
   double m_magneticField;
 
   // Histograms
-  TH1F* m_theta;
   TH1F* m_cellAngle;
   TH2F* m_cellAngleRadius;
-  TH2F* m_cellAngleInverseRadius;
-  TH2F* m_conformalEvents;
-  TH2F* m_conformalEventsZU;
-  TH2F* m_conformalEventsZV;
-  TH2F* m_nonconformalEvents;
-  TH2F* m_conformalEventsRTheta;
-  TH3F* m_conformalEvents3D;
+  TH2F* m_cellLengthRadius;
+  TH2F* m_cellAngleLength;
 
   TH1F* m_cellAngleMC;
   TH2F* m_cellAngleRadiusMC;
-  TH2F* m_cellAngleInverseRadiusMC;
-  TH2F* m_gradientRadiusMC;
+  TH2F* m_cellLengthRadiusMC;
+  TH2F* m_cellAngleLengthMC;
+
+  TH2F* m_conformalEvents;
+  TH2F* m_nonconformalEvents;
+  TH2F* m_conformalEventsRTheta;
+  TH2F* m_conformalEventsMC;
+
+  TCanvas* m_canvConformalEventDisplay;
+  TCanvas* m_canvConformalEventDisplayMC;
 
   // Other constants
   double m_thetaRange;
