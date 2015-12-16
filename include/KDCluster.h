@@ -45,6 +45,17 @@ public:
     m_theta = atan2(m_v, m_u) + M_PI;
     // Store the (unaltered) z position
     m_z = hit->getPosition()[2];
+    // Get the error in the conformal (uv) plane
+    // This is the xy error projected. Unfortunately, the
+    // dU is not always aligned with the xy plane, it might
+    // be dV. Check and take the smallest
+    m_error = hit->getdU();
+    if (hit->getdV() < m_error)
+      m_error = hit->getdV();
+    m_removed = false;
+
+    m_errorU = m_error * m_r * m_r * sin(m_theta);
+    m_errorV = m_error * m_r * m_r * cos(m_theta);
   }
 
   // Destructor
@@ -56,6 +67,10 @@ public:
   double getR() { return m_r; }
   double getTheta() { return m_theta; }
   double getZ() { return m_z; }
+  double getError() { return m_error; }
+  double getErrorU() { return m_errorU; }
+  double getErrorV() { return m_errorV; }
+  bool   removed() { return m_removed; }
 
   // Manually set co-ordinates
   void setU(double u) { m_u = u; }
@@ -63,6 +78,8 @@ public:
   void setR(double r) { m_r = r; }
   void setTheta(double theta) { m_theta = theta; }
   void setZ(double z) { m_z = z; }
+  void setError(double error) { m_error = error; }
+  void                 remove() { m_removed = true; }
 
   // Subdetector information
   void setDetectorInfo(int subdet, int side, int layer) {
@@ -88,10 +105,17 @@ private:
   double m_v;
   double m_r;
   double m_z;
+  double m_error;
+  double m_errorU;
+  double m_errorV;
   double m_theta;
   int    m_subdet;
   int    m_side;
   int    m_layer;
+  bool   m_removed;
 };
+
+// Vector of kd clusters
+//typedef std::vector<KDCluster*> KDTrack;
 
 #endif
