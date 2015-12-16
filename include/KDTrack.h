@@ -5,7 +5,10 @@
 #include <math.h>
 
 // ------------------------------------------------------------------------------------
-//
+// The KDTrack class is a simple track class designed to allow fast linear fitting in
+// conformal space. As the errors in the u (global x) direction cannot be ignored in the
+// linear track fit, a minimiser function is needed that projects these errors onto the
+// v axis. The class holds a vector of KDCluster objects, the hits attached to this track
 // ------------------------------------------------------------------------------------
 
 class KDTrack{

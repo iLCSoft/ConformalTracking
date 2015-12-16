@@ -37,11 +37,6 @@ const double KDTrack::calculateChi2(){
   // The y error includes a projection of the x error onto the y axis
   for(int hit=0;hit<m_nPoints;hit++){
     double residualY = (m_gradient*m_clusters[hit]->getU() + m_intercept) - m_clusters[hit]->getV();
-//    double du = m_clusters[hit]->getError()*m_clusters[hit]->getR()*m_clusters[hit]->getR()*sin(m_clusters[hit]->getTheta());
-//    double dv = m_clusters[hit]->getError()*m_clusters[hit]->getR()*m_clusters[hit]->getR()*cos(m_clusters[hit]->getTheta());
-//    double dx = du;
-//    double dx = m_clusters[hit]->getErrorU();
-    
     double dx = m_clusters[hit]->getErrorU();
     double dv = m_clusters[hit]->getErrorV();
     double dy2 = (dv*dv) + (m_gradient*m_gradient * dx*dx);
@@ -57,7 +52,6 @@ const double KDTrack::calculateChi2(){
 // the parameters and checks if the chi2 is better or worse
 double KDTrack::operator()(const double *parameters){
   
-//  std::cout<<" --setting gradient "<<parameters[0]<<" and intercept "<<parameters[1]<<std::endl;
   // Update the track gradient and intercept
   this->setGradient(parameters[0]);
   this->setIntercept(parameters[1]);
