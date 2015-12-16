@@ -12,28 +12,45 @@
 // will leave option in for now in nearestNeighbours(..., N,...);
 const int KDTree::k(1);
 
-KDTree::KDTree(const VecCluster& pts)
+KDTree::KDTree(const VecCluster& pts, double overlapTheta)
 	: array(boost::extents[pts.size()][2]), arrayTheta(boost::extents[pts.size()][2])
 {
 	// Fill multi_array
 	det = pts;
 	VecCluster::const_iterator iter = pts.begin();
 	const VecCluster::const_iterator end = pts.end();
-	unsigned long idx(0);
+  unsigned long idx(0);
+  unsigned long idtheta(0);
+
 	for(; iter != end; ++iter)
 	{
 		array[idx][0] = (*iter)->getU();
 		array[idx][1] = (*iter)->getV();
-		arrayTheta[idx][0] = (*iter)->getTheta();
-		arrayTheta[idx][1] = 0;
-		// maybe able to comment out this as such a small incline at 7deg
-		//array[idx][2] = iter->z;
-		++idx;
-	}
+    ++idx;
 
+    double theta = (*iter)->getTheta();
+		arrayTheta[idtheta][0] = theta;
+		arrayTheta[idtheta][1] = 0;
+    idtheta++;
+    
+    if(theta > (2.*M_PI-overlapTheta)){
+      arrayTheta.resize(boost::extents[arrayTheta.shape()[0]+1][2]);
+      arrayTheta[idtheta][0] = theta - 2.*M_PI;
+      arrayTheta[idtheta][1] = 0;
+      idtheta++;
+    }else if(theta < overlapTheta){
+      arrayTheta.resize(boost::extents[arrayTheta.shape()[0]+1][2]);
+      arrayTheta[idtheta][0] = theta + 2.*M_PI;
+      arrayTheta[idtheta][1] = 0;
+      idtheta++;
+    }
+    
+	}
+  
 	// Build kdtree
 	tree = new kdtree2::KDTree(array);
 	treeTheta = new kdtree2::KDTree(arrayTheta);
+
 }
 
 // d'tor
@@ -89,7 +106,7 @@ void KDTree::allNeighboursInTheta(KDCluster* pt, const double thetaRange, VecClu
 	treeTheta->r_nearest(qv, thetaRange*thetaRange, vec);
 	
 	// Sort and transform results
-	this->transformResults(vec, result);
+	this->transformThetaResults(vec, result);
 }
 
 void KDTree::allNeighboursInTheta(double theta, const double thetaRange, VecCluster& result)
@@ -103,13 +120,13 @@ void KDTree::allNeighboursInTheta(double theta, const double thetaRange, VecClus
 	treeTheta->r_nearest(qv, thetaRange*thetaRange, vec);
 	
 	// Sort and transform results
-	this->transformResults(vec, result);
+	this->transformThetaResults(vec, result);
 }
 
 void KDTree::transformResults(KDTreeResultVector& vec, VecCluster& result)
 {
 	// Transform results to our VecCluster format
-	if(result.size() > 1) std::sort(vec.begin(), vec.end(), distComparator);
+	if(vec.size() > 1) std::sort(vec.begin(), vec.end(), distComparator);
 	result.clear();
 	result.reserve(vec.size());
 	
@@ -127,7 +144,7 @@ void KDTree::transformResults(KDTreeResultVector& vec, VecCluster& result)
 		//res.first->globalY(array[idx][1]);
 
 		//int check(0);
-
+		/*
 		for(VecCluster::const_iterator it = det.begin(); it != end2; ++it)
 		{
 			if (array[idx][0] == (*it)->getU() && array[idx][1] == (*it)->getV() )
@@ -139,7 +156,46 @@ void KDTree::transformResults(KDTreeResultVector& vec, VecCluster& result)
 			}
 
 		}
-		
+		//*/
+    res = det[idx];
 		result.push_back(res);
 	}
+}
+
+void KDTree::transformThetaResults(KDTreeResultVector& vec, VecCluster& result)
+{
+  // Transform results to our VecCluster format
+  if(vec.size() > 1) std::sort(vec.begin(), vec.end(), distComparator);
+  result.clear();
+  result.reserve(vec.size());
+  
+  KDTreeResultVector::const_iterator iter = vec.begin();
+  const KDTreeResultVector::const_iterator end = vec.end();
+  const VecCluster::const_iterator end2 = det.end();
+  
+  KDCluster* res;
+  
+  // Assign back the z value to the NN cluster
+  for(; iter != end; ++iter)
+  {
+    int idx = iter->idx;
+    //res.first->globalX(array[idx][0]);
+    //res.first->globalY(array[idx][1]);
+    
+    //int check(0);
+    
+    for(VecCluster::const_iterator it = det.begin(); it != end2; ++it)
+    {
+      if (arrayTheta[idx][0] == (*it)->getTheta())
+      {
+        //double z = it->globalZ();
+        res = (*it);
+        // once assigned no need to continue looping fo 1NN
+        if(k==1)break;
+      }
+      
+    }
+    
+    result.push_back(res);
+  }
 }
