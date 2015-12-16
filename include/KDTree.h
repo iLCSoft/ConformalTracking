@@ -38,7 +38,7 @@ class KDTree {
 public:
   typedef kdtree2::KDTreeResultVector KDTreeResultVector;
 
-  explicit KDTree(const VecCluster& pts);
+  explicit KDTree(const VecCluster& pts, double overlapTheta);
   ~KDTree();
 
   void nearestNeighbours(KDCluster* pt, int N, VecCluster& result);
@@ -48,6 +48,7 @@ public:
 
 private:
   void transformResults(KDTreeResultVector& vec, VecCluster& result);
+  void transformThetaResults(KDTreeResultVector& vec, VecCluster& result);
 
   static const int k;
   boost::multi_array<double, 2> array;
