@@ -12,11 +12,13 @@
 #include <EVENT/LCCollection.h>
 
 #include <EVENT/LCCollection.h>
+#include <EVENT/MCParticle.h>
 #include <gsl/gsl_rng.h>
 #include "DDRec/Surface.h"
 #include "EVENT/TrackerHit.h"
 #include "MarlinTrk/IMarlinTrkSystem.h"
 #include "TCanvas.h"
+#include "TGraphErrors.h"
 #include "TH1F.h"
 #include "TH2F.h"
 #include "TH3F.h"
@@ -24,7 +26,10 @@
 #include <AIDA/AIDA.h>
 
 #include "Cell.h"
+#include "KDTrack.h"
 #include "KDTree.h"
+#include "Math/Functor.h"
+#include "Minuit2/Minuit2Minimizer.h"
 
 using namespace lcio;
 using namespace marlin;
@@ -55,22 +60,45 @@ public:
   void getCollection(LCCollection*&, std::string, LCEvent*);
 
   // Plotting function for displaying cells
-  void drawline(KDCluster*, KDCluster*, int);
+  void drawline(KDCluster*, KDCluster*, int, int style = 1);
 
-  // Pattern recognition algorithms
+  // Pattern recognition algorithms:
+
+  // Cell creation
+  KDCluster* extrapolateCell(Cell*, double);
+  void       extendSeedCells(std::vector<Cell*>&, std::map<KDCluster*, bool>, KDTree*, bool, std::vector<KDCluster*>);
+
+  // Track finding
   std::vector<cellularTrack> createTracks(Cell*, std::map<Cell*, bool>&);
   bool                       toBeUpdated(std::vector<cellularTrack>);
   void                       followPath(std::vector<cellularTrack>&, int, std::map<Cell*, bool>&, int&);
-  cellularTrack              getLowestChi2(std::vector<cellularTrack>);
   void                       updateCell(Cell*);
-  KDCluster*                 extrapolateCell(Cell*, double);
 
-  void extendSeedCells(std::vector<Cell*>&, std::map<KDCluster*, bool>, KDTree*, bool);
+  // Track fitting
+  std::vector<KDTrack> getFittedTracks(std::vector<cellularTrack>&, std::vector<double>&);
+  std::vector<KDTrack> getLowestChi2(std::vector<KDTrack>, std::vector<double>, std::vector<double>&);
+
+  double fitWithoutPoint(KDTrack, int);
+  bool   sameTrack(KDTrack, KDTrack);
+
+  void   extendTrack(KDTrack&, std::vector<cellularTrack>, std::map<KDCluster*, bool>&);
+  double fitWithPoint(KDTrack, KDCluster*);
+
+  double fitWithExtension(KDTrack, std::vector<KDCluster*>);
+
+  ROOT::Minuit2::Minuit2Minimizer newFitter;
+
+  // MC truth debug
+  double checkReal(cellularTrack, std::map<KDCluster*, MCParticle*>, std::map<MCParticle*, bool>&);
+  int    getUniqueHits(std::vector<KDCluster*>);
 
 protected:
   // Collection names for (in/out)put
   std::vector<std::string> m_inputTrackerHitCollections;
   std::string              m_outputTrackCollection;
+  std::string              m_inputParticleCollection;
+  std::vector<std::string> m_inputRelationCollections;
+  std::string              m_outputDebugHits;
 
   // Run and event counters
   int m_eventNumber;
@@ -93,6 +121,10 @@ protected:
   TH2F* m_cellAngleRadius;
   TH2F* m_cellLengthRadius;
   TH2F* m_cellAngleLength;
+  TH1F* m_conformalChi2;
+  TH1F* m_conformalChi2real;
+  TH1F* m_conformalChi2fake;
+  TH2F* m_conformalChi2Purity;
 
   TH1F* m_cellAngleMC;
   TH2F* m_cellAngleRadiusMC;
@@ -105,10 +137,14 @@ protected:
   TH2F* m_conformalEventsMC;
 
   TCanvas* m_canvConformalEventDisplay;
+  TCanvas* m_canvConformalEventDisplayAllCells;
+  TCanvas* m_canvConformalEventDisplayAcceptedCells;
   TCanvas* m_canvConformalEventDisplayMC;
+  TCanvas* m_canvConformalEventDisplayMCunreconstructed;
 
   // Other constants
   double m_thetaRange;
+  double m_chi2cut;
   double m_maxCellAngle;
   double m_maxDistance;
   int    m_minClustersOnTrack;
