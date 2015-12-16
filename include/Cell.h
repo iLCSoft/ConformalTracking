@@ -10,6 +10,7 @@
 #include <boost/multi_array.hpp>
 #include <boost/array.hpp>
 #include "KDCluster.h"
+#include <math.h>
 
 // ------------------------------------------------------------------------------------
 // The Cell class is a simple object which connects two points in 2D space. It is
@@ -28,7 +29,7 @@ class Cell
 	  Cell(KDCluster* hit1, KDCluster* hit2){
 			m_start = hit1;
 			m_end = hit2;
-			m_gradient = (hit1->getV() - hit2->getV())/(hit1->getU() - hit2->getU());
+			m_gradient = (hit2->getV() - hit1->getV())/(hit2->getU() - hit1->getU());
 			m_weight=0;
 		}
   
