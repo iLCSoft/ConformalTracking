@@ -1370,10 +1370,11 @@ void ConformalTracking::extendTrack(KDTrack& track,std::vector<cellularTrack> tr
   
   double newChi2ndof = fitWithExtension(track, bestTrackSegment.clusters());
 
-  if(fabs(newChi2ndof-chi2ndof) < 2.*chi2ndof || (newChi2ndof-chi2ndof) < 10.){
+//  if(fabs(newChi2ndof-chi2ndof) < 2.*chi2ndof || (newChi2ndof-chi2ndof) < 10.){
+  if( newChi2ndof < m_chi2cut ){
     for(int newpoint=(bestTrackSegment.clusters().size()-3);newpoint>=0;newpoint--){
       track.insert(bestTrackSegment.clusters()[newpoint]);
-      used[bestTrackSegment.clusters()[newpoint]] = true;
+      if(newChi2ndof < 10.) used[bestTrackSegment.clusters()[newpoint]] = true;
       chi2ndof = newChi2ndof;
     }
   }
