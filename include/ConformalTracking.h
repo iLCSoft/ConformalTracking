@@ -26,7 +26,7 @@
 #include <AIDA/AIDA.h>
 
 #include "Math/Functor.h"
-#include "Minuit2/Minuit2Minimizer.h"
+#include "Minuit2/Minuit2Minimizer.h" 
 #include "KDTrack.h"
 #include "KDTree.h"
 #include "Cell.h"
@@ -74,16 +74,19 @@ public:
 
   // Track finding
   std::vector<cellularTrack> createTracks(Cell*, std::map<Cell*, bool>&);
+  std::vector<cellularTrack> createTracksNew(Cell*, std::map<Cell*, bool>&);
 	bool toBeUpdated(std::vector<cellularTrack>);
-	void followPath(std::vector<cellularTrack>&, int, std::map<Cell*, bool>&, int&);
+  void followPath(std::vector<cellularTrack>&, int, std::map<Cell*, bool>&, int&);
   void updateCell(Cell*);
   
   // Track fitting
   std::vector<KDTrack> getFittedTracks(std::vector<cellularTrack>&, std::vector<double>&);
   std::vector<KDTrack> getLowestChi2(std::vector<KDTrack>, std::vector<double>, std::vector<double>&);
 
+  double chi2SZ(KDTrack);
+  
   double fitWithoutPoint(KDTrack,int);
-  bool sameTrack(KDTrack, KDTrack);
+  int overlappingHits(KDTrack, KDTrack);
   
   void extendTrack(KDTrack&,std::vector<cellularTrack>,std::map<KDCluster*,bool>&);
   double fitWithPoint(KDTrack, KDCluster*);
@@ -93,7 +96,7 @@ public:
   ROOT::Minuit2::Minuit2Minimizer newFitter;
   
   // MC truth debug
-  double checkReal(cellularTrack, std::map<KDCluster*,MCParticle*>, std::map<MCParticle*,bool>&);
+  double checkReal(KDTrack, std::map<KDCluster*,MCParticle*>, std::map<MCParticle*,bool>&);
   int getUniqueHits(std::vector<KDCluster*>);
   
 	
@@ -148,6 +151,11 @@ protected:
   TCanvas* m_canvConformalEventDisplayMC;
   TCanvas* m_canvConformalEventDisplayMCunreconstructed;
 		
+  TH2F* m_szDistribution;
+  TH2F* m_uvDistribution;
+  TH2F* m_xyDistribution;
+  TH3F* m_xyzDistribution;
+
 	// Other constants
   double m_thetaRange;
   double m_chi2cut;
@@ -155,6 +163,7 @@ protected:
   double m_maxDistance;
   int m_minClustersOnTrack;
   bool m_debugPlots;
+  KDCluster* debugSeed;
 	
 } ;
 
