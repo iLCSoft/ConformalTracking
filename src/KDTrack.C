@@ -2,9 +2,11 @@
 
 // Constructor
 KDTrack::KDTrack() {
-  m_gradient  = 0.;
-  m_intercept = 0.;
-  m_nPoints   = 0;
+  m_gradient     = 0.;
+  m_intercept    = 0.;
+  m_nPoints      = 0;
+  m_conformalFit = true;
+  fillFit        = false;
 }
 
 // Destructor
@@ -12,13 +14,20 @@ KDTrack::~KDTrack() {}
 
 // Once the Minuit minimisation has finished, need to assign the best fit parameters
 // and calculate the chi2.
-void KDTrack::fit(double gradient, double intercept) {
-  // Set the gradient and intercept
-  m_gradient  = gradient;
-  m_intercept = intercept;
-
+void KDTrack::fit() {
   // Calculate the chi2
   m_chi2 = this->calculateChi2();
+
+  //  if(m_chi2 < 10.){
+  //    std::cout<<"- track chi2 is "<<m_chi2<<std::endl;
+  //    std::cout<<"-- gradientZS is "<<m_gradientZS<<std::endl;
+  //    std::cout<<"-- interceptZS is "<<m_interceptZS<<std::endl;
+  //    std::cout<<"-- conformal gradient is "<<m_gradient<<std::endl;
+  //    std::cout<<"-- conformal intercept is "<<m_intercept<<std::endl;
+  //    std::cout<<"-- error on conformal gradient is "<<m_gradientError<<std::endl;
+  //    std::cout<<"-- error on conformal intercept is "<<m_interceptError<<std::endl;
+  //    std::cout<<"-- track chi2ZS is "<<this->calculateChi2SZ()<<std::endl;
+  //  }
 
   // Set the chi2/ndof
   m_chi2ndof = m_chi2 / (m_nPoints - 2);
@@ -45,13 +54,78 @@ const double KDTrack::calculateChi2() {
 // Minimisation operator used by Minuit. Minuit passes the current iteration of
 // the parameters and checks if the chi2 is better or worse
 double KDTrack::operator()(const double* parameters) {
-  // Update the track gradient and intercept
-  this->setGradient(parameters[0]);
-  this->setIntercept(parameters[1]);
+  double chi2 = 0.;
 
-  // Calculate the chi2
-  const double chi2 = this->calculateChi2();
+  // Update the track gradient and intercept
+  if (m_conformalFit) {
+    this->setGradient(parameters[0]);
+    this->setIntercept(parameters[1]);
+    chi2 = this->calculateChi2();
+  } else {
+    this->setGradientZS(parameters[0]);
+    this->setInterceptZS(parameters[1]);
+    this->calculateChi2SZ();
+  }
 
   // Return this to minuit
   return chi2;
+}
+
+// Function to calculate the chi2 of the S-Z fit of the helix
+const double KDTrack::calculateChi2SZ(TH2F* histo) {
+  // Value to return
+  double chi2 = 0.;
+
+  // Calculate a and b from the conformal fit
+  double b = 1. / (2. * m_intercept);
+  double a = -1. * b * m_gradient;
+
+  double db = 0;  //m_interceptError / (2.*m_intercept*m_intercept);
+  double da = 0;  //sqrt( db*db*m_gradient*m_gradient + m_gradientError*m_gradientError*b*b );
+
+  // Loop over all hits on the track and calculate the residual.
+  // The y error includes a projection of the x error onto the y axis
+  //  std::cout<<"calculateChi2SZ running "<<std::endl;
+  if (fillFit)
+    std::cout << "== note that a is " << a << " +/- " << da << " and b is " << b << " +/- " << db << std::endl;
+
+  for (int hit = 0; hit < m_nPoints; hit++) {
+    double xMa = m_clusters[hit]->getX() - a;
+    double yMb = m_clusters[hit]->getY() - b;
+
+    double dx = m_clusters[hit]->getErrorX();
+    double dy = m_clusters[hit]->getErrorY();
+
+    double s = atan2(yMb, xMa);
+    double errorS =
+        (1. / (1 + (yMb / xMa) * (yMb / xMa))) * sqrt((1. / xMa) * (1. / xMa) * (dy * dy + db * db) +
+                                                      ((yMb / (xMa * xMa)) * (yMb / (xMa * xMa))) * (dx * dx + da * da));
+
+    //    std::cout<<" - s = "<<s<<", predicted s is "<<(m_gradientZS*m_clusters[hit]->getZ() + m_interceptZS)<<std::endl;
+    double residualS = (m_gradientZS * m_clusters[hit]->getZ() + m_interceptZS) - s;
+    double ds        = errorS;
+    double dz        = m_clusters[hit]->getErrorZ();
+
+    double ds2 = (ds * ds) + (m_gradientZS * m_gradientZS * dz * dz);
+    //    double ds2 = (m_gradientZS*m_gradientZS * dz*dz);
+
+    //    std::cout<<"- residual is "<<residualS<<std::endl;
+    chi2 += (residualS * residualS) / (ds2);
+
+    if (fillFit) {
+      histo->Fill(m_clusters[hit]->getZ(), s);
+      std::cout << "== hit has s = " << s << ", z = " << m_clusters[hit]->getZ() << std::endl;
+      std::cout << "== ds = " << errorS << ", error on predicted value is " << m_gradientZS * dz
+                << ", total error (squared) is " << ds2 << std::endl;
+    }
+  }
+
+  //  std::cout<<"calculateChi2SZ returning "<<chi2<<std::endl;
+  return chi2;
+}
+
+void KDTrack::FillDistribution(TH2F* histo) {
+  fillFit = true;
+  calculateChi2SZ(histo);
+  fillFit = false;
 }

@@ -3,6 +3,7 @@
 
 #include <math.h>
 #include "KDCluster.h"
+#include "TH2F.h"
 
 // ------------------------------------------------------------------------------------
 // The KDTrack class is a simple track class designed to allow fast linear fitting in
@@ -34,8 +35,9 @@ public:
   }
 
   // Fit functions
-  void         fit(double, double);
+  void         fit();
   const double calculateChi2();
+  const double calculateChi2SZ(TH2F* histo = NULL);
 
   // Minuit interface functions
   double operator()(const double* x);
@@ -43,6 +45,11 @@ public:
   // Functions to set member variables
   void setGradient(double gradient) { m_gradient = gradient; }
   void setIntercept(double intercept) { m_intercept = intercept; }
+  void setGradientError(double gradientError) { m_gradientError = gradientError; }
+  void setInterceptError(double interceptError) { m_interceptError = interceptError; }
+  void setGradientZS(double gradientZS) { m_gradientZS = gradientZS; }
+  void setInterceptZS(double interceptZS) { m_interceptZS = interceptZS; }
+  void setConformalFit(bool fit) { m_conformalFit = fit; }
 
   // Functions to return member variables
   double                  chi2ndof() { return m_chi2ndof; }
@@ -51,6 +58,8 @@ public:
   double                  gradient() { return m_gradient; }
   double                  intercept() { return m_intercept; }
   int                     nPoints() { return m_nPoints; }
+
+  void FillDistribution(TH2F*);
 
   std::vector<KDCluster*> m_clusters;
 
@@ -62,6 +71,12 @@ private:
   double m_ndof;
   double m_chi2ndof;
   int    m_nPoints;
+  double m_gradientZS;
+  double m_interceptZS;
+  double m_gradientError;
+  double m_interceptError;
+  bool   m_conformalFit;
+  bool   fillFit;
 };
 
 #endif
