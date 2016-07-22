@@ -35,11 +35,13 @@ class KDCluster {
 public:
   // Constructors, main initialisation is with tracker hit
   KDCluster() {}
-  KDCluster(TrackerHitPlane* hit) {
+  KDCluster(TrackerHitPlane* hit, bool endcap) {
     // Calculate conformal position in cartesian co-ordinates
     double radius2 = (hit->getPosition()[0] * hit->getPosition()[0] + hit->getPosition()[1] * hit->getPosition()[1]);
     m_u            = hit->getPosition()[0] / radius2;
     m_v            = hit->getPosition()[1] / radius2;
+    m_x            = hit->getPosition()[0];
+    m_y            = hit->getPosition()[1];
     // Note the position in polar co-ordinates
     m_r     = 1. / (sqrt(radius2));
     m_theta = atan2(m_v, m_u) + M_PI;
@@ -49,27 +51,48 @@ public:
     // This is the xy error projected. Unfortunately, the
     // dU is not always aligned with the xy plane, it might
     // be dV. Check and take the smallest
-    m_error = hit->getdU();
-    if (hit->getdV() < m_error)
-      m_error = hit->getdV();
+    m_endcap = endcap;
+
+    m_error  = hit->getdU();
+    m_errorZ = hit->getdV();
+    if (hit->getdV() < m_error) {
+      m_error  = hit->getdV();
+      m_errorZ = hit->getdU();
+    }
     m_removed = false;
 
-    m_errorU = m_error * m_r * m_r * sin(m_theta);
-    m_errorV = m_error * m_r * m_r * cos(m_theta);
+    if (endcap) {
+      m_errorU = (m_error * fabs(sin(m_theta)) + m_errorZ * fabs(cos(m_theta))) * (m_r * m_r);
+      m_errorV = (m_error * fabs(cos(m_theta)) + m_errorZ * fabs(sin(m_theta))) * (m_r * m_r);
+      m_errorX = m_error * sin(m_theta);
+      m_errorY = m_error * cos(m_theta);
+    } else {
+      m_errorU = m_error * m_r * m_r * sin(m_theta);
+      m_errorV = m_error * m_r * m_r * cos(m_theta);
+      m_errorX = m_error * sin(m_theta);
+      m_errorY = m_error * cos(m_theta);
+    }
   }
 
   // Destructor
   virtual ~KDCluster() {}
 
   // Calls to get co-ordinates
+  double getX() { return m_x; }
+  double getY() { return m_y; }
   double getU() { return m_u; }
   double getV() { return m_v; }
   double getR() { return m_r; }
   double getTheta() { return m_theta; }
   double getZ() { return m_z; }
+  double getS() { return m_s; }
   double getError() { return m_error; }
+  double getErrorX() { return m_errorX; }
+  double getErrorY() { return m_errorY; }
   double getErrorU() { return m_errorU; }
   double getErrorV() { return m_errorV; }
+  double getErrorZ() { return m_errorZ; }
+  double getErrorS() { return m_errorS; }
   bool   removed() { return m_removed; }
 
   // Manually set co-ordinates
@@ -79,7 +102,8 @@ public:
   void setTheta(double theta) { m_theta = theta; }
   void setZ(double z) { m_z = z; }
   void setError(double error) { m_error = error; }
-  void                 remove() { m_removed = true; }
+  void setErrorS(double errorS) { m_errorS = errorS; }
+  void                  remove() { m_removed = true; }
 
   // Subdetector information
   void setDetectorInfo(int subdet, int side, int layer) {
@@ -101,18 +125,26 @@ public:
 private:
   // Each hit contains the conformal co-ordinates in cartesian
   // and polar notation, plus the subdetector information
+  double m_x;
+  double m_y;
   double m_u;
   double m_v;
   double m_r;
   double m_z;
+  double m_s;
   double m_error;
+  double m_errorX;
+  double m_errorY;
   double m_errorU;
   double m_errorV;
+  double m_errorZ;
+  double m_errorS;
   double m_theta;
   int    m_subdet;
   int    m_side;
   int    m_layer;
   bool   m_removed;
+  bool   m_endcap;
 };
 
 // Vector of kd clusters
