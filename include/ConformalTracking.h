@@ -73,14 +73,12 @@ public:
   void extendSeedCells(std::vector<Cell*>&, std::map<KDCluster*,bool>, KDTree*, bool, std::vector<KDCluster*>);
 
   // Track finding
-  std::vector<cellularTrack> createTracks(Cell*, std::map<Cell*, bool>&);
   std::vector<cellularTrack> createTracksNew(Cell*, std::map<Cell*, bool>&);
 	bool toBeUpdated(std::vector<cellularTrack>);
-  void followPath(std::vector<cellularTrack>&, int, std::map<Cell*, bool>&, int&);
   void updateCell(Cell*);
   
   // Track fitting
-  std::vector<KDTrack> getFittedTracks(std::vector<cellularTrack>&, std::vector<double>&);
+  std::vector<KDTrack> getFittedTracks(std::vector<cellularTrack>&, std::vector<double>&, std::map<Cell*,bool>&);
   std::vector<KDTrack> getLowestChi2(std::vector<KDTrack>, std::vector<double>, std::vector<double>&);
 
   double chi2SZ(KDTrack);
@@ -88,13 +86,14 @@ public:
   double fitWithoutPoint(KDTrack,int);
   int overlappingHits(KDTrack, KDTrack);
   
-  void extendTrack(KDTrack&,std::vector<cellularTrack>,std::map<KDCluster*,bool>&);
+  void extendTrack(KDTrack&,std::vector<cellularTrack>,std::map<KDCluster*,bool>&, std::map<Cell*,bool>&);
   double fitWithPoint(KDTrack, KDCluster*);
 
   double fitWithExtension(KDTrack, std::vector<KDCluster*>);
 
   ROOT::Minuit2::Minuit2Minimizer newFitter;
-  
+//  ROOT::Math::Functor* FCNFunction;
+
   // MC truth debug
   double checkReal(KDTrack, std::map<KDCluster*,MCParticle*>, std::map<MCParticle*,bool>&);
   int getUniqueHits(std::vector<KDCluster*>);
