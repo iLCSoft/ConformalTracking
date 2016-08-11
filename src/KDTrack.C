@@ -60,11 +60,11 @@ double KDTrack::operator()(const double* parameters) {
   if (m_conformalFit) {
     this->setGradient(parameters[0]);
     this->setIntercept(parameters[1]);
-    chi2 = this->calculateChi2();
+    chi2 += this->calculateChi2();
   } else {
     this->setGradientZS(parameters[0]);
     this->setInterceptZS(parameters[1]);
-    this->calculateChi2SZ();
+    chi2 += this->calculateChi2SZ();
   }
 
   // Return this to minuit
@@ -128,4 +128,94 @@ void KDTrack::FillDistribution(TH2F* histo) {
   fillFit = true;
   calculateChi2SZ(histo);
   fillFit = false;
+}
+
+// Fit the track (linear regression)
+
+void KDTrack::linearRegression() {
+  double vecx[2]    = {0., 0.};
+  double matx[2][2] = {{0., 0.}, {0., 0.}};
+
+  //  std::cout<<"-- LINEAR REGRESSION"<<std::endl;
+  // Loop over all hits and fill the matrices
+  //  std::cout<<"- have "<<m_nPoints<<" points"<<std::endl;
+  for (int hit = 0; hit < m_nPoints; hit++) {
+    // Get the global point details
+    double x   = m_clusters[hit]->getU();
+    double y   = m_clusters[hit]->getV();
+    double er2 = 1.;  // errors are assumed to be the same for all points here
+    // Fill the matrices
+    vecx[0] += y / er2;
+    vecx[1] += x * y / er2;
+    matx[0][0] += 1. / er2;
+    matx[1][0] += x / er2;
+    matx[1][1] += x * x / er2;
+  }
+
+  // Invert the matrices
+  double detx = matx[0][0] * matx[1][1] - matx[1][0] * matx[1][0];
+  //  std::cout<<"- determinant is "<<detx<<std::endl;
+
+  // Check for singularities.
+  if (detx == 0.)
+    return;
+
+  // Get the track parameters
+  double slopex     = (vecx[1] * matx[0][0] - vecx[0] * matx[1][0]) / detx;
+  double interceptx = (vecx[0] * matx[1][1] - vecx[1] * matx[1][0]) / detx;
+  //  std::cout<<"- slope is "<<slopex<<" and gradient is "<<interceptx<<std::endl;
+
+  // Set the track parameters
+  m_gradient  = slopex;
+  m_intercept = interceptx;
+
+  // Calculate the chi2
+  //  this->calculateChi2();
+  m_chi2     = this->calculateChi2();
+  m_chi2ndof = m_chi2 / (m_nPoints - 2);
+
+  //  std::cout<<"- chi2 comes out as "<<m_chi2<<std::endl;
+}
+
+void KDTrack::linearRegressionConformal() {
+  double vecx[2]    = {0., 0.};
+  double matx[2][2] = {{0., 0.}, {0., 0.}};
+
+  // Calculate a and b from the conformal fit
+  double b = 1. / (2. * m_intercept);
+  double a = -1. * b * m_gradient;
+
+  // Loop over all hits and fill the matrices
+  for (int hit = 0; hit < m_nPoints; hit++) {
+    // Get the global point details
+    double xMa = m_clusters[hit]->getX() - a;
+    double yMb = m_clusters[hit]->getY() - b;
+    double s   = atan2(yMb, xMa);
+
+    double x   = m_clusters[hit]->getZ();
+    double y   = s;
+    double er2 = 1.;  // errors are assumed to be the same for all points here
+
+    // Fill the matrices
+    vecx[0] += y / er2;
+    vecx[1] += x * y / er2;
+    matx[0][0] += 1. / er2;
+    matx[1][0] += x / er2;
+    matx[1][1] += x * x / er2;
+  }
+
+  // Invert the matrices
+  double detx = matx[0][0] * matx[1][1] - matx[1][0] * matx[1][0];
+
+  // Check for singularities.
+  if (detx == 0.)
+    return;
+
+  // Get the track parameters
+  double slopex     = (vecx[1] * matx[0][0] - vecx[0] * matx[1][0]) / detx;
+  double interceptx = (vecx[0] * matx[1][1] - vecx[1] * matx[1][0]) / detx;
+
+  // Set the track parameters
+  m_gradientZS  = slopex;
+  m_interceptZS = interceptx;
 }
