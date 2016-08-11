@@ -30,6 +30,8 @@ public:
   void fit();
   const double calculateChi2();
   const double calculateChi2SZ(TH2F* histo = NULL);
+  void linearRegression();
+  void linearRegressionConformal();
   
   // Minuit interface functions
   double operator() (const double *x);
@@ -54,6 +56,7 @@ public:
   void FillDistribution(TH2F*);
   
   std::vector<KDCluster*> m_clusters;
+  bool m_conformalFit;
 
 private:
   
@@ -68,7 +71,7 @@ private:
   double m_interceptZS;
   double m_gradientError;
   double m_interceptError;
-  bool m_conformalFit;
+//  bool m_conformalFit;
   bool fillFit;
   
 };
