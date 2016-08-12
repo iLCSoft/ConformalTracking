@@ -116,7 +116,8 @@ namespace kdtree2 {
     // the newly created node.
 
     if (u < l) {
-      return (0);  // no data in this node.
+      delete node;  // dhynds added this to prevent memory leak
+      return (0);   // no data in this node.
     }
 
     if ((u - l) <= bucketsize) {
