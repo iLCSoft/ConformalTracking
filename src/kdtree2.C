@@ -125,6 +125,7 @@ KDTreeNode* KDTree::build_tree_for_range(int l, int u, KDTreeNode* parent) {
   // the newly created node. 
 
   if (u<l) {
+    delete node; // dhynds added this to prevent memory leak
     return(0); // no data in this node. 
   }
       
