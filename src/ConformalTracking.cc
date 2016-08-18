@@ -668,12 +668,13 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     streamlog_out(DEBUG4) << "Attempting to seed with hits: " << nKDHits << std::endl;
 
     // Loop over all current hits, using only vertex detectors as seeds
-    //    if(collection > 1) continue;
-    //    std::cout<<"Seeding with hits. Max collection number "<<collection<<", containing a total of "<<nKDHits<<" hits"<<std::endl;
+    //    if(collection == 0) continue;
+    std::cout << "Seeding with hits. Max collection number " << collection << ", containing a total of " << nKDHits
+              << " hits" << std::endl;
     for (unsigned int nKDHit = 0; nKDHit < nKDHits; nKDHit++) {
       // Get the kdHit and check if it has already been used (assigned to a track)
       KDCluster* kdhit = kdClusters[nKDHit];
-      //      std::cout<<"Seeding with hit "<<nKDHit<<std::endl;
+      std::cout << "Seeding with hit " << nKDHit << std::endl;
       if (debugSeed && kdhit == debugSeed)
         std::cout << "Starting to seed with debug cluster" << std::endl;
       if (used.count(kdhit))
@@ -696,6 +697,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       nearestNeighbours->allNeighboursInTheta(theta, m_thetaRange, results);
 
       // Sort the neighbours from outer to inner radius
+      std::cout << "- picked up " << results.size() << " neighbours from theta search" << std::endl;
       if (debugSeed && kdhit == debugSeed)
         std::cout << "- picked up " << results.size() << " neighbours from theta search" << std::endl;
       if (results.size() == 0)
@@ -727,6 +729,12 @@ void ConformalTracking::processEvent(LCEvent* evt) {
             continue;
         }
 
+        // Check if the cell would be too long (hit very far away)
+        double length = sqrt((kdhit->getU() - nhit->getU()) * (kdhit->getU() - nhit->getU()) +
+                             (kdhit->getV() - nhit->getV()) * (kdhit->getV() - nhit->getV()));
+        if (length > m_maxDistance)
+          continue;
+
         // Create the new seed cell
         Cell* cell = new Cell(kdhit, nhit);
         cells.push_back(cell);
@@ -741,8 +749,8 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         }
       }
 
-      //      std::cout<<"- produced "<<cells.size()<<" seed cells"<<std::endl;
       // No seed cells produced
+      std::cout << "- produced " << cells.size() << " seed cells" << std::endl;
       if (debugSeed && kdhit == debugSeed)
         std::cout << "- produced " << cells.size() << " seed cells" << std::endl;
 
@@ -750,9 +758,9 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         continue;
 
       // All seed cells have been created, now try create all "downstream" cells until no more can be added
-      //      std::cout<<"- extending seeds"<<std::endl;
+      std::cout << "- extending seeds" << std::endl;
       extendSeedCells(cells, used, nearestNeighbours, false, debugHits);
-      //      std::cout<<"- seeds extended"<<std::endl;
+      std::cout << "- seeds extended" << std::endl;
 
       // Now have all cells stemming from this seed hit. If it is possible to produce a track (ie. cells with depth X) then we will now...
       //      if(depth < (m_minClustersOnTrack-1)) continue; // TODO: check if this is correct
@@ -770,9 +778,10 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
       // Create tracks by following a path along cells
       int nCells = cells.size();
-      //      std::cout<<"- looping over "<<nCells<<" cells"<<std::endl;
+      std::cout << "- looping over " << nCells << " cells" << std::endl;
       for (int itCell = 0; itCell < nCells; itCell++) {
         // Check if this cell has already been used
+        std::cout << "-- looking at cell " << itCell << std::endl;
         if (debugSeed && kdhit == debugSeed)
           std::cout << "-- looking at cell " << itCell << std::endl;
         if (usedCells.count(cells[itCell]))
@@ -783,8 +792,10 @@ void ConformalTracking::processEvent(LCEvent* evt) {
           break;
 
         // Produce all tracks leading back to the seed hit from this cell
+        std::cout << "- creating new tracks" << std::endl;
         std::vector<cellularTrack> candidateTracks =
             createTracksNew(cells[itCell], usedCells2);  // Move back to using used cells here? With low chi2/ndof?
+        std::cout << "- created new tracks" << std::endl;
 
         // Debug plotting
         if (m_debugPlots && m_eventNumber == 0) {
@@ -798,6 +809,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         }
 
         // Look at the candidate tracks and fit them (+pick the best chi2/ndof)
+        std::cout << "- produced " << candidateTracks.size() << " candidate tracks" << std::endl;
         if (debugSeed && kdhit == debugSeed)
           std::cout << "- produced " << candidateTracks.size() << " candidate tracks" << std::endl;
         if (candidateTracks.size() == 0)
@@ -820,7 +832,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         //        }
       }
 
-      //      std::cout<<"- have "<<cellTracks.size()<<" candidate tracks"<<std::endl;
+      std::cout << "- have " << cellTracks.size() << " total candidate tracks to this hit" << std::endl;
       // All tracks leading back to the seed hit have now been found. Decide which are the feasible candidates (may be more than 1)
       if (debugSeed && kdhit == debugSeed)
         std::cout << "== final number of candidate tracks to this seed hit: " << cellTracks.size() << std::endl;
@@ -833,6 +845,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       std::vector<double>  chi2ndof   = cellTracksChi2ndof;  //CHANGE ME - temp to give all tracks
       std::vector<KDTrack> bestTracks = cellTracks;          //CHANGE ME - temp to give all tracks
       //      std::vector<KDTrack> bestTracks = getLowestChi2(cellTracks,cellTracksChi2ndof,chi2ndof);
+      std::cout << "== final number of stored tracks to this seed hit: " << bestTracks.size() << std::endl;
       if (debugSeed && kdhit == debugSeed) {
         std::cout << "== final number of stored tracks to this seed hit: " << bestTracks.size() << std::endl;
         for (int itBest = 0; itBest < bestTracks.size(); itBest++)
@@ -920,11 +933,11 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     delete nearestNeighbours;
 
     for (unsigned int itTrack = 0; itTrack < conformalTracks.size(); itTrack++) {
-      if (conformalTracks[itTrack].chi2ndof() < 10.) {
-        for (unsigned int itHit = 0; itHit < conformalTracks[itTrack].clusters().size(); itHit++) {
-          used[conformalTracks[itTrack].clusters()[itHit]] = true;
-        }
+      //      if(conformalTracks[itTrack].chi2ndof() < 10.){
+      for (unsigned int itHit = 0; itHit < conformalTracks[itTrack].clusters().size(); itHit++) {
+        used[conformalTracks[itTrack].clusters()[itHit]] = true;
       }
+      //      }
     }
   }
 
@@ -1233,6 +1246,7 @@ void ConformalTracking::drawline(KDCluster* hitStart, KDCluster* hitEnd, int col
 std::vector<cellularTrack> ConformalTracking::createTracksNew(Cell* seedCell, std::map<Cell*, bool>& usedCells) {
   // Final container to be returned
   std::vector<cellularTrack> cellularTracks;
+  std::vector<cellularTrack> finalcellularTracks;
 
   // Make the first cellular track using the seed cell
   cellularTrack seedTrack;
@@ -1242,17 +1256,22 @@ std::vector<cellularTrack> ConformalTracking::createTracksNew(Cell* seedCell, st
   // Now start to follow all paths back from this seed cell
   // While there are still tracks that are not finished (last cell weight 0), keep following their path
   while (toBeUpdated(cellularTracks)) {
+    //    std::cout<<"== Updating "<<cellularTracks.size()<<" tracks"<<std::endl;
     // Loop over all (currently existing) tracks
     int nTracks = cellularTracks.size();
     for (int itTrack = 0; itTrack < nTracks; itTrack++) {
       // If the track is finished, do nothing
       //      if(cellularTracks[itTrack].back()->getWeight() == 0) continue;
-      if (cellularTracks[itTrack].back()->getFrom().size() == 0)
+      if (cellularTracks[itTrack].back()->getFrom().size() == 0) {
+        //        std::cout<<"-- Track "<<itTrack<<" is finished"<<std::endl;
         continue;
-
+      }
       // While there is only one path leading from this cell, follow that path
       Cell* cell = cellularTracks[itTrack].back();
-      while (cell->getWeight() > 0 && cell->getFrom().size() == 1) {
+      //      std::cout<<"-- Track "<<itTrack<<" has "<<cell->getFrom().size()<<" cells attached to the end of it"<<std::endl;
+      //      while(cell->getWeight() > 0 && cell->getFrom().size() == 1){
+      while (cell->getFrom().size() == 1) {
+        //        std::cout<<"- simple extension"<<std::endl;
         // Get the cell that it attaches to
         Cell* parentCell = cell->getFrom()[0];
         // Attach it to the track and continue
@@ -1261,11 +1280,14 @@ std::vector<cellularTrack> ConformalTracking::createTracksNew(Cell* seedCell, st
       }
 
       // If the track is finished, do nothing
-      if (cellularTracks[itTrack].back()->getWeight() == 0)
+      //      if(cellularTracks[itTrack].back()->getWeight() == 0) continue;
+      if (cellularTracks[itTrack].back()->getFrom().size() == 0)
         continue;
 
       // If the weight is != 0 and there is more than one path to follow, branch the track (create a new one for each path)
       int nBranches = cell->getFrom().size();
+
+      //      std::cout<<"- making "<<nBranches<<" branches"<<std::endl;
 
       // For each additional branch make a new track
       for (int itBranch = 1; itBranch < nBranches; itBranch++) {
@@ -1279,15 +1301,21 @@ std::vector<cellularTrack> ConformalTracking::createTracksNew(Cell* seedCell, st
     }
   }
 
+  int nTracks = cellularTracks.size();
+  for (int itTrack = 0; itTrack < nTracks; itTrack++) {
+    if (cellularTracks[itTrack].size() >= (m_minClustersOnTrack - 1))
+      finalcellularTracks.push_back(cellularTracks[itTrack]);
+  }
+
   // Return the cellular tracks
-  return cellularTracks;
+  return finalcellularTracks;
 }
 
 // Check if any of the tracks in a collection still have to be updated
 bool ConformalTracking::toBeUpdated(std::vector<cellularTrack> cellularTracks) {
   bool update = false;
   for (unsigned int iTrack = 0; iTrack < cellularTracks.size(); iTrack++)
-    if (cellularTracks[iTrack].back()->getWeight() > 0) {
+    if (cellularTracks[iTrack].back()->getFrom().size() > 0) {
       update = true;
       break;
     }
