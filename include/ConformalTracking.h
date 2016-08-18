@@ -70,7 +70,7 @@ public:
 
   // Track finding
   std::vector<cellularTrack> createTracksNew(Cell*, std::map<Cell*, bool>&);
-  bool                       toBeUpdated(std::vector<cellularTrack>);
+  bool                       toBeUpdated(std::vector<cellularTrack> const&);
   void                       updateCell(Cell*);
 
   // Track fitting

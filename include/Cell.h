@@ -68,9 +68,9 @@ public:
     if ((cell2->getWeight() + 1) > m_weight)
       m_weight = cell2->getWeight() + 1;
   }
-  void setTo(Cell*   cell2) { m_to.push_back(cell2); }
-  std::vector<Cell*> getFrom() { return m_from; }
-  std::vector<Cell*> getTo() { return m_to; }
+  void setTo(Cell*    cell2) { m_to.push_back(cell2); }
+  std::vector<Cell*>* getFrom() { return &m_from; }
+  std::vector<Cell*>* getTo() { return &m_to; }
 
 private:
   // Each cell contains a weight, a gradient, two hits which it connects
