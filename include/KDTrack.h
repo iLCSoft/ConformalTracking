@@ -56,6 +56,8 @@ public:
   // Functions to return member variables
   double                  chi2ndof() { return m_chi2ndof; }
   double                  chi2() { return m_chi2; }
+  double                  chi2ndofZS() { return m_chi2ndofZS; }
+  double                  chi2ZS() { return m_chi2ZS; }
   std::vector<KDCluster*> clusters() { return m_clusters; }
   double                  gradient() { return m_gradient; }
   double                  intercept() { return m_intercept; }
@@ -71,8 +73,10 @@ private:
   double m_gradient;
   double m_intercept;
   double m_chi2;
+  double m_chi2ZS;
   double m_ndof;
   double m_chi2ndof;
+  double m_chi2ndofZS;
   int    m_nPoints;
   double m_gradientZS;
   double m_interceptZS;
