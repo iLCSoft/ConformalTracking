@@ -233,6 +233,10 @@ void KDTrack::linearRegressionConformal(){
   m_gradientZS = slopex;
   m_interceptZS = interceptx;
   
+  // Calculate the chi2
+  m_chi2ZS = this->calculateChi2SZ();
+  m_chi2ndofZS = m_chi2ZS/(m_nPoints-2);
+
 }
 
 
