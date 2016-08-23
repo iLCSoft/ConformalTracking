@@ -80,7 +80,7 @@ public:
   double fitWithoutPoint(KDTrack, int);
   int    overlappingHits(KDTrack*, KDTrack*);
 
-  void   extendTrack(KDTrack&, std::vector<cellularTrack>, std::map<KDCluster*, bool>&, std::map<Cell*, bool>&);
+  void   extendTrack(KDTrack*, std::vector<cellularTrack*>, std::map<KDCluster*, bool>&, std::map<Cell*, bool>&);
   double fitWithPoint(KDTrack, KDCluster*);
 
   double fitWithExtension(KDTrack, std::vector<KDCluster*>);
