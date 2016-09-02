@@ -136,7 +136,7 @@ bool sort_by_cellWeight(Cell* cell1, Cell* cell2){
 
 // Sort kdtracks from longest to shortest
 bool sort_by_length(KDTrack* track1, KDTrack* track2){
-  return (track1->clusters().size() > track2->clusters().size());
+  return (track1->m_clusters.size() > track2->m_clusters.size());
 }
 
 KDTrack* globalTrack;
@@ -601,16 +601,16 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     // Loop over all current tracks
     for(int currentTrack=0;currentTrack<nCurrentTracks;currentTrack++){
 
-      continue;
       // This step (although first) only runs when tracks have already been produced. An attempt
       // is made to extend them with hits from the new collection, using the final cell of the track
       // as the seed cell.
       
+      continue;
       // Containers to hold new cells made, and to check if a hit already has a cell connected to it
       std::vector<Cell*> cells;
       
       // Create a seed cell (connecting the first two hits in the track vector - those at smallest conformal radius)
-      Cell* seedCell = new Cell(conformalTracks[currentTrack]->clusters()[1],conformalTracks[currentTrack]->clusters()[0]);
+      Cell* seedCell = new Cell(conformalTracks[currentTrack]->m_clusters[1],conformalTracks[currentTrack]->m_clusters[0]);
       cells.push_back(seedCell);
       
       // All seed cells have been created, now try create all "downstream" cells until no more can be added
@@ -859,7 +859,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
           if( overlappingHits(bestTracks[itTrack],conformalTracks[existingTrack]) >= 2 ){
             
             // If the same hits, but longer in one case, take the long one
-//            if( overlappingHits(bestTracks[itTrack],conformalTracks[existingTrack]) == bestTracks[itTrack]->clusters().size()){
+//            if( overlappingHits(bestTracks[itTrack],conformalTracks[existingTrack]) == bestTracks[itTrack]->m_clusters.size()){
 //              clone = true;
 //            }
             
@@ -869,7 +869,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
             
             clone = true;
             
-            if( overlappingHits(bestTracks[itTrack],conformalTracks[existingTrack]) == bestTracks[itTrack]->clusters().size() ) continue;
+            if( overlappingHits(bestTracks[itTrack],conformalTracks[existingTrack]) == bestTracks[itTrack]->m_clusters.size() ) continue;
 
             if( bestTracks[itTrack]->chi2ndofZS() < conformalTracks[existingTrack]->chi2ndofZS()){
               conformalTracks[existingTrack] = bestTracks[itTrack];
@@ -913,8 +913,8 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     
     for(unsigned int itTrack=0;itTrack<conformalTracks.size();itTrack++){
       if(conformalTracks[itTrack]->chi2ndof() < 10.){
-        for(unsigned int itHit=0;itHit<conformalTracks[itTrack]->clusters().size();itHit++){
-          used[conformalTracks[itTrack]->clusters()[itHit]] = true;
+        for(unsigned int itHit=0;itHit<conformalTracks[itTrack]->m_clusters.size();itHit++){
+          used[conformalTracks[itTrack]->m_clusters[itHit]] = true;
         }
       }
     }
@@ -929,12 +929,12 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     
     // Vector of all the hits on the track
     KDTrack* conformalTrack = conformalTracks[caTrack];
-    streamlog_out( DEBUG5 )<<"Made a track with "<<conformalTrack->clusters().size()<<" hits"<<std::endl;
+    streamlog_out( DEBUG5 )<<"Made a track with "<<conformalTrack->m_clusters.size()<<" hits"<<std::endl;
     
     // Make the LCIO track hit vector
     EVENT::TrackerHitVec trackHits;
-    for(unsigned int itHit=0;itHit<conformalTrack->clusters().size();itHit++){
-      KDCluster* cluster = conformalTrack->clusters()[itHit];
+    for(unsigned int itHit=0;itHit<conformalTrack->m_clusters.size();itHit++){
+      KDCluster* cluster = conformalTrack->m_clusters[itHit];
       trackHits.push_back(kdClusterMap[cluster]);
     }
     
@@ -999,7 +999,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     m_canvConformalEventDisplay->cd();
     for(int itrack=0; itrack<conformalTracks.size();itrack++){
       KDTrack* debugTrack = conformalTracks[itrack];
-      std::vector<KDCluster*> clusters = debugTrack->clusters();
+      std::vector<KDCluster*> clusters = debugTrack->m_clusters;
       for(int itCluster=1;itCluster<clusters.size();itCluster++) drawline(clusters[itCluster-1],clusters[itCluster],clusters.size()-itCluster);
     }
   }
@@ -1477,15 +1477,15 @@ void ConformalTracking::getLowestChi2(std::vector<KDTrack*>& finalTracks, std::v
 }
 
 // Function to check if two KDtracks contain several hits in common
-int ConformalTracking::overlappingHits(KDTrack* track1, KDTrack* track2){
+int ConformalTracking::overlappingHits(const KDTrack* track1, const KDTrack* track2){
   
   // Loop over all hits on track 1 and check if that hit is in track 2
   int nHitsInCommon = 0;
-  std::vector<KDCluster*> track1hits = track1->clusters();
-  std::vector<KDCluster*> track2hits = track2->clusters();
+//  std::vector<KDCluster*> track1hits = track1->m_clusters;
+//  std::vector<KDCluster*> track2hits = track2->m_clusters;
   
-  for(int hit=0;hit<track1hits.size();hit++){
-    if( std::find(track2hits.begin(),track2hits.end(),track1hits[hit]) !=  track2hits.end()) nHitsInCommon++;
+  for(int hit=0;hit<track1->m_clusters.size();hit++){
+    if( std::find(track2->m_clusters.begin(),track2->m_clusters.end(),track1->m_clusters[hit]) !=  track2->m_clusters.end()) nHitsInCommon++;
   }
   
   // Cut on number of shared hits
@@ -1573,13 +1573,13 @@ void ConformalTracking::extendTrack(KDTrack* track,std::vector<cellularTrack*> t
   getFittedTracks(fittedTrackSegments, trackSegments, usedCells);
   KDTrack* bestTrackSegment = fittedTrackSegments[0];
   
-  double newChi2ndof = fitWithExtension(*track, bestTrackSegment->clusters());
+  double newChi2ndof = fitWithExtension(*track, bestTrackSegment->m_clusters);
 
 //  if(fabs(newChi2ndof-chi2ndof) < 2.*chi2ndof || (newChi2ndof-chi2ndof) < 10.){
   if( newChi2ndof < m_chi2cut ){
-    for(int newpoint=(bestTrackSegment->clusters().size()-3);newpoint>=0;newpoint--){
-      track->insert(bestTrackSegment->clusters()[newpoint]);
-      if(newChi2ndof < 10.) used[bestTrackSegment->clusters()[newpoint]] = true;
+    for(int newpoint=(bestTrackSegment->m_clusters.size()-3);newpoint>=0;newpoint--){
+      track->insert(bestTrackSegment->m_clusters[newpoint]);
+      if(newChi2ndof < 10.) used[bestTrackSegment->m_clusters[newpoint]] = true;
     }
   }
   
@@ -1668,7 +1668,7 @@ double ConformalTracking::checkReal(KDTrack* track, std::map<KDCluster*,MCPartic
   double nHits=0.;
   
   // Get the clusters from this track
-  std::vector<KDCluster*> clusters = track->clusters();
+  std::vector<KDCluster*> clusters = track->m_clusters;
   
   // Loop over all hits and see which particle they are associated to
   for(int itCluster=0;itCluster<clusters.size();itCluster++){

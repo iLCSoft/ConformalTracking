@@ -59,6 +59,7 @@ class KDTree
 		kdtree2::KDTree* tree;
 		kdtree2::KDTree* treeTheta;
 		VecCluster det;
+    std::map<double, KDCluster*> thetaLookup;
 };
 
 bool distComparator(const kdtree2::KDTreeResult& a, const kdtree2::KDTreeResult& b);
