@@ -30,16 +30,19 @@ KDTree::KDTree(const VecCluster& pts, double overlapTheta)
     arrayTheta[idtheta][0] = theta;
     arrayTheta[idtheta][1] = 0;
     idtheta++;
+    thetaLookup[theta] = (*iter);
 
     if (theta > (2. * M_PI - overlapTheta)) {
       arrayTheta.resize(boost::extents[arrayTheta.shape()[0] + 1][2]);
-      arrayTheta[idtheta][0] = theta - 2. * M_PI;
-      arrayTheta[idtheta][1] = 0;
+      arrayTheta[idtheta][0]         = theta - 2. * M_PI;
+      arrayTheta[idtheta][1]         = 0;
+      thetaLookup[theta - 2. * M_PI] = (*iter);
       idtheta++;
     } else if (theta < overlapTheta) {
       arrayTheta.resize(boost::extents[arrayTheta.shape()[0] + 1][2]);
-      arrayTheta[idtheta][0] = theta + 2. * M_PI;
-      arrayTheta[idtheta][1] = 0;
+      arrayTheta[idtheta][0]         = theta + 2. * M_PI;
+      arrayTheta[idtheta][1]         = 0;
+      thetaLookup[theta + 2. * M_PI] = (*iter);
       idtheta++;
     }
   }
@@ -168,16 +171,19 @@ void KDTree::transformThetaResults(KDTreeResultVector& vec, VecCluster& result) 
     //res.first->globalY(array[idx][1]);
 
     //int check(0);
+    res = thetaLookup[arrayTheta[idx][0]];
 
-    for (VecCluster::const_iterator it = det.begin(); it != end2; ++it) {
-      if (arrayTheta[idx][0] == (*it)->getTheta()) {
-        //double z = it->globalZ();
-        res = (*it);
-        // once assigned no need to continue looping fo 1NN
-        if (k == 1)
-          break;
-      }
-    }
+    //    for(VecCluster::const_iterator it = det.begin(); it != end2; ++it)
+    //    {
+    //      if (arrayTheta[idx][0] == (*it)->getTheta())
+    //      {
+    //        //double z = it->globalZ();
+    //        res = (*it);
+    //        // once assigned no need to continue looping fo 1NN
+    //        if(k==1)break;
+    //      }
+    //
+    //    }
 
     result.push_back(res);
   }

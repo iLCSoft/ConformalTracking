@@ -5,11 +5,11 @@
 
 #include "lcio.h"
 
+#include <EVENT/LCCollection.h>
+#include <algorithm>
 #include <map>
 #include <string>
 #include <vector>
-
-#include <EVENT/LCCollection.h>
 
 #include <EVENT/LCCollection.h>
 #include <EVENT/MCParticle.h>
@@ -78,7 +78,7 @@ public:
   void getLowestChi2(std::vector<KDTrack*>&, std::vector<KDTrack*>);
 
   double fitWithoutPoint(KDTrack, int);
-  int    overlappingHits(KDTrack*, KDTrack*);
+  int    overlappingHits(const KDTrack*, const KDTrack*);
 
   void   extendTrack(KDTrack*, std::vector<cellularTrack*>, std::map<KDCluster*, bool>&, std::map<Cell*, bool>&);
   double fitWithPoint(KDTrack, KDCluster*);
