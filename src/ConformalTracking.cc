@@ -557,12 +557,13 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
   
   // Loop over all input collections. Tracking will be attempted on the collection, then hits from the next collection
   // will be added to the unused hits already there.
+  int seedCollections = 2;
   for(unsigned int collection=0; collection<(trackerHitCollections.size()+1);collection++){
     
     // The set of conformal hits which will be considered in this iteration
     std::vector<KDCluster*> kdClusters;
 
-    if(collection < trackerHitCollections.size()){
+    if(collection < seedCollections){
       std::vector<KDCluster*> clusters = collectionClusters[collection]; //this makes a copy FIX ME
       int nhits = clusters.size();
       for(int hit=0;hit<nhits;hit++){
@@ -570,7 +571,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       }
     }else{
       // Add hits from this and previous collections to the list
-    	for(unsigned int col=0;col<=trackerHitCollections.size();col++){
+    	for(unsigned int col=0;col<collection;col++){
         std::vector<KDCluster*> clusters = collectionClusters[col]; //this makes a copy FIX ME
         int nhits = clusters.size();
         for(int hit=0;hit<nhits;hit++){
@@ -670,7 +671,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     streamlog_out( DEBUG4 )<<"Attempting to seed with hits: "<<nKDHits<<std::endl;
     
     // Loop over all current hits, using only vertex detectors as seeds
-//    if(collection > 0) continue;
+    if(collection > seedCollections) continue;
 //    std::cout<<"Seeding with hits. Max collection number "<<collection<<", containing a total of "<<nKDHits<<" hits"<<std::endl;
     for(unsigned int nKDHit = 0; nKDHit<nKDHits; nKDHit++){
       
@@ -862,14 +863,14 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
 //              clone = true;
 //            }
             
-//            if( overlappingHits(bestTracks[itTrack],conformalTracks[existingTrack]) >= 4 ) clone = true;
-
             // Only call it a clone if the chi2 is significantly different
 //            if ( fabs(bestTracks[itTrack]->chi2ndof() - conformalTracks[existingTrack]->chi2ndof())  1 &&
 //                 fabs(bestTracks[itTrack]->chi2ndofZS() - conformalTracks[existingTrack]->chi2ndofZS()) < 1) continue;
             
             clone = true;
             
+            if( overlappingHits(bestTracks[itTrack],conformalTracks[existingTrack]) == bestTracks[itTrack]->clusters().size() ) continue;
+
             if( bestTracks[itTrack]->chi2ndofZS() < conformalTracks[existingTrack]->chi2ndofZS()){
               conformalTracks[existingTrack] = bestTracks[itTrack];
 //              conformalTracksChi2ndof[existingTrack] = bestTracks[itTrack].chi2ndof();
@@ -1149,8 +1150,8 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCl
         Cell* cell = new Cell(hit,nhit);
         
         // Check if the new cell is compatible with the previous cell (angle between the two is acceptable)
-        if( cells[itCell]->getAngle(cell) > (m_maxCellAngle*exp(-0.001/nhit->getR())) ){
-//        if( cells[itCell]->getAngle(cell) > m_maxCellAngle ){
+//        if( cells[itCell]->getAngle(cell) > (m_maxCellAngle*exp(-0.001/nhit->getR())) ){
+        if( cells[itCell]->getAngle(cell) > m_maxCellAngle ){
           
           // Debug plotting
 //          if(m_debugPlots && m_eventNumber == 0){
@@ -1383,7 +1384,7 @@ void ConformalTracking::getFittedTracks(std::vector<KDTrack*>& finalTracks, std:
     // Loop over each hit (starting at the back, since we will use the 'erase' function to get rid of them)
     // and see if removing it improves the chi2/ndof
     double removed=0;
-    if(chi2ndof > 10. && chi2ndof < 300.){ //CHANGE ME?? Upper limit to get rid of really terrible tracks
+    if(chi2ndof > 10. && chi2ndof < m_chi2cut){ //CHANGE ME?? Upper limit to get rid of really terrible tracks
       for(int point=npoints-1;point>=0;point--){
         
         // Stop if we would remove too many points on the track to meet the minimum hit requirement (or if the track has more
