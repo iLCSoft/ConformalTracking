@@ -162,6 +162,7 @@ protected:
   int m_minClustersOnTrack;
   bool m_debugPlots;
   KDCluster* debugSeed;
+  std::string m_decoderString;
 	
 } ;
 
