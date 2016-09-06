@@ -35,17 +35,15 @@ FIND_PACKAGE( Boost REQUIRED )
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIRS} )
 
 FIND_PACKAGE( Marlin 1.0 REQUIRED ) # minimum required Marlin version
-INCLUDE_DIRECTORIES( ${Marlin_INCLUDE_DIRS} )
 LINK_LIBRARIES( ${Marlin_LIBRARIES} )
 ADD_DEFINITIONS( ${Marlin_DEFINITIONS} )
 
 FIND_PACKAGE( MarlinTrk REQUIRED )
-INCLUDE_DIRECTORIES( ${MarlinTrk_INCLUDE_DIRS} )
+INCLUDE_DIRECTORIES(SYSTEM ${MarlinTrk_INCLUDE_DIRS} )
 LINK_LIBRARIES( ${MarlinTrk_LIBRARIES} )
 ADD_DEFINITIONS( ${MarlinTrk_DEFINITIONS} )
 
 FIND_PACKAGE( AIDA REQUIRED )
-INCLUDE_DIRECTORIES( ${AIDA_INCLUDE_DIRS} )
 LINK_LIBRARIES( ${AIDA_LIBRARIES} )
 ADD_DEFINITIONS( ${AIDA_DEFINITIONS} )
 
@@ -57,7 +55,7 @@ if(DD4HEP_USE_XERCESC)
 	find_package(XercesC)
 endif()
 include(DD4hep_XML_setup)
-INCLUDE_DIRECTORIES( ${DD4hep_INCLUDE_DIRS} )
+INCLUDE_DIRECTORIES( SYSTEM ${DD4hep_INCLUDE_DIRS} )
 LINK_LIBRARIES( ${DD4hep_LIBRARIES} )
 
 OPTION( MARLINRECO_AIDA "Set to ON to build MarlinReco with AIDA" ON )
@@ -71,7 +69,7 @@ ENDIF()
 # optional package
 FOREACH( pkg Marlin MarlinUtil GSL AIDA ROOT )
 	IF( ${pkg}_FOUND )
-		INCLUDE_DIRECTORIES( ${${pkg}_INCLUDE_DIRS} )
+		INCLUDE_DIRECTORIES( SYSTEM ${${pkg}_INCLUDE_DIRS} )
 		LINK_LIBRARIES( ${${pkg}_LIBRARIES} )
 		ADD_DEFINITIONS( ${${pkg}_DEFINITIONS} )
 		MESSAGE( STATUS "${pkg} -- found" )
@@ -93,10 +91,6 @@ ENDIF()
 
 
 ### LIBRARY #################################################################
-
-# definitions to pass to the compiler
-ADD_DEFINITIONS( "-Wall -ansi -pedantic" )
-ADD_DEFINITIONS( "-Wno-long-long" )
 
 # include directories
 INCLUDE_DIRECTORIES( ./include )
