@@ -149,13 +149,14 @@ protected:
   TH3F* m_xyzDistribution;
 
   // Other constants
-  double     m_thetaRange;
-  double     m_chi2cut;
-  double     m_maxCellAngle;
-  double     m_maxDistance;
-  int        m_minClustersOnTrack;
-  bool       m_debugPlots;
-  KDCluster* debugSeed;
+  double      m_thetaRange;
+  double      m_chi2cut;
+  double      m_maxCellAngle;
+  double      m_maxDistance;
+  int         m_minClustersOnTrack;
+  bool        m_debugPlots;
+  KDCluster*  debugSeed;
+  std::string m_decoderString;
 };
 
 bool sort_by_radius(EVENT::TrackerHit*, EVENT::TrackerHit*);
