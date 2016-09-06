@@ -217,6 +217,7 @@ void ConformalTracking::init() {
     m_conformalChi2real = new TH1F("conformalChi2real","conformalChi2real",1000,0,1000);
     m_conformalChi2fake = new TH1F("conformalChi2fake","conformalChi2fake",1000,0,1000);
     m_conformalChi2Purity = new TH2F("conformalChi2Purity","conformalChi2Purity",150,0,1.5,1000,0,1000);
+    m_conformalChi2MC = new TH1F("conformalChi2MC","conformalChi2MC",1000,0,1000);
     
     m_cellAngleMC = new TH1F("cellAngleMC","cellAngleMC",1250,0,0.05);
     m_cellAngleRadiusMC = new TH2F("cellAngleRadiusMC","cellAngleRadiusMC",400,0,0.04,1000,0,0.04);
@@ -316,7 +317,9 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
   trackCollection->setFlag( trkFlag.getFlag()  ) ;
   
   // Set up ID decoder
-  UTIL::BitField64 m_encoder( lcio::ILDCellID0::encoder_string ) ;
+  const string SiDecoder = "subdet:6,side:3,layer:4,module:12,sensor:1";
+  UTIL::BitField64 m_encoder( SiDecoder ) ;
+//  UTIL::BitField64 m_encoder( lcio::ILDCellID0::encoder_string ) ;
 
   /*
    Debug plotting. This section picks up tracks reconstructed using the cheated pattern recognition (TruthTrackFinder) and uses it to show
@@ -400,12 +403,15 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
 //        debugHits = trackHits;
 //        std::cout<<"==> Picked up "<<debugHits.size()<<" DEBUG hits"<<std::endl;
 //      }
+      
+      // Make a track
+      KDTrack* mcTrack = new KDTrack();
       // Loop over all hits for debugging
       for(int itHit=0;itHit<trackHits.size();itHit++){
         
         // Get the conformal clusters
         KDCluster* cluster = trackHits[itHit];
-        
+        mcTrack->add(cluster);
 //        if(particlePt>29.5 && particlePt<29.8){
 //          debugHits = trackHits;
 //          std::cout<<"==> Picked up "<<debugHits.size()<<" DEBUG hits"<<std::endl;
@@ -428,6 +434,10 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         
       }
       
+      // Fit the track and plot the chi2
+      mcTrack->linearRegression();
+      m_conformalChi2MC->Fill(mcTrack->chi2ndof());
+      delete mcTrack;
       
       // Now loop over the hits and make cells - filling histograms along the way
       int nHits = trackHits.size();
@@ -601,11 +611,11 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     // Loop over all current tracks
     for(int currentTrack=0;currentTrack<nCurrentTracks;currentTrack++){
 
+      continue;
       // This step (although first) only runs when tracks have already been produced. An attempt
       // is made to extend them with hits from the new collection, using the final cell of the track
       // as the seed cell.
       
-      continue;
       // Containers to hold new cells made, and to check if a hit already has a cell connected to it
       std::vector<Cell*> cells;
       
@@ -781,7 +791,13 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         // Produce all tracks leading back to the seed hit from this cell
 //        std::cout<<"- creating new tracks"<<std::endl;
         std::vector<cellularTrack*> candidateTracks;
-        createTracksNew(candidateTracks,cells[itCell],usedCells2); // Move back to using used cells here? With low chi2/ndof?
+        std::vector<cellularTrack*> candidateTracksTemp;
+        createTracksNew(candidateTracksTemp,cells[itCell],usedCells2); // Move back to using used cells here? With low chi2/ndof?
+        
+        for(int itTrack=0;itTrack<candidateTracksTemp.size();itTrack++){
+          if(candidateTracksTemp[itTrack]->size() >= (m_minClustersOnTrack-1) ) candidateTracks.push_back(candidateTracksTemp[itTrack]);
+        }
+
 //        std::cout<<"- created new tracks"<<std::endl;
 
         // Debug plotting
@@ -956,16 +972,17 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     covMatrix[14] = ( m_initialTrackError_tanL  ); //sigma_tanl^2
     
     // Try to fit
-//    int fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack, trackHits, track, MarlinTrk::IMarlinTrack::forward, covMatrix, m_magneticField, m_maxChi2perHit);
+    int fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack, trackHits, track, MarlinTrk::IMarlinTrack::forward, covMatrix, m_magneticField, m_maxChi2perHit);
     
     // Check track quality - if fit fails chi2 will be 0. For the moment add hits by hand to any track that fails the track fit, and store it as if it were ok...
-//    if(track->getChi2() == 0.){
+    if(track->getChi2() == 0.){
 //      std::cout<<"Fit failed. Track has "<<track->getTrackerHits().size()<<" hits"<<std::endl;
 //      std::cout<<"Fit fail error "<<fitError<<std::endl;
-      for(unsigned int p=0;p<trackHits.size();p++){
-        track->addHit(trackHits[p]);
-      }
-//    }// delete track; delete marlinTrack; continue;}
+//      for(unsigned int p=0;p<trackHits.size();p++){
+//        track->addHit(trackHits[p]);
+//      }
+//    }//
+    delete track; delete marlinTrack; continue;}
     
     // Add hit information TODO: this is just a fudge for the moment, since we only use vertex hits. Should do for each subdetector once enabled
     track->subdetectorHitNumbers().resize(2 * lcio::ILDDetID::ETD);
@@ -1265,7 +1282,8 @@ void ConformalTracking::createTracksNew(std::vector<cellularTrack*>& finalcellul
   
   int nTracks = cellularTracks.size();
   for(int itTrack=0;itTrack<nTracks;itTrack++){
-    if(cellularTracks[itTrack]->size() >= (m_minClustersOnTrack-1) ) finalcellularTracks.push_back(cellularTracks[itTrack]);
+//    if(cellularTracks[itTrack]->size() >= (m_minClustersOnTrack-1) )
+      finalcellularTracks.push_back(cellularTracks[itTrack]);
   }
   
   return;
@@ -1563,6 +1581,7 @@ KDCluster* ConformalTracking::extrapolateCell(Cell* cell, double distance){
 
 void ConformalTracking::extendTrack(KDTrack* track,std::vector<cellularTrack*> trackSegments, std::map<KDCluster*,bool>& used, std::map<Cell*,bool>& usedCells){
 
+//  std::cout<<"== Attempting to extend track"<<std::endl;
   // Get the inital track chi2/ndof
   int npoints = track->nPoints();
   double chi2ndof = track->chi2ndof();
@@ -1573,15 +1592,38 @@ void ConformalTracking::extendTrack(KDTrack* track,std::vector<cellularTrack*> t
   getFittedTracks(fittedTrackSegments, trackSegments, usedCells);
   KDTrack* bestTrackSegment = fittedTrackSegments[0];
   
-  double newChi2ndof = fitWithExtension(*track, bestTrackSegment->m_clusters);
+  double bestChi2=1e10;
+  KDTrack* bestExtension;
+//  std::cout<<"- Have "<<fittedTrackSegments.size()<<" fitted segments. Original chi2/ndof is "<<chi2ndof<<std::endl;
+  for(int nTrackExtension=0;nTrackExtension<fittedTrackSegments.size();nTrackExtension++){
+    
+    double newChi2ndof = fitWithExtension(*track, fittedTrackSegments[nTrackExtension]->m_clusters);
+    
+//    std::cout<<"Extension "<<nTrackExtension<<" gives a chi2/ndof of "<<newChi2ndof<<std::endl;
+//    if( (newChi2ndof-bestChi2) < 0.5*bestChi2 ){
+    if( newChi2ndof < bestChi2 ){
+      bestChi2 = newChi2ndof;
+      bestExtension = fittedTrackSegments[nTrackExtension];
+    }
 
-//  if(fabs(newChi2ndof-chi2ndof) < 2.*chi2ndof || (newChi2ndof-chi2ndof) < 10.){
-  if( newChi2ndof < m_chi2cut ){
-    for(int newpoint=(bestTrackSegment->m_clusters.size()-3);newpoint>=0;newpoint--){
-      track->insert(bestTrackSegment->m_clusters[newpoint]);
-      if(newChi2ndof < 10.) used[bestTrackSegment->m_clusters[newpoint]] = true;
+  }
+
+//  if( bestChi2 != chi2ndof && ((bestChi2-chi2ndof) < 0.5*chi2ndof) ){
+  if( bestChi2 != 1e10 && ((bestChi2-chi2ndof) < 10.*m_chi2cut) ){
+    for(int newpoint=(bestExtension->m_clusters.size()-3);newpoint>=0;newpoint--){
+      track->insert(bestExtension->m_clusters[newpoint]);
+      if(bestChi2 < 10.) used[bestExtension->m_clusters[newpoint]] = true;
     }
   }
+  
+//  double newChi2ndof = fitWithExtension(*track, bestTrackSegment->m_clusters);
+
+//  if( newChi2ndof < m_chi2cut ){
+//    for(int newpoint=(bestTrackSegment->m_clusters.size()-3);newpoint>=0;newpoint--){
+//      track->insert(bestTrackSegment->m_clusters[newpoint]);
+//      if(newChi2ndof < 10.) used[bestTrackSegment->m_clusters[newpoint]] = true;
+//    }
+//  }
   
 }
 
@@ -1615,8 +1657,9 @@ double ConformalTracking::fitWithExtension(KDTrack track, std::vector<KDCluster*
   
   // Calculate the track chi2 with the final fitted values
   track.linearRegression();
+  track.linearRegressionConformal();
 //  track.fit();
-  double chi2ndof = track.chi2ndof();
+  double chi2ndof = track.chi2ndofZS();
   
   return chi2ndof;
 
