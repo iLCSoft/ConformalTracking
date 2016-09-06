@@ -525,7 +525,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     // Loop over tracker hits and make conformal hit collection
     std::vector<KDCluster*> tempClusters;
     int nHits = trackerHitCollections[collection]->getNumberOfElements();
-    std::cout<<"Collection "<<collection<<" has "<<nHits<<" hits"<<std::endl;
+//    std::cout<<"Collection "<<collection<<" has "<<nHits<<" hits"<<std::endl;
     for(int itHit=0;itHit<nHits;itHit++){
       
       // Get the hit
@@ -592,7 +592,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     
     // Sort the KDClusters from larger to smaller radius
     if(kdClusters.size() == 0) continue;
-    std::cout<<"Number of hits: "<<kdClusters.size()<<std::endl;
+//    std::cout<<"Number of hits: "<<kdClusters.size()<<std::endl;
     streamlog_out( DEBUG4 )<<"Number of hits: "<<kdClusters.size()<<std::endl;
     std::sort(kdClusters.begin(),kdClusters.end(),sort_by_radiusKD);
     
@@ -605,7 +605,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     int nCurrentTracks = conformalTracks.size();
     streamlog_out( DEBUG4 )<<"Seeding with tracks"<<std::endl;
     streamlog_out( DEBUG4 )<<"Attempting to extend current tracks: "<<nCurrentTracks<<std::endl;
-    std::cout<<"Seeding with tracks"<<std::endl;
+//    std::cout<<"Seeding with tracks"<<std::endl;
     
     // Loop over all current tracks
     for(int currentTrack=0;currentTrack<nCurrentTracks;currentTrack++){
@@ -937,7 +937,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
   }
   
   // Now make "real" tracks from all of the conformal tracks
-  std::cout<<"*** CA has made "<<conformalTracks.size()<<" tracks ***"<<std::endl;
+  std::cout<<"*** CA has made "<<conformalTracks.size()<< (conformalTracks.size() == 1 ? " track ***" : " tracks ***") <<std::endl;
 
   // Loop over all track candidates
   for(unsigned int caTrack=0;caTrack<conformalTracks.size();caTrack++){
