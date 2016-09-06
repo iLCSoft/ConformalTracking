@@ -11,10 +11,10 @@
 #include <string>
 #include <vector>
 
+#include <gsl/gsl_rng.h>
+//#include "DDRec/Surface.h"
 #include <EVENT/LCCollection.h>
 #include <EVENT/MCParticle.h>
-#include <gsl/gsl_rng.h>
-#include "DDRec/Surface.h"
 #include "EVENT/TrackerHit.h"
 #include "MarlinTrk/IMarlinTrkSystem.h"
 #include "TCanvas.h"
@@ -125,6 +125,7 @@ protected:
   TH1F* m_conformalChi2real;
   TH1F* m_conformalChi2fake;
   TH2F* m_conformalChi2Purity;
+  TH1F* m_conformalChi2MC;
 
   TH1F* m_cellAngleMC;
   TH2F* m_cellAngleRadiusMC;
