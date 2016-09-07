@@ -30,6 +30,7 @@
 #include "KDTrack.h"
 #include "KDTree.h"
 #include "Cell.h"
+#include "KalmanTrack.h"
 
 using namespace lcio ;
 using namespace marlin ;

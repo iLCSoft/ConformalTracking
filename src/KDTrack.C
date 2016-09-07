@@ -7,6 +7,7 @@ KDTrack::KDTrack(){
   m_nPoints = 0;
   m_conformalFit = true;
   fillFit = false;
+  m_kalmanTrack = NULL;
 }
 
 // Destructor
