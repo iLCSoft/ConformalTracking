@@ -598,7 +598,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     // Sort the KDClusters from larger to smaller radius
     if (kdClusters.size() == 0)
       continue;
-    //    std::cout<<"Number of hits: "<<kdClusters.size()<<std::endl;
+    std::cout << "Number of hits: " << kdClusters.size() << std::endl;
     streamlog_out(DEBUG4) << "Number of hits: " << kdClusters.size() << std::endl;
     std::sort(kdClusters.begin(), kdClusters.end(), sort_by_radiusKD);
 
@@ -615,7 +615,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
     // Loop over all current tracks
     for (int currentTrack = 0; currentTrack < nCurrentTracks; currentTrack++) {
-      continue;
+      //      cout<<"== Trying to extend track "<<currentTrack<<endl;
       // This step (although first) only runs when tracks have already been produced. An attempt
       // is made to extend them with hits from the new collection, using the final cell of the track
       // as the seed cell.
@@ -983,6 +983,14 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       KDCluster* cluster = conformalTrack->m_clusters[itHit];
       trackHits.push_back(kdClusterMap[cluster]);
     }
+    // Add kalman filtered hits
+    if (conformalTrack->kalmanTrack() != NULL) {
+      KalmanTrack* kalmanTrack = conformalTrack->kalmanTrack();
+      for (int i = 1; i < kalmanTrack->m_kalmanClusters.size(); i++) {
+        KDCluster* cluster = kalmanTrack->m_kalmanClusters[i];
+        trackHits.push_back(kdClusterMap[cluster]);
+      }
+    }
 
     // Sort the hits from smaller to larger radius
     std::sort(trackHits.begin(), trackHits.end(), sort_by_radius);
@@ -1002,21 +1010,17 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     covMatrix[14] = (m_initialTrackError_tanL);   //sigma_tanl^2
 
     // Try to fit
-    int fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack, trackHits, track, MarlinTrk::IMarlinTrack::forward,
-                                                       covMatrix, m_magneticField, m_maxChi2perHit);
+    //    int fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack, trackHits, track, MarlinTrk::IMarlinTrack::forward, covMatrix, m_magneticField, m_maxChi2perHit);
 
     // Check track quality - if fit fails chi2 will be 0. For the moment add hits by hand to any track that fails the track fit, and store it as if it were ok...
-    if (track->getChi2() == 0.) {
-      //      std::cout<<"Fit failed. Track has "<<track->getTrackerHits().size()<<" hits"<<std::endl;
-      //      std::cout<<"Fit fail error "<<fitError<<std::endl;
-      //      for(unsigned int p=0;p<trackHits.size();p++){
-      //        track->addHit(trackHits[p]);
-      //      }
-      //    }//
-      delete track;
-      delete marlinTrack;
-      continue;
+    //    if(track->getChi2() == 0.){
+    //      std::cout<<"Fit failed. Track has "<<track->getTrackerHits().size()<<" hits"<<std::endl;
+    //      std::cout<<"Fit fail error "<<fitError<<std::endl;
+    for (unsigned int p = 0; p < trackHits.size(); p++) {
+      track->addHit(trackHits[p]);
     }
+    //    }//
+    //    delete track; delete marlinTrack; continue;}
 
     // Add hit information TODO: this is just a fudge for the moment, since we only use vertex hits. Should do for each subdetector once enabled
     track->subdetectorHitNumbers().resize(2 * lcio::ILDDetID::ETD);
@@ -1631,9 +1635,72 @@ KDCluster* ConformalTracking::extrapolateCell(Cell* cell, double distance) {
 
 void ConformalTracking::extendTrack(KDTrack* track, std::vector<cellularTrack*> trackSegments,
                                     std::map<KDCluster*, bool>& used, std::map<Cell*, bool>& usedCells) {
-  //  std::cout<<"== Attempting to extend track"<<std::endl;
+  //  cout<<"== extending track, have "<<trackSegments.size()<<" candidates"<<endl;
+  // For each track segment, perform a kalman filter on the addition points and chose the track extension with the
+  // best delta chi2.
+  KalmanTrack* bestTrack = NULL;
+  double       bestChi2  = 0.;
+  double       bestNpoints;
+  for (int nTrackExtension = 0; nTrackExtension < trackSegments.size(); nTrackExtension++) {
+    double npoints = 0;
+    //    std::cout<<"-> extension "<<nTrackExtension<<" has "<<trackSegments[nTrackExtension]->size()<<" cells"<<std::endl;
+    //    for(int c=0;c<trackSegments[nTrackExtension]->size();c++){
+    //      std::cout<<"-> cell "<<c<<" start ("<<(*trackSegments[nTrackExtension])[c]->getStart()->getU()<<","<<(*trackSegments[nTrackExtension])[c]->getStart()->getV()<<") and stop ("<<(*trackSegments[nTrackExtension])[c]->getEnd()->getU()<<","<<(*trackSegments[nTrackExtension])[c]->getEnd()->getV()<<")"<<std::endl;
+    //    }
+    if (trackSegments[nTrackExtension]->size() < 2)
+      continue;
+
+    // Make the kalman track fit and initialise with the seed track
+    KalmanTrack* kalmanTrack = new KalmanTrack(track);
+    double       deltaChi2   = 0.;
+
+    // Add each of the new clusters, and if the delta chi2 exceeds the cut then throw away this track extension
+    KDCluster* kdStart         = (*trackSegments[nTrackExtension])[0]->getEnd();
+    double     newHitDeltaChi2 = kalmanTrack->addCluster(kdStart);
+    //    cout<<"- delta chi2 = "<<newHitDeltaChi2<<endl;
+    if (newHitDeltaChi2 > 100.) {
+      delete kalmanTrack;
+      continue;
+    }
+
+    deltaChi2 += newHitDeltaChi2;
+    npoints++;
+
+    for (unsigned int trackCell = 0; trackCell < trackSegments[nTrackExtension]->size() - 2; trackCell++) {
+      KDCluster* kdEnd = (*trackSegments[nTrackExtension])[trackCell]->getStart();
+      newHitDeltaChi2  = kalmanTrack->addCluster(kdEnd);
+      //      cout<<"- delta chi2 = "<<newHitDeltaChi2<<endl;
+
+      if (newHitDeltaChi2 > 100.) {
+        //        delete kalmanTrack;
+        break;
+      }
+
+      deltaChi2 += newHitDeltaChi2;
+      npoints++;
+    }
+
+    //    std::cout<<"-- final chi2/ndof increase: "<<deltaChi2/npoints<<" for "<<npoints<<" points"<<std::endl;
+    if (bestTrack == NULL) {
+      bestTrack   = kalmanTrack;
+      bestChi2    = deltaChi2;
+      bestNpoints = npoints;
+    } else if (deltaChi2 / npoints < bestChi2 / bestNpoints) {
+      bestTrack   = kalmanTrack;
+      bestChi2    = deltaChi2;
+      bestNpoints = npoints;
+    } else {
+      delete kalmanTrack;
+    }
+  }
+
+  if (bestTrack != NULL)
+    track->setKalmanTrack(bestTrack);
+
+  /*
+//  std::cout<<"== Attempting to extend track"<<std::endl;
   // Get the inital track chi2/ndof
-  int    npoints  = track->nPoints();
+  int npoints = track->nPoints();
   double chi2ndof = track->chi2ndof();
 
   // Of all of the track segments, get the one with lowest chi2/ndof. Now look at each point on the cellular
@@ -1641,38 +1708,40 @@ void ConformalTracking::extendTrack(KDTrack* track, std::vector<cellularTrack*> 
   vector<KDTrack*> fittedTrackSegments;
   getFittedTracks(fittedTrackSegments, trackSegments, usedCells);
   KDTrack* bestTrackSegment = fittedTrackSegments[0];
-
-  double   bestChi2 = 1e10;
+  
+  double bestChi2=1e10;
   KDTrack* bestExtension;
-  //  std::cout<<"- Have "<<fittedTrackSegments.size()<<" fitted segments. Original chi2/ndof is "<<chi2ndof<<std::endl;
-  for (int nTrackExtension = 0; nTrackExtension < fittedTrackSegments.size(); nTrackExtension++) {
+//  std::cout<<"- Have "<<fittedTrackSegments.size()<<" fitted segments. Original chi2/ndof is "<<chi2ndof<<std::endl;
+  for(int nTrackExtension=0;nTrackExtension<fittedTrackSegments.size();nTrackExtension++){
+    
     double newChi2ndof = fitWithExtension(*track, fittedTrackSegments[nTrackExtension]->m_clusters);
-
-    //    std::cout<<"Extension "<<nTrackExtension<<" gives a chi2/ndof of "<<newChi2ndof<<std::endl;
-    //    if( (newChi2ndof-bestChi2) < 0.5*bestChi2 ){
-    if (newChi2ndof < bestChi2) {
-      bestChi2      = newChi2ndof;
+    
+//    std::cout<<"Extension "<<nTrackExtension<<" gives a chi2/ndof of "<<newChi2ndof<<std::endl;
+//    if( (newChi2ndof-bestChi2) < 0.5*bestChi2 ){
+    if( newChi2ndof < bestChi2 ){
+      bestChi2 = newChi2ndof;
       bestExtension = fittedTrackSegments[nTrackExtension];
     }
+
   }
 
-  //  if( bestChi2 != chi2ndof && ((bestChi2-chi2ndof) < 0.5*chi2ndof) ){
-  if (bestChi2 != 1e10 && ((bestChi2 - chi2ndof) < 10. * m_chi2cut)) {
-    for (int newpoint = (bestExtension->m_clusters.size() - 3); newpoint >= 0; newpoint--) {
+//  if( bestChi2 != chi2ndof && ((bestChi2-chi2ndof) < 0.5*chi2ndof) ){
+  if( bestChi2 != 1e10 && ((bestChi2-chi2ndof) < 10.*m_chi2cut) ){
+    for(int newpoint=(bestExtension->m_clusters.size()-3);newpoint>=0;newpoint--){
       track->insert(bestExtension->m_clusters[newpoint]);
-      if (bestChi2 < 10.)
-        used[bestExtension->m_clusters[newpoint]] = true;
+      if(bestChi2 < 10.) used[bestExtension->m_clusters[newpoint]] = true;
     }
   }
+  
+//  double newChi2ndof = fitWithExtension(*track, bestTrackSegment->m_clusters);
 
-  //  double newChi2ndof = fitWithExtension(*track, bestTrackSegment->m_clusters);
-
-  //  if( newChi2ndof < m_chi2cut ){
-  //    for(int newpoint=(bestTrackSegment->m_clusters.size()-3);newpoint>=0;newpoint--){
-  //      track->insert(bestTrackSegment->m_clusters[newpoint]);
-  //      if(newChi2ndof < 10.) used[bestTrackSegment->m_clusters[newpoint]] = true;
-  //    }
-  //  }
+//  if( newChi2ndof < m_chi2cut ){
+//    for(int newpoint=(bestTrackSegment->m_clusters.size()-3);newpoint>=0;newpoint--){
+//      track->insert(bestTrackSegment->m_clusters[newpoint]);
+//      if(newChi2ndof < 10.) used[bestTrackSegment->m_clusters[newpoint]] = true;
+//    }
+//  }
+  */
 }
 
 double ConformalTracking::fitWithExtension(KDTrack track, std::vector<KDCluster*> hits) {

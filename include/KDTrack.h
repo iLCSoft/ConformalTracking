@@ -12,6 +12,8 @@
 // v axis. The class holds a vector of KDCluster objects, the hits attached to this track
 // ------------------------------------------------------------------------------------
 
+class KalmanTrack;
+
 class KDTrack {
 public:
   // Constructor
@@ -52,6 +54,7 @@ public:
   void setGradientZS(double gradientZS) { m_gradientZS = gradientZS; }
   void setInterceptZS(double interceptZS) { m_interceptZS = interceptZS; }
   void setConformalFit(bool fit) { m_conformalFit = fit; }
+  void setKalmanTrack(KalmanTrack* track) { m_kalmanTrack = track; }
 
   // Functions to return member variables
   double                  chi2ndof() { return m_chi2ndof; }
@@ -62,11 +65,13 @@ public:
   double                  gradient() { return m_gradient; }
   double                  intercept() { return m_intercept; }
   int                     nPoints() { return m_nPoints; }
+  KalmanTrack*            kalmanTrack() { return m_kalmanTrack; }
 
   void FillDistribution(TH2F*);
 
   std::vector<KDCluster*> m_clusters;
   bool                    m_conformalFit;
+  KalmanTrack*            m_kalmanTrack;
 
 private:
   // Each KDTrack contains a list of clusters, gradient and intercept

@@ -28,6 +28,7 @@
 #include "Cell.h"
 #include "KDTrack.h"
 #include "KDTree.h"
+#include "KalmanTrack.h"
 #include "Math/Functor.h"
 #include "Minuit2/Minuit2Minimizer.h"
 
