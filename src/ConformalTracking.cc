@@ -985,16 +985,16 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     covMatrix[14] = ( m_initialTrackError_tanL  ); //sigma_tanl^2
     
     // Try to fit
-//    int fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack, trackHits, track, MarlinTrk::IMarlinTrack::forward, covMatrix, m_magneticField, m_maxChi2perHit);
+    int fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack, trackHits, track, MarlinTrk::IMarlinTrack::forward, covMatrix, m_magneticField, m_maxChi2perHit);
     
     // Check track quality - if fit fails chi2 will be 0. For the moment add hits by hand to any track that fails the track fit, and store it as if it were ok...
-//    if(track->getChi2() == 0.){
-//      std::cout<<"Fit failed. Track has "<<track->getTrackerHits().size()<<" hits"<<std::endl;
-//      std::cout<<"Fit fail error "<<fitError<<std::endl;
+    if(track->getChi2() == 0.){
+      std::cout<<"Fit failed. Track has "<<track->getTrackerHits().size()<<" hits"<<std::endl;
+      std::cout<<"Fit fail error "<<fitError<<std::endl;
       for(unsigned int p=0;p<trackHits.size();p++){
         track->addHit(trackHits[p]);
       }
-//    }//
+    }//
 //    delete track; delete marlinTrack; continue;}
     
     // Add hit information TODO: this is just a fudge for the moment, since we only use vertex hits. Should do for each subdetector once enabled
