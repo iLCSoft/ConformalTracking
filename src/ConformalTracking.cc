@@ -337,7 +337,12 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
   if(m_debugPlots){
     
     // Get the MC particle collection
-    getCollection(particleCollection, m_inputParticleCollection, evt); if(particleCollection == 0) return;
+    getCollection(particleCollection, m_inputParticleCollection, evt);
+    if(particleCollection == 0){
+      delete trackCollection;
+      delete debugHitCollection;
+      return;
+    }
     
     // Draw the empty event display onto the canvas, so that cells can be added sequentially
     if(m_eventNumber == 0){
@@ -1639,6 +1644,7 @@ void ConformalTracking::extendTrack(KDTrack* track,std::vector<cellularTrack*> t
       bestChi2=deltaChi2;
       bestNpoints=npoints;
     }else if(deltaChi2/npoints < bestChi2/bestNpoints){
+      delete bestTrack;
       bestTrack = kalmanTrack;
       bestChi2=deltaChi2;
       bestNpoints=npoints;
