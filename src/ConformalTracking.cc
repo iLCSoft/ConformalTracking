@@ -799,7 +799,8 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         createTracksNew(candidateTracksTemp,cells[itCell],usedCells2); // Move back to using used cells here? With low chi2/ndof?
         
         for(int itTrack=0;itTrack<candidateTracksTemp.size();itTrack++){
-          if(candidateTracksTemp[itTrack]->size() >= (m_minClustersOnTrack-1) ) candidateTracks.push_back(candidateTracksTemp[itTrack]);
+	  if(candidateTracksTemp[itTrack]->size() >= (m_minClustersOnTrack-1) ) candidateTracks.push_back(candidateTracksTemp[itTrack]);
+	  else delete candidateTracksTemp[itTrack];
         }
 
 //        std::cout<<"- created new tracks"<<std::endl;
@@ -821,6 +822,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         if(candidateTracks.size() == 0) continue;
         std::vector<double> chi2ndof;
         std::vector<KDTrack*> bestTracks;
+	// FIXME: the canditateTracks still leak some memory
         getFittedTracks(bestTracks,candidateTracks,usedCells); // Returns all tracks at the moment, not lowest chi2 CHANGE ME
 
         // Store track(s) for later
@@ -1103,6 +1105,8 @@ void ConformalTracking::end(){
     m_canvConformalEventDisplayMCunreconstructed->Write();
   }
   
+  //FIXME trackFactory is leaking Memory, but probably a MarlinTRK issue
+
 }
 
 // Get a collection from the event object
@@ -1326,7 +1330,10 @@ void ConformalTracking::getFittedTracks(std::vector<KDTrack*>& finalTracks, std:
   for(unsigned int itTrack=0;itTrack<candidateTracks.size();itTrack++){
     
     // If there are not enough hits on the track, ignore it
-    if(candidateTracks[itTrack]->size() < (m_minClustersOnTrack - 2)) continue;
+    if(candidateTracks[itTrack]->size() < (m_minClustersOnTrack - 2)) {
+      delete candidateTracks[itTrack];
+      continue;
+    }
     
 		// Make the fitting object. TGraphErrors used for 2D error-weighted fitting
     KDTrack* track = new KDTrack();
@@ -1495,7 +1502,10 @@ void ConformalTracking::getLowestChi2(std::vector<KDTrack*>& finalTracks, std::v
       
       // Store this track
       finalTracks.push_back(trackContainer[itTrack]);
-//      finalChi2ndofs.push_back(trackChi2ndofs[itTrack]);
+
+    } else {
+      delete trackContainer[itTrack];
+      trackContainer[itTrack] = NULL;
     }
   }
   
