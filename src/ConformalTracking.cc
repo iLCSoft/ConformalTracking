@@ -822,7 +822,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         if(candidateTracks.size() == 0) continue;
         std::vector<double> chi2ndof;
         std::vector<KDTrack*> bestTracks;
-	// FIXME: the canditateTracks still leak some memory
+
         getFittedTracks(bestTracks,candidateTracks,usedCells); // Returns all tracks at the moment, not lowest chi2 CHANGE ME
 
         // Store track(s) for later
@@ -1296,7 +1296,7 @@ void ConformalTracking::createTracksNew(std::vector<cellularTrack*>& finalcellul
     }
     
   }
-  
+
   int nTracks = cellularTracks.size();
   for(int itTrack=0;itTrack<nTracks;itTrack++){
 //    if(cellularTracks[itTrack]->size() >= (m_minClustersOnTrack-1) )
@@ -1332,6 +1332,7 @@ void ConformalTracking::getFittedTracks(std::vector<KDTrack*>& finalTracks, std:
     // If there are not enough hits on the track, ignore it
     if(candidateTracks[itTrack]->size() < (m_minClustersOnTrack - 2)) {
       delete candidateTracks[itTrack];
+      candidateTracks[itTrack] = NULL;
       continue;
     }
     
@@ -1449,7 +1450,10 @@ void ConformalTracking::getFittedTracks(std::vector<KDTrack*>& finalTracks, std:
 //    if(chi2ndof < 10.){
 //      for(unsigned int trackCell=0;trackCell<candidateTracks[itTrack]->size();trackCell++) usedCells[(*candidateTracks[itTrack])[trackCell]] = true;
 //    }
-  }
+
+    delete candidateTracks[itTrack];
+
+  }// end for candidateTracks
   
   // TEMP - return all tracks, don't take lowest chi2
 //  finalChi2ndofs = trackChi2ndofs;
