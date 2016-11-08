@@ -35,7 +35,7 @@ void KDTrack::fit() {
 }
 
 // Function to calculate the chi2
-const double KDTrack::calculateChi2() {
+double KDTrack::calculateChi2() {
   // Value to return
   double chi2 = 0.;
 
@@ -73,7 +73,7 @@ double KDTrack::operator()(const double* parameters) {
 }
 
 // Function to calculate the chi2 of the S-Z fit of the helix
-const double KDTrack::calculateChi2SZ(TH2F* histo) {
+double KDTrack::calculateChi2SZ(TH2F* histo) {
   // Value to return
   double chi2 = 0.;
 
