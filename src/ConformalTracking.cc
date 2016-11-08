@@ -892,13 +892,20 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       // Store the final CA tracks. First sort them by length, so that if we produce a clone with just 1 hit missing, the larger track is taken
       std::sort(bestTracks.begin(), bestTracks.end(), sort_by_length);
       for (unsigned int itTrack = 0; itTrack < bestTracks.size(); itTrack++) {
+        bool bestTrackUsed = false;
         // Cut on chi2
-        if (bestTracks[itTrack]->chi2ndof() > m_chi2cut)
+        if (bestTracks[itTrack]->chi2ndof() > m_chi2cut) {
+          delete bestTracks[itTrack];
+          bestTracks[itTrack] = NULL;
           continue;
+        }
 
         bestTracks[itTrack]->linearRegressionConformal();
-        if (bestTracks[itTrack]->chi2ndofZS() > m_chi2cut)
+        if (bestTracks[itTrack]->chi2ndofZS() > m_chi2cut) {
+          delete bestTracks[itTrack];
+          bestTracks[itTrack] = NULL;
           continue;
+        }
         //        if(chi2SZ(bestTracks[itTrack]) > m_chi2cut) continue;
 
         // WHHHHYYYYYYYYY does this not cut out real clones???
@@ -908,9 +915,10 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         for (int existingTrack = 0; existingTrack < conformalTracks.size(); existingTrack++) {
           //          if( bestTracks[itTrack].chi2ndof() == conformalTracks[existingTrack].chi2ndof() ) std::cout<<"I have found my twin!!"<<std::endl;
           // If the track is a clone with lower chi2/ndof, replace the old track with the new one
-          if (overlappingHits(bestTracks[itTrack], conformalTracks[existingTrack]) >= 2) {
+          const int nOverlappingHits = overlappingHits(bestTracks[itTrack], conformalTracks[existingTrack]);
+          if (nOverlappingHits >= 2) {
             // If the same hits, but longer in one case, take the long one
-            //            if( overlappingHits(bestTracks[itTrack],conformalTracks[existingTrack]) == bestTracks[itTrack]->m_clusters.size()){
+            //            if( nOverlappingHits == bestTracks[itTrack]->m_clusters.size()){
             //              clone = true;
             //            }
 
@@ -920,12 +928,12 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
             clone = true;
 
-            if (overlappingHits(bestTracks[itTrack], conformalTracks[existingTrack]) ==
-                bestTracks[itTrack]->m_clusters.size())
+            if (nOverlappingHits == bestTracks[itTrack]->m_clusters.size())
               continue;
 
             if (bestTracks[itTrack]->chi2ndofZS() < conformalTracks[existingTrack]->chi2ndofZS()) {
               conformalTracks[existingTrack] = bestTracks[itTrack];
+              bestTrackUsed                  = true;
               //              conformalTracksChi2ndof[existingTrack] = bestTracks[itTrack].chi2ndof();
             }
 
@@ -934,11 +942,13 @@ void ConformalTracking::processEvent(LCEvent* evt) {
             //              conformalTracksChi2ndof[existingTrack] = chi2ndof[itTrack];
             //            }
           }
-        }
+        }  // end for existingTrack
+
         // If not a clone, save the new track
         //        if(true){
         if (!clone) {
           conformalTracks.push_back(bestTracks[itTrack]);
+          bestTrackUsed = true;
           //        	conformalTracksChi2ndof.push_back(bestTracks[itTrack].chi2ndof());
           if (debugSeed && kdhit == debugSeed)
             std::cout << "== Pushing back best track with chi2/ndof " << bestTracks[itTrack]->chi2ndof() << std::endl;
@@ -952,7 +962,13 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         //            used[bestTracks[itTrack].clusters()[itHit]] = true;
         //          }
         //        }
-      }
+
+        if (not bestTrackUsed) {
+          delete bestTracks[itTrack];
+          bestTracks[itTrack] = NULL;
+        }
+
+      }  // end for besttracks
 
       // Clean up
       for (unsigned int itCell = 0; itCell < cells.size(); itCell++)
@@ -1027,7 +1043,8 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         track->addHit(trackHits[p]);
       }
     }  //
-       //    delete track; delete marlinTrack; continue;}
+    delete marlinTrack;
+    //    delete track; delete marlinTrack; continue;}
 
     // Add hit information TODO: this is just a fudge for the moment, since we only use vertex hits. Should do for each subdetector once enabled
     track->subdetectorHitNumbers().resize(2 * lcio::ILDDetID::ETD);
