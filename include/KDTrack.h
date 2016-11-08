@@ -30,8 +30,8 @@ public:
   
 		// Fit functions
   void fit();
-  const double calculateChi2();
-  const double calculateChi2SZ(TH2F* histo = NULL);
+  double calculateChi2();
+  double calculateChi2SZ(TH2F* histo = NULL);
   void linearRegression();
   void linearRegressionConformal();
   

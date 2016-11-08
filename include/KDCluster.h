@@ -35,32 +35,68 @@ class KDCluster
 {
 	public:
   
-  	// Constructors, main initialisation is with tracker hit
-		KDCluster(){}
-		KDCluster(TrackerHitPlane* hit, bool endcap){
+  // Constructors, main initialisation is with tracker hit
+  KDCluster() :
+    m_x(0.0),
+    m_y(0.0),
+    m_u(0.0),
+    m_v(0.0),
+    m_r(0.0),
+    m_z(0.0),
+    m_s(0.0),
+    m_error(0.0),
+    m_errorX(0.0),
+    m_errorY(0.0),
+    m_errorU(0.0),
+    m_errorV(0.0),
+    m_errorZ(0.0),
+    m_errorS(0.0),
+    m_theta(0.0),
+    m_subdet(0),
+    m_side(0),
+    m_layer(0),
+    m_removed(false),
+    m_endcap(false)
+  {}
+  KDCluster(TrackerHitPlane* hit, bool endcap):
+    m_x(hit->getPosition()[0]),
+    m_y(hit->getPosition()[1]),
+    m_u(0.0),
+    m_v(0.0),
+    m_r(0.0),
+    m_z(hit->getPosition()[2]), // Store the (unaltered) z position
+    m_s(0.0),
+    m_error(0.0),
+    m_errorX(0.0),
+    m_errorY(0.0),
+    m_errorU(0.0),
+    m_errorV(0.0),
+    m_errorZ(0.0),
+    m_errorS(0.0),
+    m_theta(0.0),
+    m_subdet(0),
+    m_side(0),
+    m_layer(0),
+    m_removed(false),
+    m_endcap(endcap)
+  {
       // Calculate conformal position in cartesian co-ordinates
-			double radius2 = (hit->getPosition()[0]*hit->getPosition()[0] + hit->getPosition()[1]*hit->getPosition()[1]);
-			m_u = hit->getPosition()[0] / radius2 ;
-			m_v = hit->getPosition()[1] / radius2 ;
-      m_x = hit->getPosition()[0];
-      m_y = hit->getPosition()[1];
+    const double radius2 = (m_x*m_x + m_y*m_y);
+      m_u = m_x / radius2 ;
+      m_v = m_y / radius2 ;
       // Note the position in polar co-ordinates
 			m_r = 1./(sqrt(radius2));
 			m_theta = atan2( m_v, m_u ) + M_PI;
-      // Store the (unaltered) z position
-			m_z = hit->getPosition()[2];
+
       // Get the error in the conformal (uv) plane
       // This is the xy error projected. Unfortunately, the
       // dU is not always aligned with the xy plane, it might
       // be dV. Check and take the smallest
-      m_endcap = endcap;
-      
       m_error = hit->getdU(); m_errorZ = hit->getdV();
       if(hit->getdV() < m_error){
         m_error = hit->getdV();
         m_errorZ = hit->getdU();
       }
-      m_removed = false;
       
       if(endcap){
         m_errorU = (m_error*fabs(sin(m_theta))+m_errorZ*fabs(cos(m_theta)))*(m_r*m_r);
