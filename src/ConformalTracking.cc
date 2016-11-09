@@ -1638,7 +1638,10 @@ void ConformalTracking::extendTrack(KDTrack* track,std::vector<cellularTrack*> t
 //    for(int c=0;c<trackSegments[nTrackExtension]->size();c++){
 //      std::cout<<"-> cell "<<c<<" start ("<<(*trackSegments[nTrackExtension])[c]->getStart()->getU()<<","<<(*trackSegments[nTrackExtension])[c]->getStart()->getV()<<") and stop ("<<(*trackSegments[nTrackExtension])[c]->getEnd()->getU()<<","<<(*trackSegments[nTrackExtension])[c]->getEnd()->getV()<<")"<<std::endl;
 //    }
-    if( trackSegments[nTrackExtension]->size() < 2) continue;
+    if( trackSegments[nTrackExtension]->size() < 2) {
+      delete trackSegments[nTrackExtension];
+      continue;
+    }
     
     // Make the kalman track fit and initialise with the seed track
     KalmanTrack* kalmanTrack = new KalmanTrack(track);
@@ -1650,6 +1653,7 @@ void ConformalTracking::extendTrack(KDTrack* track,std::vector<cellularTrack*> t
 //    cout<<"- delta chi2 = "<<newHitDeltaChi2<<endl;
     if(newHitDeltaChi2 > 100.){
       delete kalmanTrack;
+      delete trackSegments[nTrackExtension];
       continue;
     }
     
