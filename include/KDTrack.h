@@ -70,6 +70,7 @@ private:
   // Each KDTrack contains a list of clusters, gradient and intercept
   double m_gradient;
   double m_intercept;
+  double m_quadratic;
   double m_chi2;
   double m_chi2ZS;
   double m_ndof;

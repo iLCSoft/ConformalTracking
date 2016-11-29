@@ -46,7 +46,7 @@ double KDTrack::calculateChi2(){
   // Loop over all hits on the track and calculate the residual.
   // The y error includes a projection of the x error onto the y axis
   for(int hit=0;hit<m_nPoints;hit++){
-    double residualY = (m_gradient*m_clusters[hit]->getU() + m_intercept) - m_clusters[hit]->getV();
+    double residualY = (m_gradient*m_clusters[hit]->getU() + m_quadratic*m_clusters[hit]->getU()*m_clusters[hit]->getU() + m_intercept) - m_clusters[hit]->getV();
     double dx = m_clusters[hit]->getErrorU();
     double dv = m_clusters[hit]->getErrorV();
     double dy2 = (dv*dv) + (m_gradient*m_gradient * dx*dx);
@@ -145,12 +145,12 @@ void KDTrack::FillDistribution(TH2F* histo){
 
 void KDTrack::linearRegression(){
   
-    double vecx[2] = {0., 0.};
-    double matx[2][2] = {{0., 0.}, {0., 0.}};
+//  double vecx[2] = {0., 0.};
+  double vecx[3] = {0., 0., 0.}; // quadratic expression
+//  double matx[2][2] = {{0., 0.}, {0., 0.}};
+  double matx[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}}; // quadratic expression
   
-//  std::cout<<"-- LINEAR REGRESSION"<<std::endl;
   // Loop over all hits and fill the matrices
-//  std::cout<<"- have "<<m_nPoints<<" points"<<std::endl;
   for(int hit=0;hit<m_nPoints;hit++){
     // Get the global point details
     double x = m_clusters[hit]->getU();
@@ -159,34 +159,55 @@ void KDTrack::linearRegression(){
     // Fill the matrices
     vecx[0] += y / er2;
     vecx[1] += x * y / er2;
+    vecx[2] += x * x * y / er2; // quadratic expression
     matx[0][0] += 1. / er2;
     matx[1][0] += x / er2;
     matx[1][1] += x * x / er2;
+    matx[2][0] += x * x / er2; // quadratic expression
+    matx[2][1] += x * x * x / er2; // quadratic expression
+    matx[2][2] += x * x * x * x / er2; // quadratic expression
   }
   
-  // Invert the matrices
+  // Invert the matrix
+  
+  // Get the determinant
   double detx = matx[0][0] * matx[1][1] - matx[1][0] * matx[1][0];
 //  std::cout<<"- determinant is "<<detx<<std::endl;
+  double detxq = matx[0][0]*(matx[1][1]*matx[2][2] - matx[2][1]*matx[2][1]) - matx[1][0]*(matx[1][0]*matx[2][2] - matx[2][1]*matx[2][0]) + matx[2][0]*(matx[1][0]*matx[2][1] - matx[1][1]*matx[2][0]) ; // quadratic expression
 
   // Check for singularities.
   if (detx == 0.) return;
+
+  // Now make the adjoint (for 3*3 matrix inverse)
+  double adjx[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+
+  adjx[0][0] = (matx[1][1]*matx[2][2] - matx[2][1]*matx[2][1]);
+  adjx[1][0] = (matx[1][0]*matx[2][2] - matx[2][0]*matx[2][1])*(-1.);
+  adjx[1][1] = (matx[0][0]*matx[2][2] - matx[2][0]*matx[2][0]);
+  adjx[2][0] = (matx[1][0]*matx[2][1] - matx[2][0]*matx[1][1]);
+  adjx[2][1] = (matx[0][0]*matx[2][1] - matx[2][0]*matx[1][0])*(-1.);
+  adjx[2][2] = (matx[0][0]*matx[1][1] - matx[1][0]*matx[1][0]);
   
   // Get the track parameters
   double slopex = (vecx[1] * matx[0][0] - vecx[0] * matx[1][0]) / detx;
   double interceptx = (vecx[0] * matx[1][1] - vecx[1] * matx[1][0]) / detx;
-//  std::cout<<"- slope is "<<slopex<<" and gradient is "<<interceptx<<std::endl;
+  
+  double interceptxq = (vecx[0]*adjx[0][0] + vecx[1]*adjx[1][0] + vecx[2]*adjx[2][0]) / detxq;
+  double slopexq =     (vecx[0]*adjx[1][0] + vecx[1]*adjx[1][1] + vecx[2]*adjx[2][1]) / detxq;
+  double quadratic =   (vecx[0]*adjx[2][0] + vecx[1]*adjx[2][1] + vecx[2]*adjx[2][2]) / detxq;
+
+//  std::cout<<"- slope from linear relation is: "<<interceptx<<" with intercept "<<slopex<<std::endl;
+//  std::cout<<"- slope from quadratic relation is: "<<interceptxq<<" with intercept "<<slopexq<<std::endl;
 
   // Set the track parameters
-  m_gradient = slopex;
-  m_intercept = interceptx;
+  m_gradient = slopexq;
+  m_intercept = interceptxq;
+  m_quadratic = quadratic;
   
   // Calculate the chi2
-//  this->calculateChi2();
   m_chi2 = this->calculateChi2();
   m_chi2ndof = m_chi2/(m_nPoints-2);
-
 //  std::cout<<"- chi2 comes out as "<<m_chi2<<std::endl;
-
   
 }
 
