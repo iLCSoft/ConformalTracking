@@ -25,10 +25,11 @@ public:
   // Constructors, main initialisation is with two kd hits
   Cell() { m_weight = 0; }
   Cell(KDCluster* hit1, KDCluster* hit2) {
-    m_start    = hit1;
-    m_end      = hit2;
-    m_gradient = (hit2->getV() - hit1->getV()) / (hit2->getU() - hit1->getU());
-    m_weight   = 0;
+    m_start      = hit1;
+    m_end        = hit2;
+    m_gradient   = (hit2->getV() - hit1->getV()) / (hit2->getU() - hit1->getU());
+    m_gradientRZ = (hit2->getRadius() - hit1->getRadius()) / (hit2->getZ() - hit1->getZ());
+    m_weight     = 0;
   }
 
   // Destructor
@@ -44,10 +45,14 @@ public:
   // Gradient of the cell connecting two hits
   double getGradient() { return m_gradient; }
   void setGradient(double gradient) { m_gradient = gradient; }
+  double                  getGradientRZ() { return m_gradientRZ; }
 
   // Angle between two cells. This is assumed to be less than 90 degrees
   double getAngle(Cell* cell2) {
     return fabs(std::atan((cell2->getGradient() - m_gradient) / (1 + m_gradient * cell2->getGradient())));
+  }
+  double getAngleRZ(Cell* cell2) {
+    return fabs(std::atan((cell2->getGradientRZ() - m_gradientRZ) / (1 + m_gradientRZ * cell2->getGradientRZ())));
   }
 
   // Start and end points of the cell
@@ -77,6 +82,7 @@ private:
   // and a list of cells that it connects to or from
   int                m_weight;
   double             m_gradient;
+  double             m_gradientRZ;
   KDCluster*         m_start;
   KDCluster*         m_end;
   std::vector<Cell*> m_from;

@@ -40,6 +40,7 @@ public:
         m_u(0.0),
         m_v(0.0),
         m_r(0.0),
+        m_radius(0.0),
         m_z(0.0),
         m_s(0.0),
         m_error(0.0),
@@ -61,6 +62,7 @@ public:
         m_u(0.0),
         m_v(0.0),
         m_r(0.0),
+        m_radius(0.0),
         m_z(hit->getPosition()[2]),  // Store the (unaltered) z position
         m_s(0.0),
         m_error(0.0),
@@ -81,9 +83,9 @@ public:
     m_u                  = m_x / radius2;
     m_v                  = m_y / radius2;
     // Note the position in polar co-ordinates
-    m_r     = 1. / (sqrt(radius2));
-    m_theta = atan2(m_v, m_u) + M_PI;
-
+    m_r      = 1. / (sqrt(radius2));
+    m_theta  = atan2(m_v, m_u) + M_PI;
+    m_radius = sqrt(radius2);
     // Get the error in the conformal (uv) plane
     // This is the xy error projected. Unfortunately, the
     // dU is not always aligned with the xy plane, it might
@@ -117,6 +119,7 @@ public:
   double getU() { return m_u; }
   double getV() { return m_v; }
   double getR() { return m_r; }
+  double getRadius() { return m_radius; }  // "real" radius in xy
   double getTheta() { return m_theta; }
   double getZ() { return m_z; }
   double getS() { return m_s; }
@@ -164,6 +167,7 @@ private:
   double m_u;
   double m_v;
   double m_r;
+  double m_radius;  // "real" radius in xy
   double m_z;
   double m_s;
   double m_error;
