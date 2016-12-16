@@ -14,10 +14,16 @@ class KalmanNode {
 public:
   // Constructor
   KalmanNode(){};
-  KalmanNode(KDCluster* measurement) {
-    m_uMeasured     = measurement->getU();
-    m_vMeasured     = measurement->getV();
-    m_errorMeasured = measurement->getErrorV();
+  KalmanNode(KDCluster* measurement, bool rotated) {
+    if (!rotated) {
+      m_uMeasured     = measurement->getU();
+      m_vMeasured     = measurement->getV();
+      m_errorMeasured = measurement->getErrorV();
+    } else {
+      m_uMeasured     = measurement->getV();
+      m_vMeasured     = (-1.) * measurement->getU();
+      m_errorMeasured = measurement->getErrorU();
+    }
   };
 
   // Destructor
@@ -28,6 +34,7 @@ public:
   // Member variables. The gradient at this node after filtering, and
   // the predicted, measured and filtered positions
   double m_gradient;
+  double m_quadratic;
   double m_uMeasured;
   double m_vMeasured;
   double m_errorMeasured;
@@ -60,6 +67,7 @@ public:
   std::vector<KalmanNode*> m_nodes;
   double                   m_moliere;  // Multiple scattering angle
   double                   m_theta;    // Polar angle of the parent KDTrack
+  bool                     m_rotated;
 
 private:
 };
