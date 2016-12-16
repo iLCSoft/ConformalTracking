@@ -38,7 +38,7 @@ public:
 
   // Fit functions
   void   fit();
-  double calculateChi2();
+  double calculateChi2(bool setErrors = false);
   double calculateChi2SZ(TH2F* histo = NULL);
   void linearRegression();
   void linearRegressionConformal();
@@ -61,8 +61,10 @@ public:
   double                  chi2() { return m_chi2; }
   double                  chi2ndofZS() { return m_chi2ndofZS; }
   double                  chi2ZS() { return m_chi2ZS; }
+  bool                    rotated() { return m_rotated; }
   std::vector<KDCluster*> clusters() { return m_clusters; }
   double                  gradient() { return m_gradient; }
+  double                  quadratic() { return m_quadratic; }
   double                  intercept() { return m_intercept; }
   int                     nPoints() { return m_nPoints; }
   KalmanTrack*            kalmanTrack() { return m_kalmanTrack; }
@@ -73,7 +75,8 @@ public:
   bool                    m_conformalFit;
   KalmanTrack*            m_kalmanTrack;
 
-private:
+  //private:
+
   // Each KDTrack contains a list of clusters, gradient and intercept
   double m_gradient;
   double m_intercept;
@@ -88,8 +91,11 @@ private:
   double m_interceptZS;
   double m_gradientError;
   double m_interceptError;
+  bool   m_rotated;
   //  bool m_conformalFit;
   bool fillFit;
+
+private:
 };
 
 #endif
