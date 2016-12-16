@@ -7,12 +7,14 @@ KalmanTrack::KalmanTrack(){
 KalmanTrack::KalmanTrack(KDTrack* seedTrack){
   // Save the link to this track
   m_conformalTrack = seedTrack;
+  m_rotated = seedTrack->rotated();
   // Save a seed node to start the kalman filter from
   KDCluster* seed = seedTrack->m_clusters[0];
-  KalmanNode* seedNode = new KalmanNode(seed);
+  KalmanNode* seedNode = new KalmanNode(seed,m_rotated);
   seedNode->m_uFiltered = seedNode->m_uMeasured;
   seedNode->m_vFiltered = seedNode->m_uMeasured * seedTrack->gradient() + seedTrack->intercept();
   seedNode->m_gradient = seedTrack->gradient();
+  seedNode->m_quadratic = seedTrack->quadratic();
   m_nodes.push_back(seedNode);
   m_theta = seed->getTheta(); // temporary theta?
 //  m_moliere = 0.; // Scattering angle has to be set explicitly
@@ -33,7 +35,7 @@ double KalmanTrack::addCluster(KDCluster* cluster){
 //  std::cout<<"adding cluster to kalman filter"<<std::endl;
   // Store the cluster and make a new node
   m_kalmanClusters.push_back(cluster);
-  KalmanNode* node = new KalmanNode(cluster);
+  KalmanNode* node = new KalmanNode(cluster,m_rotated);
 //  std::cout<<"- new node has U,V("<<node->m_uMeasured<<","<<node->m_vMeasured<<")"<<std::endl;
 //  std::cout<<"- previous node has U,V("<<m_nodes.back()->m_uFiltered<<","<<m_nodes.back()->m_vFiltered<<")"<<std::endl;
   
@@ -41,7 +43,7 @@ double KalmanTrack::addCluster(KDCluster* cluster){
   node->m_uPredicted = node->m_uMeasured;
   
   // Extrapolate the previous node along its gradient
-  node->m_vPredicted = m_nodes.back()->m_vFiltered + m_nodes.back()->m_gradient*(node->m_uPredicted-m_nodes.back()->m_uFiltered);
+  node->m_vPredicted = m_nodes.back()->m_vFiltered + m_nodes.back()->m_gradient*(node->m_uPredicted-m_nodes.back()->m_uFiltered) +  m_nodes.back()->m_quadratic*pow((node->m_uPredicted-m_nodes.back()->m_uFiltered),2);
   
   // Set the error on the predicted position
   node->m_errorPredicted = (node->m_uPredicted-m_nodes.back()->m_uFiltered)*tan(m_moliere);
@@ -62,7 +64,7 @@ double KalmanTrack::addCluster(KDCluster* cluster){
   node->m_uFiltered = node->m_uMeasured;
   node->m_vFiltered = (node->m_vMeasured*node->m_errorPredicted + node->m_vPredicted*node->m_errorMeasured)/(node->m_errorMeasured + node->m_errorPredicted);
   node->m_gradient = (node->m_vFiltered - m_nodes.back()->m_vFiltered) / (node->m_uFiltered - m_nodes.back()->m_uFiltered);
-  
+  node->m_quadratic = m_nodes.back()->m_quadratic;
   // Save this node for subsequent steps
   m_nodes.push_back(node);
   
