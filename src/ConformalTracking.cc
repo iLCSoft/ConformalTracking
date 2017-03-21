@@ -21,6 +21,7 @@
 #include <UTIL/CellIDEncoder.h>
 #include <UTIL/ILDConf.h>
 #include <UTIL/LCRelationNavigator.h>
+#include "UTIL/LCTrackerConf.h"
 
 #include "DD4hep/DD4hepUnits.h"
 #include "DD4hep/LCDD.h"
@@ -116,7 +117,7 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
   registerProcessorParameter("MinClustersOnTrack", "Minimum number of clusters to create a track", m_minClustersOnTrack,
                              int(6));
   registerProcessorParameter("CellIDDecoderString", "Decoding string used for Cell ID calculation", m_decoderString,
-                             std::string(lcio::ILDCellID0::encoder_string));
+                             std::string(lcio::LCTrackerCellID::encoding_string()));
 }
 
 // Sort tracker hits from smaller to larger radius
@@ -371,7 +372,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         // Make the conformal hit, first get subdetector information to check if it is a barrel or endcap
         const int celId = hit->getCellID0();
         m_encoder.setValue(celId);
-        int  side     = m_encoder[lcio::ILDCellID0::side];
+        int  side     = m_encoder[lcio::LCTrackerCellID::side()];
         bool isEndcap = false;
         if (side != ILDDetID::barrel)
           isEndcap       = true;
@@ -429,9 +430,9 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
         //        const int celId = tempHolder[cluster]->getCellID0() ;
         //        m_encoder.setValue(celId) ;
-        //        int subdet = m_encoder[lcio::ILDCellID0::subdet];
-        //        int side = m_encoder[lcio::ILDCellID0::side];
-        //        int layer = m_encoder[lcio::ILDCellID0::layer];
+        //        int subdet = m_encoder[lcio::LCTrackerCellID::subdet()];
+        //        int side = m_encoder[lcio::LCTrackerCellID::side()];
+        //        int layer = m_encoder[lcio::LCTrackerCellID::layer()];
         //
         //        double x = tempHolder[cluster]->getPosition()[0];
         //        double y = tempHolder[cluster]->getPosition()[1];
@@ -540,9 +541,9 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       // Get subdetector information and check if the hit is in the barrel or endcaps
       const int celId = hit->getCellID0();
       m_encoder.setValue(celId);
-      int  subdet   = m_encoder[lcio::ILDCellID0::subdet];
-      int  side     = m_encoder[lcio::ILDCellID0::side];
-      int  layer    = m_encoder[lcio::ILDCellID0::layer];
+      int  subdet   = m_encoder[lcio::LCTrackerCellID::subdet()];
+      int  side     = m_encoder[lcio::LCTrackerCellID::side()];
+      int  layer    = m_encoder[lcio::LCTrackerCellID::layer()];
       bool isEndcap = false;
       if (side != ILDDetID::barrel)
         isEndcap = true;

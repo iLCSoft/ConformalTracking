@@ -19,6 +19,7 @@
 #include <UTIL/CellIDEncoder.h>
 #include <UTIL/ILDConf.h>
 #include <UTIL/LCRelationNavigator.h>
+#include "UTIL/LCTrackerConf.h"
 
 // ------------------------------------------------------------------------------------
 // The KDCluster class is a simple hit class used in the Cellular Automaton tracking.
