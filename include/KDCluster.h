@@ -16,6 +16,7 @@
 #include <IMPL/TrackImpl.h>
 
 #include <UTIL/CellIDEncoder.h>
+#include "UTIL/LCTrackerConf.h"
 #include <UTIL/ILDConf.h>
 #include <UTIL/BitSet32.h>
 #include <UTIL/LCRelationNavigator.h>
