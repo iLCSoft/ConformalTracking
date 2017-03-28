@@ -111,7 +111,6 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
   registerProcessorParameter( "MaxDistance",				"Maximum length of a cell (max. distance between two hits)", 	m_maxDistance, 				double(0.015) 	);
   registerProcessorParameter( "MaxChi2",						"Maximum chi2/ndof for linear conformal tracks", 							m_chi2cut, 						double(300.) 	);
   registerProcessorParameter( "MinClustersOnTrack", "Minimum number of clusters to create a track", 							m_minClustersOnTrack, int(6)				);
-  registerProcessorParameter( "CellIDDecoderString","Decoding string used for Cell ID calculation", 							m_decoderString, 			std::string(lcio::LCTrackerCellID::encoding_string()));
 
 }
 
@@ -319,7 +318,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
   trackCollection->setFlag( trkFlag.getFlag()  ) ;
   
   // Set up ID decoder
-  UTIL::BitField64 m_encoder( m_decoderString ) ;
+  UTIL::BitField64 m_encoder( lcio::LCTrackerCellID::encoding_string() );
 
   /*
    Debug plotting. This section picks up tracks reconstructed using the cheated pattern recognition (TruthTrackFinder) and uses it to show
