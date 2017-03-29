@@ -578,24 +578,24 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     // The set of conformal hits which will be considered in this iteration
     std::vector<KDCluster*> kdClusters;
 
-    if (collection < seedCollections) {
-      std::vector<KDCluster*> clusters = collectionClusters[collection];  //this makes a copy FIX ME
+    //    if(collection < seedCollections){
+    //      std::vector<KDCluster*> clusters = collectionClusters[collection]; //this makes a copy FIX ME
+    //      int nhits = clusters.size();
+    //      for(int hit=0;hit<nhits;hit++){
+    //        kdClusters.push_back(clusters[hit]);
+    //      }
+    //    }else{
+    // Add hits from this and previous collections to the list
+    for (unsigned int col = 0; col < collection; col++) {
+      std::vector<KDCluster*> clusters = collectionClusters[col];  //this makes a copy FIX ME
       int                     nhits    = clusters.size();
       for (int hit = 0; hit < nhits; hit++) {
+        if (used.count(clusters[hit]))
+          continue;
         kdClusters.push_back(clusters[hit]);
       }
-    } else {
-      // Add hits from this and previous collections to the list
-      for (unsigned int col = 0; col < collection; col++) {
-        std::vector<KDCluster*> clusters = collectionClusters[col];  //this makes a copy FIX ME
-        int                     nhits    = clusters.size();
-        for (int hit = 0; hit < nhits; hit++) {
-          if (used.count(clusters[hit]))
-            continue;
-          kdClusters.push_back(clusters[hit]);
-        }
-      }
     }
+    //    }
 
     // Sort the KDClusters from larger to smaller radius
     if (kdClusters.size() == 0)
