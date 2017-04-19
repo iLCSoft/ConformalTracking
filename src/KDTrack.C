@@ -111,7 +111,7 @@ double KDTrack::calculateChi2SZ(TH2F* histo, bool debug){
         }
 
         // Calculate the delta phi w.r.t the first hit, and then s
-        double deltaPhi = atan2(yi-y0,xi-x0) - phi0offset;
+        double deltaPhi = atan2(yi-y0,xi-x0);
         double s = ((xi-x0)*cPhi0 + (yi-y0)*sPhi0)/(sinc(deltaPhi));
         
         // Calculate the errors on everything
