@@ -26,7 +26,7 @@ public:
     void remove(int clusterN){m_clusters.erase(m_clusters.begin()+clusterN); m_nPoints--;}
     
     //--- Fit functions
-    double calculateChi2(bool setErrors=false);
+    double calculateChi2();
     double calculateChi2SZ(TH2F* histo = NULL, bool debug = false);
     void linearRegression();
     void linearRegressionConformal(bool debug = false);
@@ -77,7 +77,6 @@ public:
     bool fillFit;
 
     // Clusters and kalman track pointer
-    double m_ndof;
     int m_nPoints;
     std::vector<KDCluster*> m_clusters;
     KalmanTrack* m_kalmanTrack;
