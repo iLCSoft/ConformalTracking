@@ -8,32 +8,31 @@ KalmanTrack::KalmanTrack(KDTrack* seedTrack) {
   m_conformalTrack = seedTrack;
   m_rotated        = seedTrack->rotated();
   // Save a seed node to start the kalman filter from
-  KDCluster*  seed      = seedTrack->m_clusters[0];
-  KalmanNode* seedNode  = new KalmanNode(seed, m_rotated);
-  seedNode->m_uFiltered = seedNode->m_uMeasured;
-  seedNode->m_vFiltered = seedNode->m_uMeasured * seedTrack->gradient() + seedTrack->intercept();
-  seedNode->m_gradient  = seedTrack->gradient();
-  seedNode->m_quadratic = seedTrack->quadratic();
+  KDCluster*                  seed     = seedTrack->m_clusters[0];
+  std::shared_ptr<KalmanNode> seedNode = std::make_shared<KalmanNode>(seed, m_rotated);
+  seedNode->m_uFiltered                = seedNode->m_uMeasured;
+  seedNode->m_vFiltered                = seedNode->m_uMeasured * seedTrack->gradient() + seedTrack->intercept();
+  seedNode->m_gradient                 = seedTrack->gradient();
+  seedNode->m_quadratic                = seedTrack->quadratic();
   m_nodes.push_back(seedNode);
   m_theta = seed->getTheta();  // temporary theta?
                                //  m_moliere = 0.; // Scattering angle has to be set explicitly
 
-  // Approximate scattering angle for 5000 MeV particle with negligible mass..
-  m_moliere = 13.6 * sqrt(0.01) * (1. + 0.038 * log(0.01)) / (5000.);
+  // Approximate scattering angle for 1000 MeV particle with negligible mass (2% X0)..
+  m_moliere = 13.6 * sqrt(0.02) * (1. + 0.038 * log(0.02)) / (1000.);
 }
 
 // Destructor
-KalmanTrack::~KalmanTrack() {
-  for (int n = 0; n < m_nodes.size(); n++)
-    delete m_nodes[n];
-}
+//KalmanTrack::~KalmanTrack(){
+//  for(int n=0;n<m_nodes.size();n++) delete m_nodes[n];
+//}
 
 // Function to add a cluster to the track. Returns the delta chi2
 double KalmanTrack::addCluster(KDCluster* cluster) {
   //  std::cout<<"adding cluster to kalman filter"<<std::endl;
   // Store the cluster and make a new node
   m_kalmanClusters.push_back(cluster);
-  KalmanNode* node = new KalmanNode(cluster, m_rotated);
+  std::shared_ptr<KalmanNode> node = std::make_shared<KalmanNode>(cluster, m_rotated);
   //  std::cout<<"- new node has U,V("<<node->m_uMeasured<<","<<node->m_vMeasured<<")"<<std::endl;
   //  std::cout<<"- previous node has U,V("<<m_nodes.back()->m_uFiltered<<","<<m_nodes.back()->m_vFiltered<<")"<<std::endl;
 
@@ -41,9 +40,11 @@ double KalmanTrack::addCluster(KDCluster* cluster) {
   node->m_uPredicted = node->m_uMeasured;
 
   // Extrapolate the previous node along its gradient
-  node->m_vPredicted = m_nodes.back()->m_vFiltered +
-                       m_nodes.back()->m_gradient * (node->m_uPredicted - m_nodes.back()->m_uFiltered) +
+  node->m_vPredicted = m_nodes.back()->m_vFiltered -
+                       m_nodes.back()->m_gradient * fabs(node->m_uPredicted - m_nodes.back()->m_uFiltered) +
                        m_nodes.back()->m_quadratic * pow((node->m_uPredicted - m_nodes.back()->m_uFiltered), 2);
+
+  //  node->m_zPredicted = m_nodes.back()->m_zFiltered + m_nodes.back()->m_gradientZS*(node->m_sPredicted-m_nodes.back()->m_sFiltered);
 
   // Set the error on the predicted position
   node->m_errorPredicted = (node->m_uPredicted - m_nodes.back()->m_uFiltered) * tan(m_moliere);
@@ -55,7 +56,7 @@ double KalmanTrack::addCluster(KDCluster* cluster) {
   double du         = node->m_errorPredicted * sin(m_theta);
   double dv         = node->m_errorPredicted * cos(m_theta);
   double dtotal2    = dv * dv + (m_nodes.back()->m_gradient * m_nodes.back()->m_gradient * du * du);
-  double deltaV     = fabs(node->m_vPredicted - node->m_vMeasured);
+  double deltaV     = (node->m_vPredicted - node->m_vMeasured);
   deltaChi2         = deltaV * deltaV / dtotal2;
   node->m_deltaChi2 = deltaChi2;
 
@@ -70,5 +71,40 @@ double KalmanTrack::addCluster(KDCluster* cluster) {
   m_nodes.push_back(node);
 
   // Return the increase in chi2
+
+  double b = 1. / (2. * m_conformalTrack->intercept());
+  double a = -1. * b * m_conformalTrack->gradient();
+
+  double db = 0;
+  double da = 0;
+
+  double xMa = cluster->getX() - a;
+  double yMb = cluster->getY() - b;
+  double dx  = cluster->getErrorX();
+  double dy  = cluster->getErrorY();
+
+  if (m_rotated) {
+    xMa = cluster->getY() - a;
+    yMb = (-1. * cluster->getX()) - b;
+    dx  = cluster->getErrorY();
+    dy  = cluster->getErrorX();
+  }
+
+  double s     = atan2(yMb, xMa);
+  double ratio = yMb / xMa;
+
+  double errorS = (1. / (yMb * (1 + (ratio * ratio)))) * sqrt(((dx * dx + da * da) + (dy * dy + db * db) * ratio * ratio));
+  double residualZ = (m_conformalTrack->gradientZS() * s + m_conformalTrack->interceptZS()) - cluster->getZ();
+  double ds        = errorS;
+  double dz        = cluster->getErrorZ();
+
+  double ds2 = (dz * dz) + (m_conformalTrack->gradientZS() * m_conformalTrack->gradientZS() * ds * ds);
+  //    double ds2 = (m_gradientZS*m_gradientZS * dz*dz);
+
+  //    std::cout<<"- residual is "<<residualS<<std::endl;
+  //    chi2 += (residualS*residualS)/(ds2);
+  deltaChi2 += (residualZ * residualZ) / (ds2);
+  //*/
+
   return deltaChi2;
 }

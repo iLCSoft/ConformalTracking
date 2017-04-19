@@ -39,9 +39,11 @@ public:
   // Fit functions
   void   fit();
   double calculateChi2(bool setErrors = false);
-  double calculateChi2SZ(TH2F* histo = NULL);
-  void linearRegression();
-  void linearRegressionConformal();
+  double calculateChi2SZ(TH2F* histo = NULL, bool debug = false);
+  double deltaChi2(KDCluster*);
+  void   linearRegression();
+  void linearRegressionConformal(bool debug = false);
+  double sinc(double);
 
   // Minuit interface functions
   double operator()(const double* x);
@@ -66,6 +68,8 @@ public:
   double                  gradient() { return m_gradient; }
   double                  quadratic() { return m_quadratic; }
   double                  intercept() { return m_intercept; }
+  double                  gradientZS() { return m_gradientZS; }
+  double                  interceptZS() { return m_interceptZS; }
   int                     nPoints() { return m_nPoints; }
   KalmanTrack*            kalmanTrack() { return m_kalmanTrack; }
 
@@ -92,6 +96,7 @@ public:
   double m_gradientError;
   double m_interceptError;
   bool   m_rotated;
+  bool   m_rotatedSZ;
   //  bool m_conformalFit;
   bool fillFit;
 

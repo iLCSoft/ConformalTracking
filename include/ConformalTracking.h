@@ -82,16 +82,20 @@ public:
   int    overlappingHits(const KDTrack*, const KDTrack*);
 
   void   extendTrack(KDTrack*, std::vector<cellularTrack*>, std::map<KDCluster*, bool>&, std::map<Cell*, bool>&);
+  double fitWithPoint(KalmanTrack, KDCluster*);
   double fitWithPoint(KDTrack, KDCluster*);
 
-  double fitWithExtension(KDTrack, std::vector<KDCluster*>);
+  double fitWithExtension(KDTrack, std::vector<KDCluster*>, double&, double&);
 
   ROOT::Minuit2::Minuit2Minimizer newFitter;
   //  ROOT::Math::Functor* FCNFunction;
 
   // MC truth debug
-  double checkReal(KDTrack*, std::map<KDCluster*, MCParticle*>, std::map<MCParticle*, bool>&);
-  int    getUniqueHits(std::vector<KDCluster*>);
+  double checkReal(KDTrack*, std::map<KDCluster*, MCParticle*>, std::map<MCParticle*, bool>&,
+                   std::map<MCParticle*, std::vector<KDCluster*>>);
+  int  getUniqueHits(std::vector<KDCluster*>);
+  void checkReconstructionFailure(MCParticle*, std::map<MCParticle*, std::vector<KDCluster*>>, std::map<KDCluster*, bool>,
+                                  KDTree*);
 
 protected:
   // Collection names for (in/out)put
@@ -129,6 +133,7 @@ protected:
   TH1F* m_conformalChi2MC;
 
   TH1F* m_cellAngleMC;
+  TH1F* m_cellAngleRZMC;
   TH2F* m_cellAngleRadiusMC;
   TH2F* m_cellLengthRadiusMC;
   TH2F* m_cellAngleLengthMC;
@@ -153,14 +158,18 @@ protected:
   double     m_thetaRange;
   double     m_chi2cut;
   double     m_maxCellAngle;
+  double     m_maxCellAngleRZ;
   double     m_maxDistance;
   int        m_minClustersOnTrack;
   bool       m_debugPlots;
+  double     m_purity;
   KDCluster* debugSeed;
 };
 
 bool sort_by_radius(EVENT::TrackerHit*, EVENT::TrackerHit*);
 bool sort_by_radiusKD(KDCluster*, KDCluster*);
+bool sort_by_lower_radiusKD(KDCluster*, KDCluster*);
 bool sort_by_cellWeight(Cell*, Cell*);
+bool sort_by_layer(KDCluster*, KDCluster*);
 
 #endif
