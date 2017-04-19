@@ -3,6 +3,7 @@
 
 #include "KDCluster.h"
 #include "KDTrack.h"
+#include <memory>
 
 // ------------------------------------------------------------------------------------
 // The Kalman track is a simple extension for the KDTrack, which applies a kalman
@@ -46,6 +47,17 @@ public:
   double m_errorPredicted;
   double m_uFiltered;
   double m_vFiltered;
+
+  double m_gradientZS;
+  double m_sMeasured;
+  double m_zMeasured;
+  double m_errorMeasuredZS;
+  double m_sPredicted;
+  double m_zPredicted;
+  double m_errorPredictedZS;
+  double m_sFiltered;
+  double m_zFiltered;
+
   double m_deltaChi2;
   
 private:
@@ -61,7 +73,7 @@ public:
   KalmanTrack(KDTrack*);
   
   // Destructor
-  ~KalmanTrack();
+  ~KalmanTrack() = default;
   
   // Functions
   double addCluster(KDCluster*); // returns delta chi2 for adding this cluster
@@ -69,7 +81,7 @@ public:
   // Member variables
   KDTrack* m_conformalTrack; // The parent conformal track
   std::vector<KDCluster*> m_kalmanClusters; // The additional clusters to which the kalman filter is applied
-  std::vector<KalmanNode*> m_nodes;
+  std::vector< std::shared_ptr<KalmanNode> > m_nodes;
   double m_moliere; // Multiple scattering angle
   double m_theta; // Polar angle of the parent KDTrack
   bool m_rotated;
