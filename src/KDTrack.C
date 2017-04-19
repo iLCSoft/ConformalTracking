@@ -5,7 +5,6 @@ KDTrack::KDTrack(){
   m_gradient = 0.;
   m_intercept = 0.;
   m_nPoints = 0;
-  m_conformalFit = true;
   fillFit = false;
   m_rotated = false;
   m_kalmanTrack = NULL;
@@ -13,55 +12,6 @@ KDTrack::KDTrack(){
 
 // Destructor
 KDTrack::~KDTrack(){
-}
-
-// Once the Minuit minimisation has finished, need to assign the best fit parameters
-// and calculate the chi2.
-void KDTrack::fit(){
-  
-  // Calculate the chi2
-  m_chi2 = this->calculateChi2();
-  
-//  if(m_chi2 < 10.){
-//    std::cout<<"- track chi2 is "<<m_chi2<<std::endl;
-//    std::cout<<"-- gradientZS is "<<m_gradientZS<<std::endl;
-//    std::cout<<"-- interceptZS is "<<m_interceptZS<<std::endl;
-//    std::cout<<"-- conformal gradient is "<<m_gradient<<std::endl;
-//    std::cout<<"-- conformal intercept is "<<m_intercept<<std::endl;
-//    std::cout<<"-- error on conformal gradient is "<<m_gradientError<<std::endl;
-//    std::cout<<"-- error on conformal intercept is "<<m_interceptError<<std::endl;
-//    std::cout<<"-- track chi2ZS is "<<this->calculateChi2SZ()<<std::endl;
-//  }
-  
-  // Set the chi2/ndof
-  m_chi2ndof = m_chi2/(m_nPoints-2);
-  
-}
-
-// Function to see the delta chi2 of a cluster with respect to the track
-double KDTrack::deltaChi2(KDCluster* cluster){
-  
-  double xMeasured = cluster->getU();
-  double yMeasured = cluster->getV();
-  double dx = cluster->getErrorU();
-  double dv = cluster->getErrorV();
-  if(m_rotated){
-    double newxMeasured = yMeasured;
-    double newyMeasured = -1.*xMeasured;
-    double newdx = dv;
-    double newdv = dx;
-    xMeasured=newxMeasured;
-    yMeasured=newyMeasured;
-    dx=newdx;
-    dv=newdv;
-  }
-  
-  double residualY = (m_gradient*xMeasured + m_quadratic*xMeasured*xMeasured + m_intercept) - yMeasured;
-  double term = m_gradient+2*m_quadratic*xMeasured;
-  double dy2 = (dv*dv) + ( term*term * dx*dx);
-  double chi2 = (residualY*residualY)/(dy2);
-  
-  return chi2;
 }
 
 // Function to calculate the chi2
@@ -108,29 +58,6 @@ double KDTrack::calculateChi2(bool setErrors){
 //    std::cout<<"-- Intercept is "<<m_intercept<<" +/- "<<m_interceptError<<std::endl;
   }
   
-  return chi2;
-  
-}
-
-
-// Minimisation operator used by Minuit. Minuit passes the current iteration of
-// the parameters and checks if the chi2 is better or worse
-double KDTrack::operator()(const double *parameters){
-  
-  double chi2 = 0.;
-  
-  // Update the track gradient and intercept
-  if(m_conformalFit){
-    this->setGradient(parameters[0]);
-    this->setIntercept(parameters[1]);
-    chi2 += this->calculateChi2();
-  }else{
-    this->setGradientZS(parameters[0]);
-    this->setInterceptZS(parameters[1]);
-    chi2 += this->calculateChi2SZ();
-  }
-  
-  // Return this to minuit
   return chi2;
   
 }

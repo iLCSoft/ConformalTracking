@@ -158,26 +158,7 @@ bool sort_by_length(KDTrack* track1, KDTrack* track2){
   return (track1->m_clusters.size() > track2->m_clusters.size());
 }
 
-KDTrack* globalTrack;
 
-double eval(const double* parameters){
-  
-  double chi2 = 0.;
-  
-  // Update the track gradient and intercept
-  if(globalTrack->m_conformalFit){
-    globalTrack->setGradient(parameters[0]);
-    globalTrack->setIntercept(parameters[1]);
-    chi2 += globalTrack->calculateChi2();
-  }else{
-    globalTrack->setGradientZS(parameters[0]);
-    globalTrack->setInterceptZS(parameters[1]);
-    chi2 += globalTrack->calculateChi2SZ();
-  }
-  
-  // Return this to minuit
-  return chi2;
-}
 
 
 void ConformalTracking::init() {
