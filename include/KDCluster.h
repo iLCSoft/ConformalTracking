@@ -55,7 +55,9 @@ public:
         m_subdet(0),
         m_side(0),
         m_layer(0),
+        m_deltaChi2(0),
         m_removed(false),
+        m_used(false),
         m_endcap(false) {}
   KDCluster(TrackerHitPlane* hit, bool endcap)
       : m_x(hit->getPosition()[0]),
@@ -77,7 +79,9 @@ public:
         m_subdet(0),
         m_side(0),
         m_layer(0),
+        m_deltaChi2(0),
         m_removed(false),
+        m_used(false),
         m_endcap(endcap) {
     // Calculate conformal position in cartesian co-ordinates
     const double radius2 = (m_x * m_x + m_y * m_y);
@@ -103,6 +107,9 @@ public:
       m_errorV = (m_error * fabs(cos(m_theta)) + m_errorZ * fabs(sin(m_theta))) * (m_r * m_r);
       m_errorX = m_error * sin(m_theta);
       m_errorY = m_error * cos(m_theta);
+
+      // Need to set endcap error in z!
+
     } else {
       m_errorU = m_error * m_r * m_r * sin(m_theta);
       m_errorV = m_error * m_r * m_r * cos(m_theta);
@@ -131,7 +138,9 @@ public:
   double getErrorV() { return m_errorV; }
   double getErrorZ() { return m_errorZ; }
   double getErrorS() { return m_errorS; }
+  double getDeltaChi2() { return m_deltaChi2; }
   bool   removed() { return m_removed; }
+  bool   used() { return m_used; }
 
   // Manually set co-ordinates
   void setU(double u) { m_u = u; }
@@ -141,7 +150,9 @@ public:
   void setZ(double z) { m_z = z; }
   void setError(double error) { m_error = error; }
   void setErrorS(double errorS) { m_errorS = errorS; }
-  void                  remove() { m_removed = true; }
+  void setDeltaChi2(double deltaChi2) { m_deltaChi2 = deltaChi2; }
+  void                     remove() { m_removed = true; }
+  void used(bool used) { m_used = used; }
 
   // Subdetector information
   void setDetectorInfo(int subdet, int side, int layer) {
@@ -184,6 +195,8 @@ private:
   int    m_layer;
   bool   m_removed;
   bool   m_endcap;
+  bool   m_used;
+  double m_deltaChi2;
 };
 
 // Vector of kd clusters
