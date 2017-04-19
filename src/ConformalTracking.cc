@@ -108,9 +108,11 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
   registerProcessorParameter( "DebugPlots", 				"Plots for debugging the tracking", 													m_debugPlots, 				bool(false) 	);
   registerProcessorParameter( "ThetaRange", 				"Angular range for initial cell seeding", 										m_thetaRange, 				double(0.1)		);
   registerProcessorParameter( "MaxCellAngle", 			"Cut on angle between two cells for cell to be valid", 				m_maxCellAngle, 			double(0.035)	);
+  registerProcessorParameter( "MaxCellAngleRZ", 	  "Cut on angle between two cells in RZ for cell to be valid", 	m_maxCellAngleRZ, 		double(0.035)	);
   registerProcessorParameter( "MaxDistance",				"Maximum length of a cell (max. distance between two hits)", 	m_maxDistance, 				double(0.015) 	);
   registerProcessorParameter( "MaxChi2",						"Maximum chi2/ndof for linear conformal tracks", 							m_chi2cut, 						double(300.) 	);
   registerProcessorParameter( "MinClustersOnTrack", "Minimum number of clusters to create a track", 							m_minClustersOnTrack, int(6)				);
+  registerProcessorParameter( "trackPurity", 				"Purity value used for checking if tracks are real or not",   m_purity, 				    double(0.75)		);
 
 }
 
@@ -126,6 +128,22 @@ bool sort_by_radiusKD(KDCluster* hit1, KDCluster* hit2){
   double radius1 = hit1->getR();
   double radius2 = hit2->getR();
   return (radius1 > radius2);
+}
+
+// Sort kd hits from smaller to larger radius
+bool sort_by_lower_radiusKD(KDCluster* hit1, KDCluster* hit2){
+  double radius1 = hit1->getR();
+  double radius2 = hit2->getR();
+  return (radius1 < radius2);
+}
+
+// Sort kdhits by lower to higher layer number
+bool sort_by_layer(KDCluster* hit1, KDCluster* hit2){
+  
+  if( hit1->getSubdetector() != hit2->getSubdetector() ) return (hit1->getSubdetector() < hit2->getSubdetector());
+  else if( hit1->getSide() != hit2->getSide() ) return (hit1->getSide() < hit2->getSide());
+  else if( hit1->getLayer() != hit2->getLayer() ) return (hit1->getLayer() < hit2->getLayer());
+  else return false;
 }
 
 // Sort cells from higher to lower weight
@@ -224,7 +242,9 @@ void ConformalTracking::init() {
     m_cellAngleRadiusMC = new TH2F("cellAngleRadiusMC","cellAngleRadiusMC",400,0,0.04,1000,0,0.04);
     m_cellLengthRadiusMC = new TH2F("cellLengthRadiusMC","cellLengthRadiusMC",300,0,0.03,1000,0,0.04);
     m_cellAngleLengthMC = new TH2F("cellAngleLengthMC","cellAngleLengthMC",400,0,0.04,300,0,0.03);
-    
+
+    m_cellAngleRZMC = new TH1F("cellAngleRZMC","cellAngleRZMC",1250,0,0.05);
+
     // Histograms for "event display"
     m_conformalEvents = new TH2F("conformalEvents","conformalEvents",1000,-0.05,0.05,1000,-0.05,0.05);
     m_nonconformalEvents = new TH2F("nonconformalEvents","nonconformalEvents",500,-1500,1500,500,-1500,1500);
@@ -238,17 +258,6 @@ void ConformalTracking::init() {
     m_canvConformalEventDisplayMCunreconstructed = new TCanvas("canvConformalEventDisplayMCunreconstructed","canvConformalEventDisplayMCunreconstructed");
     
   }
-  
-	// Set up the conformal fitter
-  newFitter.SetMaxFunctionCalls(1000000);
-  newFitter.SetMaxIterations(100000);
-  newFitter.SetPrecision(1e-10);
-  newFitter.SetPrintLevel(0);
-  
-//  FCNFunction = new ROOT::Math::Functor(&eval,2);
-//  newFitter.SetFunction(*FCNFunction);
-  
-  gErrorIgnoreLevel=kWarning;
   
   // Register this process
   Global::EVENTSEEDER->registerProcessor(this);
@@ -318,7 +327,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
   trackCollection->setFlag( trkFlag.getFlag()  ) ;
   
   // Set up ID decoder
-  UTIL::BitField64 m_encoder( lcio::LCTrackerCellID::encoding_string() );
+  UTIL::BitField64 m_encoder( lcio::LCTrackerCellID::encoding_string() ) ;
 
   /*
    Debug plotting. This section picks up tracks reconstructed using the cheated pattern recognition (TruthTrackFinder) and uses it to show
@@ -379,9 +388,6 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         tempHolder[kdhit] = hit;
         kdParticles[kdhit] = particle;
         conformalHits[hit] = kdhit;
-        // Decide if you want to see the debug output from this hit (when a seed)
-//        if(kdhit->getU() > -0.015 && kdhit->getU() < -0.014 &&
-//           kdhit->getV() > 0.028  && kdhit->getV() < 0.029) debugSeed = kdhit;
       }
     }
     
@@ -397,45 +403,18 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       if(trackHits.size() < (unsigned int)m_minClustersOnTrack) continue;
       // Discard low momentum particles
       double particlePt = sqrt( mcParticle->getMomentum()[0]*mcParticle->getMomentum()[0] + mcParticle->getMomentum()[1]*mcParticle->getMomentum()[1] );
-//      if(particlePt < 0.1) continue;
       // Cut on stable particles
       if(mcParticle->getGeneratorStatus() != 1) continue;
       // Sort the hits from larger to smaller radius
       std::sort(trackHits.begin(),trackHits.end(),sort_by_radiusKD);
       
-//      if(particlePt>29.5 && particlePt<29.8){
-//        debugHits = trackHits;
-//        std::cout<<"==> Picked up "<<debugHits.size()<<" DEBUG hits"<<std::endl;
-//      }
-      
       // Make a track
       KDTrack* mcTrack = new KDTrack();
       // Loop over all hits for debugging
       for(int itHit=0;itHit<trackHits.size();itHit++){
-        
         // Get the conformal clusters
         KDCluster* cluster = trackHits[itHit];
         mcTrack->add(cluster);
-//        if(particlePt>29.5 && particlePt<29.8){
-//          debugHits = trackHits;
-//          std::cout<<"==> Picked up "<<debugHits.size()<<" DEBUG hits"<<std::endl;
-//          debugHitCollection->addElement(tempHolder[cluster]);
-//        }
-        
-        
-//        const int celId = tempHolder[cluster]->getCellID0() ;
-//        m_encoder.setValue(celId) ;
-//        int subdet = m_encoder[lcio::LCTrackerCellID::subdet()];
-//        int side = m_encoder[lcio::LCTrackerCellID::side()];
-//        int layer = m_encoder[lcio::LCTrackerCellID::layer()];
-//        
-//        double x = tempHolder[cluster]->getPosition()[0];
-//        double y = tempHolder[cluster]->getPosition()[1];
-//        double z = tempHolder[cluster]->getPosition()[2];
-//        double r = sqrt(x*x + y*y);
-        //        std::cout<<"Subdetector "<<subdet<<", side "<<side<<", layer "<<layer<<std::endl;
-        //        std::cout<<"Hit position "<<x<<", "<<y<<", "<<z<<". radius "<<r<<std::endl;
-        
       }
       
       // Fit the track and plot the chi2
@@ -445,7 +424,6 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       
       // Now loop over the hits and make cells - filling histograms along the way
       int nHits = trackHits.size();
-      //      if(nHits > 10){std::cout<<"Skipping particle"<<std::endl; continue;}
       for(int itHit=0;itHit<(nHits-2);itHit++){
         
         // Get the conformal clusters
@@ -461,6 +439,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         
         // Fill the debug/tuning plots
         double angleBetweenCells = cell->getAngle(cell1);
+        double angleRZBetweenCells = cell->getAngleRZ(cell1);
         double cell0Length = sqrt( pow(cluster0->getU() - cluster1->getU(),2) + pow(cluster0->getV() - cluster1->getV(),2) );
         double cell1Length = sqrt( pow(cluster1->getU() - cluster2->getU(),2) + pow(cluster1->getV() - cluster2->getV(),2) );
         
@@ -468,6 +447,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         m_cellAngleRadiusMC->Fill(cluster2->getR(),angleBetweenCells);
         m_cellLengthRadiusMC->Fill(cluster0->getR(),cell0Length);
         m_cellAngleLengthMC->Fill(cell1Length,angleBetweenCells);
+        m_cellAngleRZMC->Fill(angleRZBetweenCells);
         
         // Draw cells on the first event
         if(m_eventNumber == 0){
@@ -479,15 +459,11 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
           // if the cells would have been cut by some of the search criteria
           m_canvConformalEventDisplayMC->cd();
           if(itHit == 0){
-            //            if(cell0Length > 0.02) cout<<"Cell 0 is very long!"<<endl;
             drawline(cluster0,cluster1,itHit+1);
           }
-          //          if(cell1Length > 0.02) cout<<"Cell "<<itHit+1<<" is very long!"<<endl;
           // Draw line style differently if the cell angle was too large
-          //          if(angleBetweenCells > (m_maxCellAngle*exp(-0.0015/cluster2->getR()))){
           if(angleBetweenCells > (m_maxCellAngle)){
             drawline(cluster1,cluster2,itHit+2,3);
-//            std::cout<<"Cell angle of "<<angleBetweenCells<<" is too large"<<std::endl;
           }else{
             drawline(cluster1,cluster2,itHit+2);
           }
@@ -522,7 +498,6 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
   std::map<KDCluster*,bool> used;															// Map of whether a hit has been included in a track or not
   std::map<KDCluster*,bool> used2;
   std::vector<KDTrack*> conformalTracks;												// KD tracks - each is a list of kd hits in the found tracks
-//  std::vector<double> conformalTracksChi2ndof;								// A list of chi2/ndof for all conformal tracks
 
   // Create the conformal hit collections for each tracker hit collection (and save the link)
   for(unsigned int collection=0; collection<trackerHitCollections.size();collection++){
@@ -571,29 +546,30 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
   
   // Loop over all input collections. Tracking will be attempted on the collection, then hits from the next collection
   // will be added to the unused hits already there.
-  int seedCollections = 2;
-  for(unsigned int collection=0; collection<(trackerHitCollections.size()+1);collection++){
-    
+  int seedCollections = 0;
+  for(unsigned int collection=0; collection<trackerHitCollections.size();collection++){
+//  for(unsigned int collection=0; collection<(trackerHitCollections.size()+1);collection++){
+  
     // The set of conformal hits which will be considered in this iteration
     std::vector<KDCluster*> kdClusters;
 
-//    if(collection < seedCollections){
-//      std::vector<KDCluster*> clusters = collectionClusters[collection]; //this makes a copy FIX ME
-//      int nhits = clusters.size();
-//      for(int hit=0;hit<nhits;hit++){
-//        kdClusters.push_back(clusters[hit]);
-//      }
-//    }else{
+    if(collection < seedCollections){
+      std::vector<KDCluster*> clusters = collectionClusters[collection]; //this makes a copy FIX ME
+      int nhits = clusters.size();
+      for(int hit=0;hit<nhits;hit++){
+        kdClusters.push_back(clusters[hit]);
+      }
+    }else{
       // Add hits from this and previous collections to the list
-    	for(unsigned int col=0;col<collection;col++){
+    	for(unsigned int col=0;col<=collection;col++){
         std::vector<KDCluster*> clusters = collectionClusters[col]; //this makes a copy FIX ME
         int nhits = clusters.size();
         for(int hit=0;hit<nhits;hit++){
-          if(used.count(clusters[hit])) continue;
+          if( clusters[hit]->used() ) continue;
           kdClusters.push_back(clusters[hit]);
         }
       }
-//    }
+    }
     
     // Sort the KDClusters from larger to smaller radius
     if(kdClusters.size() == 0) continue;
@@ -613,8 +589,9 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
 //    std::cout<<"Seeding with tracks"<<std::endl;
     
     // Loop over all current tracks
-    for(int currentTrack=0;currentTrack<nCurrentTracks;currentTrack++){
+/*    for(int currentTrack=0;currentTrack<nCurrentTracks;currentTrack++){
 
+//      continue;
 //      cout<<"== Trying to extend track "<<currentTrack<<endl;
       // This step (although first) only runs when tracks have already been produced. An attempt
       // is made to extend them with hits from the new collection, using the final cell of the track
@@ -626,7 +603,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       // Create a seed cell (connecting the first two hits in the track vector - those at smallest conformal radius)
       Cell* seedCell = new Cell(conformalTracks[currentTrack]->m_clusters[1],conformalTracks[currentTrack]->m_clusters[0]);
       cells.push_back(seedCell);
-      
+            
       // All seed cells have been created, now try create all "downstream" cells until no more can be added
       extendSeedCells(cells, used, nearestNeighbours, false, debugHits);
       
@@ -650,7 +627,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         // Decide if we this cell has enough hits on it. In order to avoid spurious hit addition
         // we would like at least 2 new hits to be added to the track. This means a cell weight of
         // at least 2
-        if(cells[itCell]->getWeight() < 2) break;
+        if(cells[itCell]->getWeight() < 1) break;
         
         // Produce all segments leading back to the track from this cell
         std::vector<cellularTrack*> candidateSegments;
@@ -676,6 +653,135 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       for(unsigned int itCell=0;itCell<cells.size();itCell++) delete cells[itCell];
 
     }
+*/
+    // Loop over all current tracks
+    std::cout<<"EXTENDING tracks"<<std::endl;
+    
+    std::vector<KDCluster*> tempClusterContainer = kdClusters;
+    std::sort(tempClusterContainer.begin(), tempClusterContainer.end(), sort_by_layer);
+
+    for(int currentTrack=0;currentTrack<nCurrentTracks;currentTrack++){
+      
+      if(collection < 1) continue;
+      
+      // Make sure that all tracks have a kalman track attached to them
+      if(conformalTracks[currentTrack]->kalmanTrack() == NULL){
+        KalmanTrack* kalmanTrack = new KalmanTrack(conformalTracks[currentTrack]);
+        conformalTracks[currentTrack]->setKalmanTrack(kalmanTrack);
+      }
+      
+      // Create a seed cell (connecting the first two hits in the track vector - those at smallest conformal radius)
+      Cell* seedCell = new Cell(conformalTracks[currentTrack]->m_clusters[1],conformalTracks[currentTrack]->m_clusters[0]);
+
+      // Extrapolate along the cell and then make a 2D nearest neighbour search at this extrapolated point
+      double searchDistance = m_maxDistance;
+      KDCluster* fakeHit = extrapolateCell(seedCell,searchDistance/2.); // TODO: make this search a function of radius
+      VecCluster results2;
+      nearestNeighbours->allNeighboursInRadius(fakeHit, 10*searchDistance/2., results2);
+      std::sort(results2.begin(),results2.end(),sort_by_radiusKD);
+//      std::cout<<"- fake hit has position ("<<fakeHit->getU()<<","<<fakeHit->getV()<<")"<<std::endl;
+      delete fakeHit;
+      
+      // Loop over all hits found and check if any have a sufficiently good delta Chi2
+      vector<KDCluster*> goodHits;
+      KDCluster* bestCluster = NULL;
+      
+//      std::cout<<"- track "<<currentTrack<<" has "<<results2.size()<<" nearest neighbours"<<std::endl;
+//      for(int newHit=0;newHit<results2.size();newHit++){
+      unsigned int nKDHits = tempClusterContainer.size();
+      for(unsigned int nKDHit = 0; nKDHit<nKDHits; nKDHit++){
+        
+        // Get the kdHit and check if it has already been used (assigned to a track)
+        KDCluster* kdhit = tempClusterContainer[nKDHit];
+        if( kdhit->used() )continue;
+        
+        // First check that the hit is not wildly away from the track (make cell and check angle)
+//        Cell* extensionCell = new Cell(conformalTracks[currentTrack]->m_clusters[0],results2[newHit]);
+        Cell* extensionCell = new Cell(conformalTracks[currentTrack]->m_clusters[0],kdhit);
+        double cellAngle = seedCell->getAngle(extensionCell);
+        double cellAngleRZ = seedCell->getAngleRZ(extensionCell);
+        delete extensionCell;
+        if( cellAngle > 3.*m_maxCellAngle || cellAngleRZ > 3.*m_maxCellAngleRZ ){
+          continue;
+        }
+
+        // Now fit the track with the new hit and check the increase in chi2
+//        double deltaChi2 = fitWithPoint(*conformalTracks[currentTrack],results2[newHit]); //conformalTracks[currentTrack]->deltaChi2(results2[newHit]);
+//        double deltaChi2 = fitWithPoint(*(conformalTracks[currentTrack]->kalmanTrack()),kdhit); //conformalTracks[currentTrack]->deltaChi2(results2[newHit]);
+        double deltaChi2 = fitWithPoint(*(conformalTracks[currentTrack]),kdhit); //conformalTracks[currentTrack]->deltaChi2(results2[newHit]);
+//        std::cout<<"- delta chi2 of hit "<<newHit<<" is "<<deltaChi2<<". Hit position ("<<results2[newHit]->getU()<<","<<results2[newHit]->getV()<<")"<<std::endl;
+        if(deltaChi2 > 100.) continue;
+        std::cout<<"Good hit on track " <<currentTrack<<std::endl;
+//        results2[newHit]->setDeltaChi2(deltaChi2);
+//        goodHits.push_back(results2[newHit]);
+        
+        // Check if there is a best cluster on this layer
+        if(bestCluster == NULL){
+          std::cout<<"Replacing null best cluster"<<std::endl;
+          bestCluster = kdhit;
+          bestCluster->setDeltaChi2(deltaChi2);
+        }else{
+          // If new layer, save the old best cluster
+          if(!kdhit->sameLayer(bestCluster)){
+            goodHits.push_back(bestCluster);
+            bestCluster->used(true);
+            
+            // Recalculate chi2 with new hit on kalman track
+            
+            
+            kdhit->setDeltaChi2(deltaChi2);
+            bestCluster = kdhit;
+            // If same layer, replace best cluster if chi2 is better
+          }else if(deltaChi2 < bestCluster->getDeltaChi2()){
+            kdhit->setDeltaChi2(deltaChi2);
+            bestCluster = kdhit;
+            std::cout<<"Replacing best cluster with higher chi2"<<std::endl;
+          }
+        }
+        
+        
+        // Now we have a point to consider on the current layer. If we are moving onto a new layer then take the best hit and attach it
+//        if(nKDHit == (nKDHits-1) || !(kdhit->sameLayer(tempClusterContainer[nKDHit+1]))){
+//          
+//          std::cout<<"Last cluster/next hit on different layer"<<std::endl;
+//
+//          if(bestCluster == NULL) continue;
+//          
+//          std::cout<<"Cluster push back"<<std::endl;
+//
+////          conformalTracks[currentTrack]->kalmanTrack()->addCluster(bestCluster);
+//          goodHits.push_back(bestCluster);
+//          bestCluster->used(true);
+//          bestCluster = NULL;
+//
+//        }
+
+//        kdhit->setDeltaChi2(deltaChi2);
+//        goodHits.push_back(kdhit);
+//        conformalTracks[currentTrack]->kalmanTrack()->addCluster(kdhit);
+//        kdhit->used(true);
+      }
+      
+      if(bestCluster != NULL){
+        std::cout<<"Cluster post-push back"<<std::endl;
+        goodHits.push_back(bestCluster);
+        bestCluster->used(true);
+        bestCluster = NULL;
+      }
+      
+      delete seedCell;
+      
+      for(int i=0;i<goodHits.size();i++){
+        conformalTracks[currentTrack]->add(goodHits[i]);
+        goodHits[i]->used(true);
+      }
+//      if(goodHits.size() > 0){
+//        conformalTracks[currentTrack]->linearRegression();
+//        conformalTracks[currentTrack]->linearRegressionConformal();
+//      }
+      std::cout<<"- pushed back "<<goodHits.size()<<" good hits to track "<<currentTrack<<std::endl;
+      
+    }
  
   	// ---------------------------------------------------------------------
 		// Try to create new tracks using all of the kdHits currently held
@@ -685,7 +791,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     streamlog_out( DEBUG4 )<<"Attempting to seed with hits: "<<nKDHits<<std::endl;
     
     // Loop over all current hits, using only vertex detectors as seeds
-    if(collection > seedCollections) continue;
+    if(collection > 1) continue;
 //    std::cout<<"Seeding with hits. Max collection number "<<collection<<", containing a total of "<<nKDHits<<" hits"<<std::endl;
     for(unsigned int nKDHit = 0; nKDHit<nKDHits; nKDHit++){
       
@@ -693,8 +799,8 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       KDCluster* kdhit = kdClusters[nKDHit];
 //      std::cout<<"Seeding with hit "<<nKDHit<<std::endl;
       if(debugSeed && kdhit == debugSeed) std::cout<<"Starting to seed with debug cluster"<<std::endl;
-      if(used.count(kdhit)) continue;
-      if(kdhit->getR() < 0.005) break; // new cut - once we get to inner radius we will never make tracks. temp? TODO: make parameter?
+      if( kdhit->used() ) continue;
+//      if(kdhit->getR() < 0.003) break; // new cut - once we get to inner radius we will never make tracks. temp? TODO: make parameter? FCC (0.005 to 0.003)
 
       // The tracking differentiates between the first and all subsequent hits on a chain.
       // First, take the seed hit and look for sensible hits nearby to make an initial set
@@ -709,9 +815,9 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       VecCluster results;
       double theta = kdhit->getTheta();
       nearestNeighbours->allNeighboursInTheta(theta, m_thetaRange, results);
+//      nearestNeighbours->allNeighboursInRadius(kdhit, m_maxDistance, results);
       
       // Sort the neighbours from outer to inner radius
-//      std::cout<<"- picked up "<<results.size()<<" neighbours from theta search"<<std::endl;
       if(debugSeed && kdhit == debugSeed) std::cout<<"- picked up "<<results.size()<<" neighbours from theta search"<<std::endl;
       if(results.size() == 0) continue;
       std::sort(results.begin(),results.end(),sort_by_radiusKD);
@@ -726,16 +832,9 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         KDCluster* nhit = results[neighbour];
         
         // Check that it is not used, is not on the same detector layer, points inwards and has real z pointing away from IP
-        if(used.count(nhit)) continue;
+        if( nhit->used() ) continue;
         if(kdhit->sameLayer(nhit)) continue;
         if(nhit->getR() >= kdhit->getR()) continue;
-
-        // If close to the central region increasing r != increasing z
-        double zdifference = abs(kdhit->getZ()-nhit->getZ());
-        if(zdifference > 10.){
-          if(kdhit->getZ() > 0. && nhit->getZ() < kdhit->getZ()) continue;
-          if(kdhit->getZ() < 0. && nhit->getZ() > kdhit->getZ())continue;
-        }
         
         // Check if the cell would be too long (hit very far away)
         double length = sqrt( (kdhit->getU()-nhit->getU())*(kdhit->getU()-nhit->getU()) + (kdhit->getV()-nhit->getV())*(kdhit->getV()-nhit->getV()) );
@@ -754,16 +853,13 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
 
       }
       
-      // No seed cells produced
-//      std::cout<<"- produced "<<cells.size()<<" seed cells"<<std::endl;
       if(debugSeed && kdhit == debugSeed) std::cout<<"- produced "<<cells.size()<<" seed cells"<<std::endl;
       
+      // No seed cells produced
       if(cells.size() == 0) continue;
       
       // All seed cells have been created, now try create all "downstream" cells until no more can be added
-//      std::cout<<"- extending seeds"<<std::endl;
       extendSeedCells(cells, used, nearestNeighbours, false, debugHits);
-//      std::cout<<"- seeds extended"<<std::endl;
 
       // Now have all cells stemming from this seed hit. If it is possible to produce a track (ie. cells with depth X) then we will now...
       //      if(depth < (m_minClustersOnTrack-1)) continue; // TODO: check if this is correct
@@ -774,18 +870,15 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       std::map<Cell*,bool> usedCells;
       std::map<Cell*,bool> usedCells2;
       std::vector<KDTrack*> cellTracks;
-//      std::vector<double> cellTracksChi2ndof;
       
       // Sort Cells from highest to lowest weight
       std::sort(cells.begin(),cells.end(),sort_by_cellWeight);
 
       // Create tracks by following a path along cells
       int nCells = cells.size();
-//      std::cout<<"- looping over "<<nCells<<" cells"<<std::endl;
       for(int itCell=0;itCell<nCells;itCell++){
         
         // Check if this cell has already been used
-//        std::cout<<"-- looking at cell "<<itCell<<std::endl;
         if(debugSeed && kdhit == debugSeed) std::cout<<"-- looking at cell "<<itCell<<std::endl;
         if(usedCells.count(cells[itCell])) continue;
 
@@ -793,17 +886,14 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         if(cells[itCell]->getWeight() < (m_minClustersOnTrack-2)) break;
         
         // Produce all tracks leading back to the seed hit from this cell
-//        std::cout<<"- creating new tracks"<<std::endl;
         std::vector<cellularTrack*> candidateTracks;
         std::vector<cellularTrack*> candidateTracksTemp;
         createTracksNew(candidateTracksTemp,cells[itCell],usedCells2); // Move back to using used cells here? With low chi2/ndof?
         
         for(int itTrack=0;itTrack<candidateTracksTemp.size();itTrack++){
-	  if(candidateTracksTemp[itTrack]->size() >= (m_minClustersOnTrack-1) ) candidateTracks.push_back(candidateTracksTemp[itTrack]);
-	  else delete candidateTracksTemp[itTrack];
+          if(candidateTracksTemp[itTrack]->size() >= (m_minClustersOnTrack-1) ) candidateTracks.push_back(candidateTracksTemp[itTrack]);
+          else delete candidateTracksTemp[itTrack];
         }
-
-//        std::cout<<"- created new tracks"<<std::endl;
 
         // Debug plotting
         if(m_debugPlots && m_eventNumber == 2){
@@ -827,20 +917,9 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
 
         // Store track(s) for later
         cellTracks.insert(cellTracks.end(),bestTracks.begin(),bestTracks.end());
-//        cellTracksChi2ndof.insert(cellTracksChi2ndof.end(),chi2ndof.begin(), chi2ndof.end());
-        
-        // Mark the cells as having been used, they will not be re-used CHANGE ME! Speed loss is coming here! Can remove cells that we are sure are on good tracks, but only with chi2
-//        for(unsigned int acceptedCandidates=0;acceptedCandidates<candidateTracks.size();acceptedCandidates++){
-//          std::cout<<"Looking at candidate "<<acceptedCandidates<<" of "<<chi2ndof.size()<<std::endl;
-//          if(chi2ndof[acceptedCandidates] > 10.) continue; // here!
-//        	for(unsigned int trackCell=0;trackCell<candidateTracks[acceptedCandidates].size();trackCell++){
-//          	usedCells[candidateTracks[acceptedCandidates][trackCell]]=true;
-//        	}
-//        }
         
       }
       
-//      std::cout<<"- have "<<cellTracks.size()<<" total candidate tracks to this hit"<<std::endl;
       // All tracks leading back to the seed hit have now been found. Decide which are the feasible candidates (may be more than 1)
       if(debugSeed && kdhit == debugSeed) std::cout<<"== final number of candidate tracks to this seed hit: "<<cellTracks.size()<<std::endl;
       if(cellTracks.size() == 0){
@@ -848,7 +927,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
         for(unsigned int itCell=0;itCell<cells.size();itCell++) delete cells[itCell];
         continue;
       }
-//      std::vector<double> chi2ndof = cellTracksChi2ndof; //CHANGE ME - temp to give all tracks
+
       std::vector<KDTrack*> bestTracks = cellTracks; //CHANGE ME - temp to give all tracks
 //      std::vector<KDTrack*> bestTracks = getLowestChi2(cellTracks,cellTracksChi2ndof,chi2ndof);
 //      std::cout<<"== final number of stored tracks to this seed hit: "<<bestTracks.size()<<std::endl;
@@ -863,100 +942,103 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       std::sort(bestTracks.begin(),bestTracks.end(),sort_by_length);
       for(unsigned int itTrack=0;itTrack<bestTracks.size();itTrack++){
         bool bestTrackUsed = false;
+       
         // Cut on chi2
-        if(bestTracks[itTrack]->chi2ndof() > m_chi2cut) {
-	  delete bestTracks[itTrack];
-	  bestTracks[itTrack] = NULL;
-	  continue;
-	}
-
-        bestTracks[itTrack]->linearRegressionConformal();
-        if(bestTracks[itTrack]->chi2ndofZS() > m_chi2cut) {
-	  delete bestTracks[itTrack];
-	  bestTracks[itTrack] = NULL;
-	  continue;
-	}
-//        if(chi2SZ(bestTracks[itTrack]) > m_chi2cut) continue;
-
-        // WHHHHYYYYYYYYY does this not cut out real clones???
-//        std::cout<<"- considering new track"<<std::endl;
+//        if(collection != trackerHitCollections.size() && (bestTracks[itTrack]->chi2ndof() > m_chi2cut || bestTracks[itTrack]->chi2ndofZS() > m_chi2cut)) {
+        if(bestTracks[itTrack]->chi2ndof() > m_chi2cut || bestTracks[itTrack]->chi2ndofZS() > m_chi2cut) {
+          delete bestTracks[itTrack];
+          bestTracks[itTrack] = NULL;
+          continue;
+        }
+        
         // Check if the new track is a clone
         bool clone = false;
+      
         for(int existingTrack=0;existingTrack<conformalTracks.size();existingTrack++){
           
-//          if( bestTracks[itTrack].chi2ndof() == conformalTracks[existingTrack].chi2ndof() ) std::cout<<"I have found my twin!!"<<std::endl;
-          // If the track is a clone with lower chi2/ndof, replace the old track with the new one
-	  const int nOverlappingHits = overlappingHits(bestTracks[itTrack],conformalTracks[existingTrack]);
-          if( nOverlappingHits >= 2 ) {
-            
-            // If the same hits, but longer in one case, take the long one
-//            if( nOverlappingHits == bestTracks[itTrack]->m_clusters.size()){
-//              clone = true;
-//            }
-            
-            // Only call it a clone if the chi2 is significantly different
-//            if ( fabs(bestTracks[itTrack]->chi2ndof() - conformalTracks[existingTrack]->chi2ndof())  1 &&
-//                 fabs(bestTracks[itTrack]->chi2ndofZS() - conformalTracks[existingTrack]->chi2ndofZS()) < 1) continue;
-            
+          const int nOverlappingHits = overlappingHits(bestTracks[itTrack],conformalTracks[existingTrack]);
+          if( nOverlappingHits >= 2) {
             clone = true;
             
-            if( nOverlappingHits == bestTracks[itTrack]->m_clusters.size() ) continue;
-
-            if( bestTracks[itTrack]->chi2ndofZS() < conformalTracks[existingTrack]->chi2ndofZS()){
+            // Calculate the new and existing chi2 values
+            double newchi2 = (bestTracks[itTrack]->chi2ndofZS()*bestTracks[itTrack]->chi2ndofZS() + bestTracks[itTrack]->chi2ndof()*bestTracks[itTrack]->chi2ndof());
+            double oldchi2 = (conformalTracks[existingTrack]->chi2ndofZS()*conformalTracks[existingTrack]->chi2ndofZS() + conformalTracks[existingTrack]->chi2ndof()*conformalTracks[existingTrack]->chi2ndof());
+            
+            double deltachi2ZS = (bestTracks[itTrack]->chi2ndofZS()-conformalTracks[existingTrack]->chi2ndofZS());
+            double deltachi2 = (bestTracks[itTrack]->chi2ndof()-conformalTracks[existingTrack]->chi2ndof());
+            
+            // If the new track is an existing track + segment, make sure the increase in chi2 is not too much
+            if(nOverlappingHits == conformalTracks[existingTrack]->m_clusters.size()){
+              
+              // Increase in chi2 is too much (double)
+              if( (newchi2 - oldchi2) > oldchi2) break;
+              
+              // Otherwise replace the existing track
+              delete conformalTracks[existingTrack];
               conformalTracks[existingTrack] = bestTracks[itTrack];
-	      bestTrackUsed = true;
-//              conformalTracksChi2ndof[existingTrack] = bestTracks[itTrack].chi2ndof();
+              bestTrackUsed = true;
             }
             
-//            if( chi2ndof[itTrack] < conformalTracksChi2ndof[existingTrack] ){
-//              conformalTracks[existingTrack] = bestTracks[itTrack];
-//              conformalTracksChi2ndof[existingTrack] = chi2ndof[itTrack];
-//            }
+            // If the new track is a subtrack of an existing track, don't consider it further (already try removing bad hits from tracks
+            else if(nOverlappingHits == bestTracks[itTrack]->m_clusters.size()) break;
+            
+            // Otherwise take the longest if the delta chi2 is not too much
+            else if(bestTracks[itTrack]->m_clusters.size() >= conformalTracks[existingTrack]->m_clusters.size()){ // New track longer/equal in length
+              
+              // Increase in chi2 is too much (double)
+              if( (newchi2 - oldchi2) > oldchi2) break;
+              
+              // Otherwise take it
+              delete conformalTracks[existingTrack];
+              conformalTracks[existingTrack] = bestTracks[itTrack];
+              bestTrackUsed = true;
+            }
+            else if(bestTracks[itTrack]->m_clusters.size() < conformalTracks[existingTrack]->m_clusters.size()){ // Old track longer
+              
+              // Must improve chi2 by factor two
+              if( (newchi2 - 0.5*oldchi2) > 0.) break;
+              
+              // Otherwise take it
+              delete conformalTracks[existingTrack];
+              conformalTracks[existingTrack] = bestTracks[itTrack];
+              bestTrackUsed = true;
+            }
+            
+            break;
           }
-        } // end for existingTrack
-
+        }
+      
         // If not a clone, save the new track
-//        if(true){
         if(!clone){
-        	conformalTracks.push_back(bestTracks[itTrack]);
-		bestTrackUsed = true;
-//        	conformalTracksChi2ndof.push_back(bestTracks[itTrack].chi2ndof());
+          conformalTracks.push_back(bestTracks[itTrack]);
+          bestTrackUsed = true;
           if(debugSeed && kdhit == debugSeed)
             std::cout<<"== Pushing back best track with chi2/ndof "<<bestTracks[itTrack]->chi2ndof()<<std::endl;
           else
             std::cout<<"Pushing back best track with chi2/ndof "<<bestTracks[itTrack]->chi2ndof()<<std::endl;
         }
         
-        // If the track has a good chi2/ndof (so we are 'sure' that it is real) then mark the hits as used so that they are not used again
-//        if(chi2ndof[itTrack] < 10.){
-//          for(unsigned int itHit=0;itHit<bestTracks[itTrack].clusters().size();itHit++){
-//            used[bestTracks[itTrack].clusters()[itHit]] = true;
-//          }
-//        }
-
-	if( not bestTrackUsed ) {
-	  delete bestTracks[itTrack];
-	  bestTracks[itTrack] = NULL;
-	}
-
+        if( not bestTrackUsed ) {
+          delete bestTracks[itTrack];
+          bestTracks[itTrack] = NULL;
+        }
+        
       } // end for besttracks
       
       // Clean up
       for(unsigned int itCell=0;itCell<cells.size();itCell++) delete cells[itCell];
       
     }
-//    }
     // Now finished looking at this hit collection. All tracks which can have extra hits added
     // have had them added, and no new tracks were possible using the sum of all collections
     // till now. Add the next collection and try again...
     delete nearestNeighbours;
     
+    // Mark hits from "good" tracks as being used
     for(unsigned int itTrack=0;itTrack<conformalTracks.size();itTrack++){
-      if(conformalTracks[itTrack]->chi2ndof() < 10.){
         for(unsigned int itHit=0;itHit<conformalTracks[itTrack]->m_clusters.size();itHit++){
-          used[conformalTracks[itTrack]->m_clusters[itHit]] = true;
+          conformalTracks[itTrack]->m_clusters[itHit]->used(true);
         }
-      }
     }
 
   }
@@ -1005,16 +1087,16 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     covMatrix[14] = ( m_initialTrackError_tanL  ); //sigma_tanl^2
     
     // Try to fit
-    int fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack, trackHits, track, MarlinTrk::IMarlinTrack::forward, covMatrix, m_magneticField, m_maxChi2perHit);
+//    int fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack, trackHits, track, MarlinTrk::IMarlinTrack::forward, covMatrix, m_magneticField, m_maxChi2perHit);
     
     // Check track quality - if fit fails chi2 will be 0. For the moment add hits by hand to any track that fails the track fit, and store it as if it were ok...
-    if(track->getChi2() == 0.){
-      std::cout<<"Fit failed. Track has "<<track->getTrackerHits().size()<<" hits"<<std::endl;
-      std::cout<<"Fit fail error "<<fitError<<std::endl;
+//    if(track->getChi2() == 0.){
+//      std::cout<<"Fit failed. Track has "<<track->getTrackerHits().size()<<" hits"<<std::endl;
+//      std::cout<<"Fit fail error "<<fitError<<std::endl;
       for(unsigned int p=0;p<trackHits.size();p++){
         track->addHit(trackHits[p]);
       }
-    }//
+//    }//
     delete marlinTrack;
 //    delete track; delete marlinTrack; continue;}
     
@@ -1034,11 +1116,11 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       KDTrack* debugTrack = conformalTracks[itrack];
       
       m_conformalChi2->Fill(debugTrack->chi2ndof());
-      double purity = checkReal(debugTrack,kdParticles,reconstructed);
-      if(purity >= 0.75){
+      double purity = checkReal(debugTrack,kdParticles,reconstructed,particleHits);
+      if(purity >= m_purity){
         m_conformalChi2real->Fill(debugTrack->chi2ndof());
       }
-      if(purity < 0.75){
+      if(purity < m_purity){
         m_conformalChi2fake->Fill(debugTrack->chi2ndof());
       }
       m_conformalChi2Purity->Fill(purity,debugTrack->chi2ndof());
@@ -1065,11 +1147,18 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
     m_conformalEvents->DrawCopy("same");
     m_canvConformalEventDisplayMCunreconstructed->cd();
     m_conformalEvents->DrawCopy("same");
-    
+  }
+  if(m_debugPlots){
     int nReconstructed(0), nUnreconstructed(0);
     // Additionally draw all tracks that were not reconstructed
     m_canvConformalEventDisplayMCunreconstructed->cd();
     int nParticles = particleCollection->getNumberOfElements();
+    
+    // Make the nearest neighbour tree to debug particle reconstruction issues
+    vector<KDCluster*> kdClusters;
+    for(int i=0;i<trackerHitCollections.size();i++) kdClusters.insert(kdClusters.begin(),collectionClusters[i].begin(),collectionClusters[i].end());
+    KDTree* nearestNeighbours = new KDTree(kdClusters,m_thetaRange);
+    
     for(int itP=0;itP<nParticles;itP++){
       // Get the particle
       MCParticle* mcParticle = dynamic_cast<MCParticle*>( particleCollection->getElementAt(itP) ) ;
@@ -1092,8 +1181,12 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       double particlePt = sqrt( mcParticle->getMomentum()[0]*mcParticle->getMomentum()[0] + mcParticle->getMomentum()[1]*mcParticle->getMomentum()[1] );
       std::cout<<"Unreconstructed particle pt: "<<particlePt<<std::endl;
       nUnreconstructed++;
+      
+      // Check why particles were not reconstructed
+      checkReconstructionFailure(mcParticle, particleHits, used, nearestNeighbours);
     }
     std::cout<<"Reconstructed "<<nReconstructed<<" particles out of "<<nReconstructed+nUnreconstructed<<". Gives efficiency "<<100.*(double)nReconstructed/(double)(nReconstructed + nUnreconstructed)<<"%"<<std::endl;
+    delete nearestNeighbours;
   }
   
   // Save the output track collection
@@ -1158,12 +1251,12 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCl
       // Get the end point of the cell (to search for neighbouring hits to form new cells connected to this one)
       KDCluster* hit = cells[itCell]->getEnd();
       double searchDistance = m_maxDistance; //hit->getR();
-      if(searchDistance > hit->getR()) searchDistance = hit->getR();
+//      if(searchDistance > hit->getR()) searchDistance = 1.2*hit->getR();
       
       // Extrapolate along the cell and then make a 2D nearest neighbour search at this extrapolated point
       KDCluster* fakeHit = extrapolateCell(cells[itCell],searchDistance/2.); // TODO: make this search a function of radius
       VecCluster results;
-      nearestNeighbours->allNeighboursInRadius(fakeHit, searchDistance/2., results);
+      nearestNeighbours->allNeighboursInRadius(fakeHit, 1.25*searchDistance/2., results);
       delete fakeHit;
       
       if(extendingTrack) std::cout<<"Found "<<results.size()<<" neighbours from cell extrapolation"<<std::endl;
@@ -1175,22 +1268,28 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCl
         KDCluster* nhit = results[neighbour];
         
         // Check that it is not used, is not on the same detector layer, points inwards and has real z pointing away from IP
-        if(used.count(nhit)){if(extendingTrack) std::cout<<"- used"<<std::endl; continue;}
+//        if(used.count(nhit)){if(extendingTrack) std::cout<<"- used"<<std::endl; continue;}
+        if( nhit->used() )continue;
         if(hit->sameLayer(nhit)){if(extendingTrack) std::cout<<"- same layer"<<std::endl; continue;}
         if(nhit->getR() >= hit->getR()){if(extendingTrack) std::cout<<"- higher radius"<<std::endl; continue;}
-        double zdifference = abs(hit->getZ()-nhit->getZ());
-        if(zdifference > 10.){
-          if(hit->getZ() > 0. && nhit->getZ() < hit->getZ()){if(extendingTrack) std::cout<<"- z cut"<<std::endl; continue;}
-          if(hit->getZ() < 0. && nhit->getZ() > hit->getZ()){if(extendingTrack) std::cout<<"- z cut"<<std::endl; continue;}
-        }
+//        double zdifference = abs(hit->getZ()-nhit->getZ());
+//        if(zdifference > 10.){
+//          if(hit->getZ() > 0. && nhit->getZ() < hit->getZ()){if(extendingTrack) std::cout<<"- z cut"<<std::endl; continue;}
+//          if(hit->getZ() < 0. && nhit->getZ() > hit->getZ()){if(extendingTrack) std::cout<<"- z cut"<<std::endl; continue;}
+//        }
         
-        // Check if this cell already exists (rejoining branch)
+        // Check if this cell already exists (rejoining branch) FIXME - allows rejoining a branch without checking cell angles
         if(existingCells.count(hit) != 0){
           bool alreadyExists=false;
           int nExistingCells = existingCells[hit].size();
           for(int iterExisting=0;iterExisting<nExistingCells;iterExisting++){
             if( existingCells[hit][iterExisting]->getEnd() == nhit ){
               alreadyExists = true;
+              
+              // Check if cell angle is too large to rejoin
+              if( cells[itCell]->getAngle(existingCells[hit][iterExisting]) > m_maxCellAngle || cells[itCell]->getAngleRZ(existingCells[hit][iterExisting]) > m_maxCellAngleRZ ) continue;
+              
+              // Otherwise add the path
               cells[itCell]->setTo(existingCells[hit][iterExisting]);
               existingCells[hit][iterExisting]->setFrom(cells[itCell]);
               updateCell(existingCells[hit][iterExisting]);
@@ -1204,7 +1303,7 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, std::map<KDCl
         
         // Check if the new cell is compatible with the previous cell (angle between the two is acceptable)
 //        if( cells[itCell]->getAngle(cell) > (m_maxCellAngle*exp(-0.001/nhit->getR())) ){
-        if( cells[itCell]->getAngle(cell) > m_maxCellAngle ){
+        if( cells[itCell]->getAngle(cell) > m_maxCellAngle || cells[itCell]->getAngleRZ(cell) > m_maxCellAngleRZ ){
           
           // Debug plotting
 //          if(m_debugPlots && m_eventNumber == 0){
@@ -1419,7 +1518,7 @@ void ConformalTracking::getFittedTracks(std::vector<KDTrack*>& finalTracks, std:
 //    track.fit();
 //    std::cout<<"-- Track fitting gives gradient of "<<newFitter.X()[0]<<", intercept of "<<newFitter.X()[1]<<" and chi2 of "<<track.chi2()<<std::endl;
     track->linearRegression();
-//    track->linearRegressionConformal();
+    track->linearRegressionConformal(); //FCC study
 //    double chi2sz = track.calculateChi2SZ();
 //    if(chi2sz > 2.1e-08 && chi2sz < 2.2e-08){
 //      track.FillDistribution(m_szDistribution);
@@ -1431,7 +1530,8 @@ void ConformalTracking::getFittedTracks(std::vector<KDTrack*>& finalTracks, std:
 //    }
     
 //    std::cout<<"Done looking"<<std::endl;
-    double chi2ndof = track->chi2()/(npoints-2);
+//    double chi2ndof = track->chi2ndofZS();
+    double chi2ndof = track->chi2()/(npoints-2); //FCC study
     
 //    if(track.calculateChi2SZ() > 1.e6) continue;
     
@@ -1442,7 +1542,7 @@ void ConformalTracking::getFittedTracks(std::vector<KDTrack*>& finalTracks, std:
     // Loop over each hit (starting at the back, since we will use the 'erase' function to get rid of them)
     // and see if removing it improves the chi2/ndof
     double removed=0;
-    if(chi2ndof > 10. && chi2ndof < m_chi2cut){ //CHANGE ME?? Upper limit to get rid of really terrible tracks
+    if(chi2ndof > m_chi2cut && chi2ndof < m_chi2cut){ //CHANGE ME?? Upper limit to get rid of really terrible tracks (temp lower changed from 0 to m_chi2cut)
       for(int point=npoints-1;point>=0;point--){
         
         // Stop if we would remove too many points on the track to meet the minimum hit requirement (or if the track has more
@@ -1453,7 +1553,8 @@ void ConformalTracking::getFittedTracks(std::vector<KDTrack*>& finalTracks, std:
         double newChi2ndof = fitWithoutPoint(*track,point);
         
         // If the chi2/ndof is significantly better, remove the point permanently CHANGE ME??
-        if( (chi2ndof - newChi2ndof) > 0 && (chi2ndof - newChi2ndof) > 0.5*chi2ndof ){
+//        if( (chi2ndof - newChi2ndof) > 0 && (chi2ndof - newChi2ndof) > 1. ){
+        if( (newChi2ndof - chi2ndof) < chi2ndof ){
           track->remove(point);
           removed++;
           chi2ndof = newChi2ndof;
@@ -1587,10 +1688,12 @@ double ConformalTracking::fitWithoutPoint(KDTrack track,int point){
   
   // Calculate the track chi2 with the final fitted values
   track.linearRegression();
+  track.linearRegressionConformal(); // FCC study
 //  track.fit();
   double chi2ndof = track.chi2ndof();
+  double chi2ndofZS = track.chi2ndofZS(); // FCC study
   
-  return chi2ndof;
+  return sqrt(chi2ndof*chi2ndof + chi2ndofZS*chi2ndofZS) ;
 }
 
 void ConformalTracking::updateCell(Cell* cell){
@@ -1624,10 +1727,10 @@ KDCluster* ConformalTracking::extrapolateCell(Cell* cell, double distance){
   
   return extrapolatedCluster;
 }
-
+/*
 void ConformalTracking::extendTrack(KDTrack* track,std::vector<cellularTrack*> trackSegments, std::map<KDCluster*,bool>& used, std::map<Cell*,bool>& usedCells){
 
-//  cout<<"== extending track, have "<<trackSegments.size()<<" candidates"<<endl;
+  cout<<"== extending track, have "<<trackSegments.size()<<" candidates"<<endl;
   // For each track segment, perform a kalman filter on the addition points and chose the track extension with the
   // best delta chi2.
   KalmanTrack* bestTrack = NULL; double bestChi2=0.; double bestNpoints;
@@ -1650,7 +1753,7 @@ void ConformalTracking::extendTrack(KDTrack* track,std::vector<cellularTrack*> t
     // Add each of the new clusters, and if the delta chi2 exceeds the cut then throw away this track extension
     KDCluster* kdStart = (*trackSegments[nTrackExtension])[0]->getEnd();
     double newHitDeltaChi2 = kalmanTrack->addCluster(kdStart);
-//    cout<<"- delta chi2 = "<<newHitDeltaChi2<<endl;
+    cout<<"- delta chi2 = "<<newHitDeltaChi2<<endl;
     if(newHitDeltaChi2 > 100.){
       delete kalmanTrack;
       delete trackSegments[nTrackExtension];
@@ -1663,7 +1766,7 @@ void ConformalTracking::extendTrack(KDTrack* track,std::vector<cellularTrack*> t
     for(unsigned int trackCell=0;trackCell<trackSegments[nTrackExtension]->size()-2;trackCell++){
       KDCluster* kdEnd = (*trackSegments[nTrackExtension])[trackCell]->getStart();
       newHitDeltaChi2 = kalmanTrack->addCluster(kdEnd);
-//      cout<<"- delta chi2 = "<<newHitDeltaChi2<<endl;
+      cout<<"- delta chi2 = "<<newHitDeltaChi2<<endl;
 
       if(newHitDeltaChi2 > 100.){
 //        delete kalmanTrack;
@@ -1675,7 +1778,7 @@ void ConformalTracking::extendTrack(KDTrack* track,std::vector<cellularTrack*> t
 
     }
     
-//    std::cout<<"-- final chi2/ndof increase: "<<deltaChi2/npoints<<" for "<<npoints<<" points"<<std::endl;
+    std::cout<<"-- final chi2/ndof increase: "<<deltaChi2/npoints<<" for "<<npoints<<" points"<<std::endl;
     if(bestTrack == NULL){
       bestTrack = kalmanTrack;
       bestChi2=deltaChi2;
@@ -1690,8 +1793,15 @@ void ConformalTracking::extendTrack(KDTrack* track,std::vector<cellularTrack*> t
     }
   }
   
-  if(bestTrack != NULL) track->setKalmanTrack(bestTrack);
-
+  if(bestTrack != NULL){
+    
+    std::cout<<"== taking track with increase of chi2: "<<bestChi2<<", with "<<bestNpoints<<" points"<<std::endl;
+    track->setKalmanTrack(bestTrack);
+    
+    for(int newHits=0; newHits < bestNpoints; newHits++){
+      track->add( bestTrack->m_kalmanClusters[bestTrack->m_kalmanClusters.size()-1-newHits] );
+    }
+  }
   
   
   /*
@@ -1738,13 +1848,74 @@ void ConformalTracking::extendTrack(KDTrack* track,std::vector<cellularTrack*> t
 //      if(newChi2ndof < 10.) used[bestTrackSegment->m_clusters[newpoint]] = true;
 //    }
 //  }
-  */
+ //
+}
+*/
+
+void ConformalTracking::extendTrack(KDTrack* track,std::vector<cellularTrack*> trackSegments, std::map<KDCluster*,bool>& used, std::map<Cell*,bool>& usedCells){
+  
+//  cout<<"== extending track, have "<<trackSegments.size()<<" candidates"<<endl;
+  // For each track segment, perform a kalman filter on the addition points and chose the track extension with the
+  // best delta chi2.
+  double bestChi2=1.e9; double bestNpoints; vector<KDCluster*> finalHits;
+  double bestChi2Conformal, bestChi2ZS;
+
+//  for(int i=0;i<track->clusters().size();i++) std::cout<<"- cluster "<<i<<" has u,v "<<track->clusters()[i]->getU()<<","<<track->clusters()[i]->getV()<<std::endl;
+  
+  
+  for(int nTrackExtension=0;nTrackExtension<trackSegments.size();nTrackExtension++){
+    
+//    std::cout<<"Track extension "<<nTrackExtension<<std::endl;
+    vector<KDCluster*> newHits;
+    
+    // Add each of the new clusters
+    KDCluster* kdStart = (*trackSegments[nTrackExtension])[0]->getEnd();
+    newHits.push_back(kdStart);
+//    std::cout<<"- cluster "<<" has u,v "<<kdStart->getU()<<","<<kdStart->getV()<<std::endl;
+    
+    for(unsigned int trackCell=0;trackCell<trackSegments[nTrackExtension]->size()-2;trackCell++){
+      KDCluster* kdEnd = (*trackSegments[nTrackExtension])[trackCell]->getStart();
+      newHits.push_back(kdEnd);
+//      std::cout<<"- cluster "<<" has u,v "<<kdEnd->getU()<<","<<kdEnd->getV()<<std::endl;
+
+    }
+    
+    double newChi2Conformal, newChi2ZS;
+    double newChi2 = fitWithExtension(*track,newHits,newChi2Conformal,newChi2ZS);
+    
+    if(newChi2<bestChi2){
+      finalHits.clear();
+      for(int i=0;i<newHits.size();i++) finalHits.push_back(newHits[i]);
+      bestChi2 = newChi2;
+      bestChi2Conformal = newChi2Conformal;
+      bestChi2ZS = newChi2ZS;
+    }
+    
+  }
+  if(finalHits.size() == 0) return;
+  
+//  std::cout<<"-- final chi2ZS/ndof increase: "<<(bestChi2ZS-track->chi2ndofZS())/finalHits.size()<<" for "<<finalHits.size()<<" points"<<std::endl;
+//  std::cout<<"-- final chi2/ndof increase: "<<(bestChi2Conformal-track->chi2ndof())/finalHits.size()<<" for "<<finalHits.size()<<" points"<<std::endl;
+  
+  if((bestChi2ZS-track->chi2ndofZS()) < 100. && (bestChi2Conformal-track->chi2ndof()) < 100.){
+    for(int i=finalHits.size()-1;i>=0;i--){
+//      used[finalHits[i]] = true;
+      track->m_clusters.insert(track->m_clusters.begin(),finalHits[i]);
+      track->m_nPoints++;
+    }
+//    std::cout<<"- increasing chi2ZS/ndof from "<<track->chi2ndofZS()<<" to "<<bestChi2ZS<<std::endl;
+//    std::cout<<"- increasing chi2/ndof from "<<track->chi2ndof()<<" to "<<bestChi2Conformal<<std::endl;
+    track->linearRegression();
+    track->linearRegressionConformal();
+//    std::cout<<"- new chi2/ndof: "<<track->chi2ndof()<<", chi2ZS/ndof: "<<track->chi2ndofZS()<<std::endl;
+  }
+ 
 }
 
-double ConformalTracking::fitWithExtension(KDTrack track, std::vector<KDCluster*> hits){
+double ConformalTracking::fitWithExtension(KDTrack track, std::vector<KDCluster*> hits, double& newChi2, double& newChi2ZS){
   
   // Add the point to the track
-  for(int i=(hits.size()-3);i>=0;i--) track.add(hits[i]);
+  for(int i=0;i<hits.size();i++) track.add(hits[i]);
 
   int npoints = track.nPoints();
   /*
@@ -1773,51 +1944,51 @@ double ConformalTracking::fitWithExtension(KDTrack track, std::vector<KDCluster*
   track.linearRegression();
   track.linearRegressionConformal();
 //  track.fit();
-  double chi2ndof = track.chi2ndofZS();
-  
+  double chi2ndof = sqrt(track.chi2ndofZS()*track.chi2ndofZS() + track.chi2ndof()*track.chi2ndof());
+  newChi2 = track.chi2ndof();
+  newChi2ZS = track.chi2ndofZS();
   return chi2ndof;
 
 }
 
-double ConformalTracking::fitWithPoint(KDTrack track, KDCluster* hit){
+double ConformalTracking::fitWithPoint(KalmanTrack kalTrack, KDCluster* hit){
 
+//  KalmanTrack* kalTrack = new KalmanTrack(&track);
+  
+  double chi2ndof = kalTrack.addCluster(hit);
+  
+//  delete kalTrack;
+  /*
   // Add the point to the track
   track.add(hit);
-  int npoints = track.nPoints();
-  /*
-  // Fit the track and get the new chi2
-      ROOT::Math::Functor FCNFunction(track,2);
-      newFitter.SetFunction(FCNFunction);
-//  globalTrack = &track;
-  newFitter.SetVariable(0,"gradient", track.clusters()[npoints-1]->getV()/track.clusters()[npoints-1]->getU(), 0.1);
-  newFitter.SetVariable(1,"intercept", 0., 0.1);
-  
-  // Fit the track, first in uv space, then in sz space
-  track.setConformalFit(true);
-  newFitter.Minimize();
-		
-  // Now set the track parameters from the conformal fit, and fit in sz
-  track.setGradient(newFitter.X()[0]);
-  track.setIntercept(newFitter.X()[1]); */
-//  track.setGradientError(newFitter.Errors()[0]);
-//  track.setInterceptError(newFitter.Errors()[1]);
-//  track.setConformalFit(false);
-//  newFitter.Minimize();
-//  track.setGradientZS(newFitter.X()[0]);
-//  track.setInterceptZS(newFitter.X()[1]);
   
   // Calculate the track chi2 with the final fitted values
   track.linearRegression();
-//  track.fit();
-  double chi2ndof = track.chi2ndof();
-
+  if(track.chi2ndof() > 1000.) return track.chi2ndof();
+  track.linearRegressionConformal();
+  double chi2ndof = track.chi2ndof()+track.chi2ndofZS();
+*/
   return chi2ndof;
+
+}
+
+double ConformalTracking::fitWithPoint(KDTrack kdTrack, KDCluster* hit){
+  
+  double chi2 = kdTrack.chi2ndof();
+  double chi2zs = kdTrack.chi2ndofZS();
+  kdTrack.add(hit);
+  kdTrack.linearRegression();
+  kdTrack.linearRegressionConformal(); //FCC study
+  double newchi2 = kdTrack.chi2ndof();
+  double newchi2zs = kdTrack.chi2ndofZS();
+
+  return (newchi2-chi2 + newchi2zs-chi2zs);
 
 }
 
 
 // Debug function - checks if a track will be associated to an MC particle or not
-double ConformalTracking::checkReal(KDTrack* track, std::map<KDCluster*,MCParticle*> kdParticles, std::map<MCParticle*,bool>& reconstructed){
+double ConformalTracking::checkReal(KDTrack* track, std::map<KDCluster*,MCParticle*> kdParticles, std::map<MCParticle*,bool>& reconstructed, std::map<MCParticle*, std::vector<KDCluster*> > MCparticleHits){
  
   // Store all mcparticles associated to this track
   std::vector<MCParticle*> particles;
@@ -1859,9 +2030,23 @@ double ConformalTracking::checkReal(KDTrack* track, std::map<KDCluster*,MCPartic
   double purity = bestHits/nHits;
   std::cout<<"Number of hits on track: "<<nHits<<". Good hits: "<<bestHits<<". Purity: "<<purity<<". Pt: "<<sqrt( bestParticle->getMomentum()[0]*bestParticle->getMomentum()[0] + bestParticle->getMomentum()[1]*bestParticle->getMomentum()[1] )<<". Track chi2/ndof: "<<track->chi2ndof()<<". Chi2/ndof in SZ fit: "<<track->chi2ndofZS()<<std::endl;
   
-//  for(int itCluster=0;itCluster<clusters.size();itCluster++) std::cout<<"Hit "<<itCluster<<" has position: "<<clusters[itCluster]->getU()<<","<<clusters[itCluster]->getV()<<std::endl;
+  // Check if any hits are missing
+  std::vector<KDCluster*> mcHits = MCparticleHits[bestParticle];
+  int uniqueHits = getUniqueHits(mcHits);
   
-  if(purity >= 0.75){
+  std::cout<<"Track should contain "<<uniqueHits<<" hits, "<< ((uniqueHits > bestHits ) ? "is missing hits" : "all hits found.") << std::endl;
+
+  
+  std::vector<KDCluster*> trackHits = track->m_clusters;
+  for(int th=0;th<trackHits.size();th++) std::cout<<"Hit "<<th<<" u = "<<trackHits[th]->getU()<<" v = "<<trackHits[th]->getV()<<" x = "<<trackHits[th]->getX()<<" y = "<<trackHits[th]->getY()<<" z = "<<trackHits[th]->getZ()<<std::endl;
+
+//  for(int itCluster=0;itCluster<clusters.size();itCluster++) std::cout<<"Hit "<<itCluster<<" has position: "<<clusters[itCluster]->getU()<<","<<clusters[itCluster]->getV()<<std::endl;
+  std::cout<<"== Terms in conformal fit: "<<track->m_intercept<<", "<<track->m_gradient<<", "<<track->m_quadratic<<std::endl;
+  std::cout<<"== Terms in zs fit: "<<track->m_interceptZS<<", "<<track->m_gradientZS<<std::endl;
+
+  track->linearRegressionConformal(true);
+  track->calculateChi2SZ(NULL,true);
+  if(purity >= m_purity){
     reconstructed[bestParticle] = true;
   }
   
@@ -1897,6 +2082,167 @@ int ConformalTracking::getUniqueHits(std::vector<KDCluster*> hits){
   
   return nUniqueHits;
 }
+
+//---- Make the track in the same way as the pattern recognition would, but
+//---- without the inclusion of unassociated hits. See which criteria fail
+
+void ConformalTracking::checkReconstructionFailure(MCParticle* particle, std::map<MCParticle*, std::vector<KDCluster*> > particleHits, std::map<KDCluster*,bool> used, KDTree* nearestNeighbours){
+  
+  
+  // Get the hits for this MC particle
+  std::vector<KDCluster*> trackHits = particleHits[particle];
+
+  // Sort the hits from larger to smaller radius
+  std::sort(trackHits.begin(),trackHits.end(),sort_by_radiusKD);
+  std::cout<<"Track contains "<<getUniqueHits(trackHits)<<" unique hits. Track size is "<<trackHits.size()<<std::endl;
+
+    for(int th=0;th<trackHits.size();th++) std::cout<<"Hit "<<th<<" u = "<<trackHits[th]->getU()<<" v = "<<trackHits[th]->getV()<<" x = "<<trackHits[th]->getX()<<" y = "<<trackHits[th]->getY()<<" z = "<<trackHits[th]->getZ()<<". "<<(trackHits[th]->used() ? "Used!" : "")<<std::endl;
+
+  // Take the seed hit and build cell to 2nd
+  KDCluster* seedHit = trackHits[0];
+  VecCluster results;
+  std::cout<<"- getting nearest neighbours for seed"<<std::endl;
+//  nearestNeighbours->allNeighboursInRadius(seedHit, m_maxDistance, results);
+  double theta = seedHit->getTheta();
+  nearestNeighbours->allNeighboursInTheta(theta, m_thetaRange, results);
+  std::cout<<"- got nearest neighbours for seed"<<std::endl;
+  
+  // If we don't produce the seed cell we have failed
+  if( std::find(results.begin(),results.end(),trackHits[1]) == results.end() ){
+    std::cout<<"- seed cell not produced, neighbour not inside search window"<<std::endl;
+    double deltaU = fabs(trackHits[1]->getU()-trackHits[0]->getU());
+    double deltaV = fabs(trackHits[1]->getV()-trackHits[0]->getV());
+    std::cout<<"- distance between hits is "<< sqrt(deltaU*deltaU + deltaV*deltaV)<<" and search distance is "<<m_maxDistance<<std::endl;
+    std::cout<<"- theta of hits is "<<trackHits[0]->getTheta()<<" and "<<trackHits[1]->getTheta()<<", delta theta = "<<trackHits[0]->getTheta()-trackHits[1]->getTheta()<<std::endl;
+//    return;
+  }
+
+  if(trackHits[1]->getR() >= trackHits[0]->getR()){
+    std::cout<<"- seed cell not produced, neighbour at higher radius"<<std::endl;
+//    return;
+  }
+  
+  double length = sqrt( (trackHits[1]->getU()-trackHits[0]->getU())*(trackHits[1]->getU()-trackHits[0]->getU()) + (trackHits[1]->getV()-trackHits[0]->getV())*(trackHits[1]->getV()-trackHits[0]->getV()) );
+  if(length > m_maxDistance){
+    std::cout<<"- seed cell not produced, neighbour too far away"<<std::endl;
+//    return;
+  }
+  
+  
+  // Make the seed cell and extrapolate until all hits found
+  Cell* seedCell = new Cell(trackHits[0],trackHits[1]);
+  std::vector<Cell*> cells; cells.push_back(seedCell);
+  std::cout<<"have seed cell"<<std::endl;
+  // CHECK CELL LENGTH!! TO DO
+
+  int hitNumber = 1; // Current hit after the seed cell has been formed
+  bool trackBuilding = true;
+  while(hitNumber<(trackHits.size()-1)){
+    
+    // Extend the current cell
+    double searchDistance = m_maxDistance; //hit->getR();
+//    if(searchDistance > trackHits[hitNumber]->getR()) searchDistance = trackHits[hitNumber]->getR();
+    
+    // Extrapolate along the cell and then make a 2D nearest neighbour search at this extrapolated point
+    KDCluster* fakeHit = extrapolateCell(cells.back(),searchDistance/2.); // TODO: make this search a function of radius
+    VecCluster results2;
+    nearestNeighbours->allNeighboursInRadius(fakeHit, 1.25*searchDistance/2., results2);
+    delete fakeHit;
+    
+    // Check if we found the hit we wanted
+    if( std::find(results2.begin(),results2.end(),trackHits[hitNumber+1]) == results2.end() ){
+      std::cout<<"- could not find hit number "<<hitNumber+1<<" inside the search window"<<std::endl;
+      double deltaU = fabs(trackHits[hitNumber+1]->getU()-trackHits[hitNumber]->getU());
+      double deltaV = fabs(trackHits[hitNumber+1]->getV()-trackHits[hitNumber]->getV());
+      std::cout<<"- distance between hits is "<< sqrt(deltaU*deltaU + deltaV*deltaV)<<" and search distance is "<<m_maxDistance<<std::endl;
+//      for(int c=0;c<cells.size();c++) delete cells[c];
+//      return;
+    }
+    
+    // Check radial conditions
+    if(trackHits[hitNumber+1]->getR() >= trackHits[hitNumber]->getR()){
+      std::cout<<"- cell "<<hitNumber<<" not produced, neighbour at higher radius"<<std::endl;
+//      return;
+    }
+    
+    // Make the cell for extrapolation in the next round
+    Cell* cell = new Cell(trackHits[hitNumber],trackHits[hitNumber+1]);
+    std::cout<<"have new cell"<<std::endl;
+
+    // Check if the cell would be killed by cuts
+    if( cells.back()->getAngle(cell) > m_maxCellAngle || cells.back()->getAngleRZ(cell) > m_maxCellAngleRZ ){
+      if(cells.back()->getAngle(cell) > m_maxCellAngle) std::cout<<"- cell "<<hitNumber<<" killed by angular cut. Angle is "<<cells.back()->getAngle(cell)<<std::endl;
+      if(cells.back()->getAngleRZ(cell) > m_maxCellAngleRZ) std::cout<<"- cell "<<hitNumber<<" killed by RZ angular cut. Angle is "<<cells.back()->getAngleRZ(cell)<<std::endl;
+//      for(int c=0;c<cells.size();c++) delete cells[c];
+//      return;
+    }
+    
+    // Set the information about which cell this new cell is attached to and store it
+    cell->setFrom(cells.back());
+    cells.back()->setTo(cell);
+//    cell->setWeight(hitNumber);
+    cells.push_back(cell);
+
+    // Check if we have finished
+//    if(hitNumber == (trackHits.size()-1)) trackBuilding = false;
+    hitNumber++;
+    
+  }
+  
+  // Now test the built-in functions to make CellularTracks from cells
+  std::vector<cellularTrack*> cellularTracks;
+  std::map<Cell*,bool> usedCells;
+  createTracksNew(cellularTracks, cells.back(), usedCells);
+
+  if(cellularTracks.size() != 1){
+    std::cout<<"- cellular track not produced from cells. Returned "<<cellularTracks.size()<<" candidates"<<std::endl;
+    for(int c=0;c<cells.size();c++) delete cells[c];
+    for(int ct=0;ct<cellularTracks.size();ct++) delete cellularTracks[ct];
+    return;
+  }
+
+  // Check that all of the hits are on the track
+  if(cellularTracks[0]->size() != (trackHits.size()-1)){
+    std::cout<<"- failed to put all cells on track. Cellular track size: "<<cellularTracks[0]->size()<<std::endl;
+    std::cout<<"- number of cells held: "<<cells.size()<<std::endl;
+    return;
+  }
+
+  // Now test the built-in functions to make KDTracks from CellularTracks
+  std::vector<KDTrack*> finalTracks;
+  getFittedTracks(finalTracks,cellularTracks,usedCells);
+
+  if(finalTracks.size() != 1){
+    std::cout<<"- kd track not produced from cellular track. Returned "<<finalTracks.size()<<" candidates"<<std::endl;
+    for(int c=0;c<cells.size();c++) delete cells[c];
+    for(int t=0;t<finalTracks.size();t++) delete finalTracks[t];
+    return;
+  }
+
+  // Test the chi2 criteria
+  KDTrack* mcTrack = finalTracks[0];
+    mcTrack->linearRegressionConformal(true);
+
+  std::cout<<"== Track chi2/ndof is "<<mcTrack->chi2ndof()<<", ZS chi2/ndof is "<<mcTrack->chi2ndofZS()<<std::endl;
+  std::cout<<"== Terms in conformal fit: "<<mcTrack->m_intercept<<", "<<mcTrack->m_gradient<<", "<<mcTrack->m_quadratic<<std::endl;
+  std::cout<<"== Terms in zs fit: "<<mcTrack->m_interceptZS<<", "<<mcTrack->m_gradientZS<<std::endl;
+  mcTrack->calculateChi2SZ(NULL,true);
+
+  if(mcTrack->chi2ndof() > m_chi2cut || mcTrack->chi2ndofZS() > m_chi2cut) {
+    if(mcTrack->chi2ndof() > m_chi2cut) std::cout<<"- track killed by chi2/ndof cut. Track chi2/ndof is "<<mcTrack->chi2ndof()<<std::endl;
+    if(mcTrack->chi2ndofZS() > m_chi2cut) std::cout<<"- track killed by ZS chi2/ndof cut. Track chi2/ndof in ZS is "<<mcTrack->chi2ndofZS()<<std::endl;
+    for(int c=0;c<cells.size();c++) delete cells[c];
+    for(int t=0;t<finalTracks.size();t++) delete finalTracks[t];
+    return;
+  }
+
+  std::cout<<"== Should have produced this track"<<std::endl;
+  for(int c=0;c<cells.size();c++) delete cells[c];
+  for(int t=0;t<finalTracks.size();t++) delete finalTracks[t];
+  return;
+
+}
+
 
 
 
