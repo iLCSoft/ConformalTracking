@@ -86,6 +86,7 @@ public:
 
   // Clusters and kalman track pointer
   int                     m_nPoints;
+  double                  m_pT;
   std::vector<KDCluster*> m_clusters;
   KalmanTrack*            m_kalmanTrack;
 
