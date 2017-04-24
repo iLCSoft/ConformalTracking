@@ -105,14 +105,14 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
   registerOutputCollection( LCIO::TRACKERHITPLANE, "DebugHits", "DebugHits", m_outputDebugHits, std::string("DebugHits"));
   
   // Parameters for tracking
-  registerProcessorParameter( "DebugPlots",         "Plots for debugging the tracking",				  m_debugPlots,		  bool(false) 	);
-  registerProcessorParameter( "ThetaRange", 	    "Angular range for initial cell seeding",			  m_thetaRange,		  double(0.1)	);
-  registerProcessorParameter( "MaxCellAngle", 	    "Cut on angle between two cells for cell to be valid",	  m_maxCellAngle,	  double(0.035)	);
-  registerProcessorParameter( "MaxCellAngleRZ",     "Cut on angle between two cells in RZ for cell to be valid",  m_maxCellAngleRZ, 	  double(0.035)	);
-  registerProcessorParameter( "MaxDistance",        "Maximum length of a cell (max. distance between two hits)",  m_maxDistance,	  double(0.015) );
-  registerProcessorParameter( "MaxChi2",            "Maximum chi2/ndof for linear conformal tracks",		  m_chi2cut,		  double(300.) 	);
-  registerProcessorParameter( "MinClustersOnTrack", "Minimum number of clusters to create a track",		  m_minClustersOnTrack,	  int(6)	);
-  registerProcessorParameter( "trackPurity",        "Purity value used for checking if tracks are real or not",	  m_purity,               double(0.75)	);
+  registerProcessorParameter( "DebugPlots", 		"Plots for debugging the tracking",								m_debugPlots,			bool(false) 	);
+  registerProcessorParameter( "ThetaRange", 		"Angular range for initial cell seeding",						m_thetaRange,			double(0.1)		);
+  registerProcessorParameter( "MaxCellAngle", 		"Cut on angle between two cells for cell to be valid",			m_maxCellAngle,			double(0.035)	);
+  registerProcessorParameter( "MaxCellAngleRZ",     "Cut on angle between two cells in RZ for cell to be valid", 	m_maxCellAngleRZ, 		double(0.035)	);
+  registerProcessorParameter( "MaxDistance",        "Maximum length of a cell (max. distance between two hits)", 	m_maxDistance,			double(0.015) 	);
+  registerProcessorParameter( "MaxChi2",            "Maximum chi2/ndof for linear conformal tracks",				m_chi2cut,				double(300.) 	);
+  registerProcessorParameter( "MinClustersOnTrack", "Minimum number of clusters to create a track",					m_minClustersOnTrack,	int(6)			);
+  registerProcessorParameter( "trackPurity",        "Purity value used for checking if tracks are real or not",		m_purity,				double(0.75)	);
 
 }
 
@@ -642,6 +642,8 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       
       if(collection < 1) continue;
       
+        std::sort(conformalTracks[currentTrack]->m_clusters.begin(),conformalTracks[currentTrack]->m_clusters.end(),sort_by_radiusKD);
+
       // Make sure that all tracks have a kalman track attached to them
       if(conformalTracks[currentTrack]->kalmanTrack() == NULL){
         KalmanTrack* kalmanTrack = new KalmanTrack(conformalTracks[currentTrack]);
@@ -688,11 +690,18 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
 //        double deltaChi2 = fitWithPoint(*(conformalTracks[currentTrack]->kalmanTrack()),kdhit); //conformalTracks[currentTrack]->deltaChi2(results2[newHit]);
         double deltaChi2 = fitWithPoint(*(conformalTracks[currentTrack]),kdhit); //conformalTracks[currentTrack]->deltaChi2(results2[newHit]);
 //        std::cout<<"- delta chi2 of hit "<<newHit<<" is "<<deltaChi2<<". Hit position ("<<results2[newHit]->getU()<<","<<results2[newHit]->getV()<<")"<<std::endl;
-        if(deltaChi2 > 100.) continue;
-        std::cout<<"Good hit on track " <<currentTrack<<std::endl;
+
+          //std::cout<<"- delta chi2 of hit "<<nKDHit<<" is "<<deltaChi2<<std::endl;
+//          if(deltaChi2 > (10.*1000./conformalTracks[currentTrack]->m_pT)) continue;
+          if(deltaChi2 > 20.) continue;
+        //std::cout<<"Good hit on track " <<currentTrack<<std::endl;
 //        results2[newHit]->setDeltaChi2(deltaChi2);
 //        goodHits.push_back(results2[newHit]);
         
+          conformalTracks[currentTrack]->add(kdhit);
+          kdhit->used(true);
+          nKDHit = 0;
+          /*
         // Check if there is a best cluster on this layer
         if(bestCluster == NULL){
           std::cout<<"Replacing null best cluster"<<std::endl;
@@ -716,7 +725,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
             std::cout<<"Replacing best cluster with higher chi2"<<std::endl;
           }
         }
-        
+        */
         
         // Now we have a point to consider on the current layer. If we are moving onto a new layer then take the best hit and attach it
 //        if(nKDHit == (nKDHits-1) || !(kdhit->sameLayer(tempClusterContainer[nKDHit+1]))){
@@ -757,7 +766,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
 //        conformalTracks[currentTrack]->linearRegression();
 //        conformalTracks[currentTrack]->linearRegressionConformal();
 //      }
-      std::cout<<"- pushed back "<<goodHits.size()<<" good hits to track "<<currentTrack<<std::endl;
+//      std::cout<<"- pushed back "<<goodHits.size()<<" good hits to track "<<currentTrack<<std::endl;
       
     }
  
@@ -1211,6 +1220,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       // Check if it was stable
       if(mcParticle->getGeneratorStatus() != 1) continue;
       // Check if it was reconstructed
+        checkReconstructionFailure(mcParticle, particleHits, used, nearestNeighbours);
       if(reconstructed.count(mcParticle)){nReconstructed++; continue;}
       // Draw the cells connecting the hits
       std::sort(mcHits.begin(),mcHits.end(),sort_by_radiusKD);
@@ -1223,7 +1233,7 @@ void ConformalTracking::processEvent( LCEvent* evt ) {
       nUnreconstructed++;
       
       // Check why particles were not reconstructed
-      checkReconstructionFailure(mcParticle, particleHits, used, nearestNeighbours);
+//      checkReconstructionFailure(mcParticle, particleHits, used, nearestNeighbours);
     }
     std::cout<<"Reconstructed "<<nReconstructed<<" particles out of "<<nReconstructed+nUnreconstructed<<". Gives efficiency "<<100.*(double)nReconstructed/(double)(nReconstructed + nUnreconstructed)<<"%"<<std::endl;
     delete nearestNeighbours;
@@ -2022,7 +2032,10 @@ double ConformalTracking::fitWithPoint(KDTrack kdTrack, KDCluster* hit){
   double newchi2 = kdTrack.chi2ndof();
   double newchi2zs = kdTrack.chi2ndofZS();
 
+//    std::cout<<"- old chi2: "<<chi2<<", chi2zs: "<<chi2zs<<std::endl;
+//    std::cout<<"- new chi2: "<<newchi2<<", chi2zs: "<<newchi2zs<<std::endl;
   return (newchi2-chi2 + newchi2zs-chi2zs);
+//    return (newchi2-chi2);
 
 }
 
