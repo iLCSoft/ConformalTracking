@@ -95,6 +95,11 @@ double KDTrack::calculateChi2SZ(TH2F* histo, bool debug){
     // Loop over all hits on the track and calculate the residual.
     // The y error includes a projection of the x error onto the y axis
     if(debug) std::cout<<"== Calculating track chi2 in sz"<<std::endl;
+    
+    // Make an estimate of the momentum
+    m_pT = 0.3 * 4. * sqrt(b*b + a*a) / 1000.;
+    if(debug) std::cout<<"== Momentum estimate is "<<m_pT<<" GeV/c"<<std::endl;
+    
     if(fillFit) std::cout<<"== note that a is "<<a<<" +/- "<<da<<" and b is "<<b<<" +/- "<<db<<std::endl;
     for(int hit=1;hit<m_nPoints;hit++){
         
@@ -137,7 +142,8 @@ double KDTrack::calculateChi2SZ(TH2F* histo, bool debug){
         chi2 += (residualS*residualS)/(ds2);
 
         // Debug info
-        if(debug) std::cout<<"- hit "<<hit<<" has residualS = "<<residualS<<", with error dz = "<<errorZ<<" and error ds = "<<sqrt(errorS2)<<std::endl;
+        if(debug) std::cout<<"- hit "<<hit<<" has residualS = "<<residualS<<", with error dz = "<<errorZ<<", error ds = "<<sqrt(errorS2)<<" and total error = "<<sqrt(ds2)<<std::endl;
+        if(debug) std::cout<<"Total chi2 increase "<<(residualS*residualS)/(ds2)<<". Chi2 is currently "<<chi2<<std::endl;
         if(fillFit){
             histo->Fill(m_clusters[hit]->getZ(),s);
             std::cout<<"== hit has s = "<<s<<", z = "<<m_clusters[hit]->getZ()<<std::endl;
@@ -255,27 +261,38 @@ void KDTrack::linearRegressionConformal(bool debug){
     double db = m_interceptError / (2.*m_intercept*m_intercept);
     double da = sqrt( db*db*m_gradient*m_gradient + m_gradientError*m_gradientError*b*b );
     
-    // Calculate the initial phi0, used for the calculation of s
+    // Calculate the initial phi0 and its error, used for the calculation of s
     double x0 = -1.*m_clusters[0]->getX();
     double y0 = m_clusters[0]->getY();
+    double errorx0 = m_clusters[0]->getErrorX();
+    double errory0 = m_clusters[0]->getErrorY();;
     if(m_rotated){
         x0 = m_clusters[0]->getY();
         y0 = m_clusters[0]->getX();
+        errorx0 = m_clusters[0]->getErrorY();
+        errory0 = m_clusters[0]->getErrorX();
     }
     double phi0 = atan2(y0-b,x0-a);
     double cPhi0 = cos(phi0);
     double sPhi0 = sin(phi0);
+    double ratio = (y0-b)/(x0-a);
+    double errorPhi0 = ( 1./((y0-b)*(1+(ratio*ratio))) ) * sqrt( ( ((errorx0*errorx0+da*da)*ratio*ratio*ratio*ratio) + (errory0*errory0+db*db)*ratio*ratio) );
     
     // Loop over all hits and fill the matrices
     if(debug)std::cout<<"== Fitting track in sz"<<std::endl;
+    std::vector<double> sValues, sError2Values;
     for(int hit=1;hit<m_nPoints;hit++){
         
         // Get the global point details
         double xi = -1.*m_clusters[hit]->getX();
         double yi = m_clusters[hit]->getY();
+        double errorx = m_clusters[hit]->getErrorX();
+        double errory = m_clusters[hit]->getErrorY();
         if(m_rotated){
             xi = m_clusters[hit]->getY();
             yi = m_clusters[hit]->getX();
+            errorx = m_clusters[hit]->getErrorY();
+            errory = m_clusters[hit]->getErrorX();
         }
         
         // Calculate the delta phi w.r.t the first hit, and then s
@@ -283,10 +300,23 @@ void KDTrack::linearRegressionConformal(bool debug){
         double s = ((xi-x0)*cPhi0 + (yi-y0)*sPhi0)/(sinc(deltaPhi));
         if(debug) std::cout<<"- for hit "<<hit<<" s = "<<s<<std::endl;
         
+        // Calculate the errors on everything
+        double dsdx = deltaPhi*cPhi0/sin(deltaPhi);
+        double dsdy = deltaPhi*sPhi0/sin(deltaPhi);
+        double dsdx0 = deltaPhi*cPhi0/sin(deltaPhi);
+        double dsdy0 = deltaPhi*sPhi0/sin(deltaPhi);
+        double dsdPhi0 = ((yi-y0)*cPhi0 - (xi-x0)*sPhi0)/(sinc(deltaPhi));
+        double dsdDeltaPhi = ((xi-x0)*cPhi0 + (yi-y0)*sPhi0)*(sin(deltaPhi)-deltaPhi*cos(deltaPhi))/(sin(deltaPhi)*sin(deltaPhi));
+        double newRatio = (yi-y0)/(xi-x0);
+        double errorDeltaPhi = ( 1./((yi-y0)*(1+(newRatio*newRatio))) ) * sqrt( ( ((errorx*errorx+errorx0*errorx0)*newRatio*newRatio*newRatio*newRatio) + (errory*errory+errory0*errory0)*newRatio*newRatio) );
+        double errorS2 = (dsdx*dsdx*errorx*errorx) + (dsdy*dsdy*errory*errory) + (dsdx0*dsdx0*errorx0*errorx0) + (dsdy0*dsdy0*errory0*errory0) + (dsdPhi0*dsdPhi0*errorPhi0*errorPhi0) + (dsdDeltaPhi*dsdDeltaPhi*errorDeltaPhi*errorDeltaPhi);
+        
         // Now set the values for the fit
         double y =  s;
+        sValues.push_back(s);
+        sError2Values.push_back(errorS2);
         double x = m_clusters[hit]->getZ();
-        double er2 = 1; // errors are assumed to be the same for all points here
+        double er2 = errorS2 + m_clusters[hit]->getErrorZ()*m_clusters[hit]->getErrorZ();//errorS2; // 1.; // errors are assumed to be the same for all points here
         const double inverseEr2 = 1./er2;
         
         // Fill the matrices
@@ -307,6 +337,40 @@ void KDTrack::linearRegressionConformal(bool debug){
     double slope =     (vecx[1] * matx[0][0] - vecx[0] * matx[1][0]) / detx;
     double intercept = (vecx[0] * matx[1][1] - vecx[1] * matx[1][0]) / detx;
     
+    // Now that the sz gradient is known, re-fit using better error estimates
+    
+    // Reset the matrices
+    vecx[0] = 0; vecx[1] = 0;
+    matx[0][0] = 0; matx[1][0] = 0; matx[1][1] = 0;
+    for(int hit=1;hit<m_nPoints;hit++){
+     
+        
+        double y = sValues[hit-1];
+        double x = m_clusters[hit]->getZ();
+        double er2 = (sError2Values[hit-1] + slope*slope*m_clusters[hit]->getErrorZ()*m_clusters[hit]->getErrorZ());
+        const double inverseEr2 = 1./er2;
+
+        // Fill the matrices
+        vecx[0] += y * inverseEr2;
+        vecx[1] += x * y * inverseEr2;
+        matx[0][0] += inverseEr2;
+        matx[1][0] += x * inverseEr2;
+        matx[1][1] += x * x * inverseEr2;
+        
+    }
+    
+    // Now get the new fit parameters
+    
+    // Invert the matrices
+    detx = matx[0][0] * matx[1][1] - matx[1][0] * matx[1][0];
+    
+    // Check for singularities.
+    if (detx == 0.) return;
+    
+    // Get the track parameters
+    slope =     (vecx[1] * matx[0][0] - vecx[0] * matx[1][0]) / detx;
+    intercept = (vecx[0] * matx[1][1] - vecx[1] * matx[1][0]) / detx;
+
     // Set the track parameters
     m_gradientZS = slope;
     m_interceptZS = intercept;
