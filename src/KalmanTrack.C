@@ -18,8 +18,8 @@ KalmanTrack::KalmanTrack(KDTrack* seedTrack) {
   m_theta = seed->getTheta();  // temporary theta?
                                //  m_moliere = 0.; // Scattering angle has to be set explicitly
 
-  // Approximate scattering angle for 1000 MeV particle with negligible mass (2% X0)..
-  m_moliere = 13.6 * sqrt(0.02) * (1. + 0.038 * log(0.02)) / (1000.);
+  // Approximate scattering angle for transverse momentum pT GeV particle with negligible mass (2% X0)..
+  m_moliere = 13.6 * sqrt(0.02) * (1. + 0.038 * log(0.02)) / (1000. * seedTrack->m_pT);
 }
 
 // Destructor
@@ -72,39 +72,116 @@ double KalmanTrack::addCluster(KDCluster* cluster) {
 
   // Return the increase in chi2
 
-  double b = 1. / (2. * m_conformalTrack->intercept());
-  double a = -1. * b * m_conformalTrack->gradient();
+  // Calculate a and b from the conformal fit
+  double intercept = m_conformalTrack->intercept();
+  double gradient  = m_conformalTrack->gradient();
+  double b         = 1. / (2. * intercept);
+  double a         = -1. * b * gradient;
 
+  // Get the errors on a and b
+  double db = m_conformalTrack->m_gradientError / (2. * intercept * intercept);
+  double da =
+      sqrt(db * db * gradient * gradient + m_conformalTrack->m_gradientError * m_conformalTrack->m_gradientError * b * b);
+
+  // Calculate the initial phi0 and its error, used for the calculation of s
+  double x0      = -1. * m_conformalTrack->m_clusters[0]->getX();
+  double y0      = m_conformalTrack->m_clusters[0]->getY();
+  double errorx0 = m_conformalTrack->m_clusters[0]->getErrorX();
+  double errory0 = m_conformalTrack->m_clusters[0]->getErrorY();
+  ;
+  if (m_rotated) {
+    x0      = m_conformalTrack->m_clusters[0]->getY();
+    y0      = m_conformalTrack->m_clusters[0]->getX();
+    errorx0 = m_conformalTrack->m_clusters[0]->getErrorY();
+    errory0 = m_conformalTrack->m_clusters[0]->getErrorX();
+  }
+  double phi0  = atan2(y0 - b, x0 - a);
+  double cPhi0 = cos(phi0);
+  double sPhi0 = sin(phi0);
+  double ratio = (y0 - b) / (x0 - a);
+  double errorPhi0 =
+      (1. / ((y0 - b) * (1 + (ratio * ratio)))) * sqrt((((errorx0 * errorx0 + da * da) * ratio * ratio * ratio * ratio) +
+                                                        (errory0 * errory0 + db * db) * ratio * ratio));
+
+  // Get the global point details
+  double xi     = -1. * cluster->getX();
+  double yi     = cluster->getY();
+  double errorx = cluster->getErrorX();
+  double errory = cluster->getErrorY();
+  if (m_rotated) {
+    xi     = cluster->getY();
+    yi     = cluster->getX();
+    errorx = cluster->getErrorY();
+    errory = cluster->getErrorX();
+  }
+
+  // Calculate the delta phi w.r.t the first hit, and then s
+  double deltaPhi = atan2(yi - y0, xi - x0);
+  double s        = ((xi - x0) * cPhi0 + (yi - y0) * sPhi0) / (m_conformalTrack->sinc(deltaPhi));
+
+  // Calculate the errors on everything
+  double dsdx    = deltaPhi * cPhi0 / sin(deltaPhi);
+  double dsdy    = deltaPhi * sPhi0 / sin(deltaPhi);
+  double dsdx0   = deltaPhi * cPhi0 / sin(deltaPhi);
+  double dsdy0   = deltaPhi * sPhi0 / sin(deltaPhi);
+  double dsdPhi0 = ((yi - y0) * cPhi0 - (xi - x0) * sPhi0) / (m_conformalTrack->sinc(deltaPhi));
+  double dsdDeltaPhi =
+      ((xi - x0) * cPhi0 + (yi - y0) * sPhi0) * (sin(deltaPhi) - deltaPhi * cos(deltaPhi)) / (sin(deltaPhi) * sin(deltaPhi));
+  double newRatio      = (yi - y0) / (xi - x0);
+  double errorDeltaPhi = (1. / ((yi - y0) * (1 + (newRatio * newRatio)))) *
+                         sqrt((((errorx * errorx + errorx0 * errorx0) * newRatio * newRatio * newRatio * newRatio) +
+                               (errory * errory + errory0 * errory0) * newRatio * newRatio));
+  double errorS2 = (dsdx * dsdx * errorx * errorx) + (dsdy * dsdy * errory * errory) + (dsdx0 * dsdx0 * errorx0 * errorx0) +
+                   (dsdy0 * dsdy0 * errory0 * errory0) + (dsdPhi0 * dsdPhi0 * errorPhi0 * errorPhi0) +
+                   (dsdDeltaPhi * dsdDeltaPhi * errorDeltaPhi * errorDeltaPhi);
+
+  // Now calculate the residual at this point
+  double z         = cluster->getZ();
+  double residualS = (m_conformalTrack->m_gradientZS * z + m_conformalTrack->m_interceptZS) - s;
+
+  // Calculate the corresponding hit error
+  double errorZ = cluster->getErrorZ();
+  double ds2    = (errorS2 + m_conformalTrack->m_gradientZS * m_conformalTrack->m_gradientZS * errorZ * errorZ);
+
+  // Increment the chi2
+  deltaChi2 += (residualS * residualS) / (ds2);
+
+  //    std::cout<<"Increase in chi2: "<<deltaChi2<<std::endl;
+
+  /*
+  double b = 1./(2.*m_conformalTrack->intercept());
+  double a = -1.*b*m_conformalTrack->gradient();
+ 
   double db = 0;
   double da = 0;
 
   double xMa = cluster->getX() - a;
   double yMb = cluster->getY() - b;
-  double dx  = cluster->getErrorX();
-  double dy  = cluster->getErrorY();
+  double dx = cluster->getErrorX();
+  double dy = cluster->getErrorY();
 
-  if (m_rotated) {
+  if(m_rotated){
     xMa = cluster->getY() - a;
-    yMb = (-1. * cluster->getX()) - b;
-    dx  = cluster->getErrorY();
-    dy  = cluster->getErrorX();
+    yMb = (-1.*cluster->getX()) - b;
+    dx = cluster->getErrorY();
+    dy = cluster->getErrorX();
   }
+  
+  double s = atan2(yMb,xMa);
+  double ratio = yMb/xMa;
 
-  double s     = atan2(yMb, xMa);
-  double ratio = yMb / xMa;
-
-  double errorS = (1. / (yMb * (1 + (ratio * ratio)))) * sqrt(((dx * dx + da * da) + (dy * dy + db * db) * ratio * ratio));
-  double residualZ = (m_conformalTrack->gradientZS() * s + m_conformalTrack->interceptZS()) - cluster->getZ();
-  double ds        = errorS;
-  double dz        = cluster->getErrorZ();
-
-  double ds2 = (dz * dz) + (m_conformalTrack->gradientZS() * m_conformalTrack->gradientZS() * ds * ds);
+  double errorS = ( 1./(yMb*(1+(ratio*ratio))) ) * sqrt( ( (dx*dx+da*da) + (dy*dy+db*db)*ratio*ratio) );
+  double residualZ = (m_conformalTrack->gradientZS()*s + m_conformalTrack->interceptZS()) - cluster->getZ();
+  double ds = errorS;
+  double dz = cluster->getErrorZ();
+  
+  double ds2 = (dz*dz) + (m_conformalTrack->gradientZS()*m_conformalTrack->gradientZS() * ds*ds);
   //    double ds2 = (m_gradientZS*m_gradientZS * dz*dz);
-
+  
   //    std::cout<<"- residual is "<<residualS<<std::endl;
   //    chi2 += (residualS*residualS)/(ds2);
-  deltaChi2 += (residualZ * residualZ) / (ds2);
-  //*/
+  deltaChi2 += (residualZ*residualZ)/(ds2);
+//*/
 
   return deltaChi2;
 }
