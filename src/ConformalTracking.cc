@@ -653,6 +653,9 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       if (collection < 1)
         continue;
 
+      std::sort(conformalTracks[currentTrack]->m_clusters.begin(), conformalTracks[currentTrack]->m_clusters.end(),
+                sort_by_radiusKD);
+
       // Make sure that all tracks have a kalman track attached to them
       if (conformalTracks[currentTrack]->kalmanTrack() == NULL) {
         KalmanTrack* kalmanTrack = new KalmanTrack(conformalTracks[currentTrack]);
@@ -700,34 +703,43 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         double deltaChi2 = fitWithPoint(*(conformalTracks[currentTrack]),
                                         kdhit);  //conformalTracks[currentTrack]->deltaChi2(results2[newHit]);
                                                  //        std::cout<<"- delta chi2 of hit "<<newHit<<" is "<<deltaChi2<<". Hit position ("<<results2[newHit]->getU()<<","<<results2[newHit]->getV()<<")"<<std::endl;
-        if (deltaChi2 > 100.)
+
+        //std::cout<<"- delta chi2 of hit "<<nKDHit<<" is "<<deltaChi2<<std::endl;
+        //          if(deltaChi2 > (10.*1000./conformalTracks[currentTrack]->m_pT)) continue;
+        if (deltaChi2 > 20.)
           continue;
-        std::cout << "Good hit on track " << currentTrack << std::endl;
+        //std::cout<<"Good hit on track " <<currentTrack<<std::endl;
         //        results2[newHit]->setDeltaChi2(deltaChi2);
         //        goodHits.push_back(results2[newHit]);
 
+        conformalTracks[currentTrack]->add(kdhit);
+        kdhit->used(true);
+        nKDHit = 0;
+        /*
         // Check if there is a best cluster on this layer
-        if (bestCluster == NULL) {
-          std::cout << "Replacing null best cluster" << std::endl;
+        if(bestCluster == NULL){
+          std::cout<<"Replacing null best cluster"<<std::endl;
           bestCluster = kdhit;
           bestCluster->setDeltaChi2(deltaChi2);
-        } else {
+        }else{
           // If new layer, save the old best cluster
-          if (!kdhit->sameLayer(bestCluster)) {
+          if(!kdhit->sameLayer(bestCluster)){
             goodHits.push_back(bestCluster);
             bestCluster->used(true);
-
+            
             // Recalculate chi2 with new hit on kalman track
-
+            
+            
             kdhit->setDeltaChi2(deltaChi2);
             bestCluster = kdhit;
             // If same layer, replace best cluster if chi2 is better
-          } else if (deltaChi2 < bestCluster->getDeltaChi2()) {
+          }else if(deltaChi2 < bestCluster->getDeltaChi2()){
             kdhit->setDeltaChi2(deltaChi2);
             bestCluster = kdhit;
-            std::cout << "Replacing best cluster with higher chi2" << std::endl;
+            std::cout<<"Replacing best cluster with higher chi2"<<std::endl;
           }
         }
+        */
 
         // Now we have a point to consider on the current layer. If we are moving onto a new layer then take the best hit and attach it
         //        if(nKDHit == (nKDHits-1) || !(kdhit->sameLayer(tempClusterContainer[nKDHit+1]))){
@@ -768,7 +780,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       //        conformalTracks[currentTrack]->linearRegression();
       //        conformalTracks[currentTrack]->linearRegressionConformal();
       //      }
-      std::cout << "- pushed back " << goodHits.size() << " good hits to track " << currentTrack << std::endl;
+      //      std::cout<<"- pushed back "<<goodHits.size()<<" good hits to track "<<currentTrack<<std::endl;
     }
 
     // ---------------------------------------------------------------------
@@ -1245,6 +1257,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       if (mcParticle->getGeneratorStatus() != 1)
         continue;
       // Check if it was reconstructed
+      checkReconstructionFailure(mcParticle, particleHits, used, nearestNeighbours);
       if (reconstructed.count(mcParticle)) {
         nReconstructed++;
         continue;
@@ -1261,7 +1274,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       nUnreconstructed++;
 
       // Check why particles were not reconstructed
-      checkReconstructionFailure(mcParticle, particleHits, used, nearestNeighbours);
+      //      checkReconstructionFailure(mcParticle, particleHits, used, nearestNeighbours);
     }
     std::cout << "Reconstructed " << nReconstructed << " particles out of " << nReconstructed + nUnreconstructed
               << ". Gives efficiency " << 100. * (double)nReconstructed / (double)(nReconstructed + nUnreconstructed) << "%"
@@ -2055,7 +2068,10 @@ double ConformalTracking::fitWithPoint(KDTrack kdTrack, KDCluster* hit) {
   double newchi2   = kdTrack.chi2ndof();
   double newchi2zs = kdTrack.chi2ndofZS();
 
+  //    std::cout<<"- old chi2: "<<chi2<<", chi2zs: "<<chi2zs<<std::endl;
+  //    std::cout<<"- new chi2: "<<newchi2<<", chi2zs: "<<newchi2zs<<std::endl;
   return (newchi2 - chi2 + newchi2zs - chi2zs);
+  //    return (newchi2-chi2);
 }
 
 // Debug function - checks if a track will be associated to an MC particle or not
