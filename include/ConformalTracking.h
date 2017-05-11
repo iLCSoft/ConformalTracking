@@ -46,13 +46,13 @@ public:
   virtual void init();
 
   // Called at the beginning of every run
-  virtual void processRunHeader(LCRunHeader* run);
+  virtual void processRunHeader(LCRunHeader* run) { m_runNumber++; }
 
   // Run over each event - the main algorithm
   virtual void processEvent(LCEvent* evt);
 
   // Run at the end of each event
-  virtual void check(LCEvent* evt);
+  virtual void check(LCEvent* evt){};
 
   // Called at the very end for cleanup, histogram saving, etc.
   virtual void end();
@@ -67,7 +67,7 @@ public:
 
   // Cell creation
   KDCluster* extrapolateCell(Cell*, double);
-  void       extendSeedCells(std::vector<Cell*>&, std::map<KDCluster*, bool>, KDTree*, bool, std::vector<KDCluster*>);
+  void       extendSeedCells(std::vector<Cell*>&, KDTree*, bool, std::vector<KDCluster*>);
 
   // Track finding
   void createTracksNew(std::vector<cellularTrack*>&, Cell*, std::map<Cell*, bool>&);
@@ -87,15 +87,11 @@ public:
 
   double fitWithExtension(KDTrack, std::vector<KDCluster*>, double&, double&);
 
-  ROOT::Minuit2::Minuit2Minimizer newFitter;
-  //  ROOT::Math::Functor* FCNFunction;
-
   // MC truth debug
   double checkReal(KDTrack*, std::map<KDCluster*, MCParticle*>, std::map<MCParticle*, bool>&,
                    std::map<MCParticle*, std::vector<KDCluster*>>);
   int  getUniqueHits(std::vector<KDCluster*>);
-  void checkReconstructionFailure(MCParticle*, std::map<MCParticle*, std::vector<KDCluster*>>, std::map<KDCluster*, bool>,
-                                  KDTree*);
+  void checkReconstructionFailure(MCParticle*, std::map<MCParticle*, std::vector<KDCluster*>>, KDTree*);
 
 protected:
   // Collection names for (in/out)put
@@ -166,10 +162,53 @@ protected:
   KDCluster* debugSeed;
 };
 
-bool sort_by_radius(EVENT::TrackerHit*, EVENT::TrackerHit*);
-bool sort_by_radiusKD(KDCluster*, KDCluster*);
-bool sort_by_lower_radiusKD(KDCluster*, KDCluster*);
-bool sort_by_cellWeight(Cell*, Cell*);
-bool sort_by_layer(KDCluster*, KDCluster*);
+// ---------------------------
+// SORT FUNCTIONS
+// ---------------------------
+
+// Sort tracker hits from smaller to larger radius
+bool sort_by_radius(EVENT::TrackerHit* hit1, EVENT::TrackerHit* hit2) {
+  double radius1 =
+      sqrt((hit1->getPosition()[0]) * (hit1->getPosition()[0]) + (hit1->getPosition()[1]) * (hit1->getPosition()[1]));
+  double radius2 =
+      sqrt((hit2->getPosition()[0]) * (hit2->getPosition()[0]) + (hit2->getPosition()[1]) * (hit2->getPosition()[1]));
+  return (radius1 < radius2);
+}
+
+// Sort kd hits from larger to smaller radius
+bool sort_by_radiusKD(KDCluster* hit1, KDCluster* hit2) {
+  double radius1 = hit1->getR();
+  double radius2 = hit2->getR();
+  return (radius1 > radius2);
+}
+
+// Sort kd hits from smaller to larger radius
+bool sort_by_lower_radiusKD(KDCluster* hit1, KDCluster* hit2) {
+  double radius1 = hit1->getR();
+  double radius2 = hit2->getR();
+  return (radius1 < radius2);
+}
+
+// Sort kdhits by lower to higher layer number
+bool sort_by_layer(KDCluster* hit1, KDCluster* hit2) {
+  if (hit1->getSubdetector() != hit2->getSubdetector())
+    return (hit1->getSubdetector() < hit2->getSubdetector());
+  else if (hit1->getSide() != hit2->getSide())
+    return (hit1->getSide() < hit2->getSide());
+  else if (hit1->getLayer() != hit2->getLayer())
+    return (hit1->getLayer() < hit2->getLayer());
+  else
+    return false;
+}
+
+// Sort cells from higher to lower weight
+bool sort_by_cellWeight(Cell* cell1, Cell* cell2) {
+  int weight1 = cell1->getWeight();
+  int weight2 = cell2->getWeight();
+  return (weight1 > weight2);
+}
+
+// Sort kdtracks from longest to shortest
+bool sort_by_length(KDTrack* track1, KDTrack* track2) { return (track1->m_clusters.size() > track2->m_clusters.size()); }
 
 #endif
