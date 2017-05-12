@@ -260,8 +260,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   }
 
   // Get the MC particle collection
-  if (m_debugPlots)
-    getCollection(particleCollection, m_inputParticleCollection, evt);
+  getCollection(particleCollection, m_inputParticleCollection, evt);
 
   // Make the output track collection
   LCCollectionVec* trackCollection    = new LCCollectionVec(LCIO::TRACK);
@@ -429,7 +428,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   }
 
   // Draw the final set of conformal hits (on top of the cell lines)
-  if (m_eventNumber == 0) {
+  if (m_eventNumber == 0 && m_debugPlots) {
     m_canvConformalEventDisplayMC->cd();
     m_conformalEventsMC->DrawCopy("same");
     // Draw the non-MC event display
