@@ -436,73 +436,51 @@ void ConformalTracking::processEvent(LCEvent* evt){
     //------------------------------------------------------------------------------
 
     // The final vector of conformal tracks
-    std::vector<KDTrack*> conformalTracks;
   
-  // Loop over all input collections. Tracking will be attempted on the collection, then hits from the next collection
-  // will be added to the unused hits already there.
-  int seedCollections = 0;
-  for(unsigned int collection=0; collection<trackerHitCollections.size();collection++){
-  
-    // The set of conformal hits which will be considered in this iteration
-    std::vector<KDCluster*> kdClusters;
+  std::vector<KDTrack*> conformalTracks;
 
-    if(collection < seedCollections){
-      std::vector<KDCluster*> clusters = collectionClusters[collection]; //this makes a copy FIX ME
-      int nhits = clusters.size();
-      for(int hit=0;hit<nhits;hit++){
-        kdClusters.push_back(clusters[hit]);
-      }
-    }else{
-      // Add hits from this and previous collections to the list
-    	for(unsigned int col=0;col<=collection;col++){
-        std::vector<KDCluster*> clusters = collectionClusters[col]; //this makes a copy FIX ME
-        int nhits = clusters.size();
-        for(int hit=0;hit<nhits;hit++){
-//          if( clusters[hit]->used() ) continue;
-          kdClusters.push_back(clusters[hit]);
-        }
-      }
+  std::vector<KDCluster*> kdClusters;
+  KDTree* nearestNeighbours = NULL;
+  
+  // Build tracks in the vertex detector
+  std::vector<int> vertexHits = {0, 1};
+  combineCollections(kdClusters,nearestNeighbours,vertexHits,collectionClusters);
+  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours);
+
+  // Mark hits from "good" tracks as being used
+  for(unsigned int itTrack=0;itTrack<conformalTracks.size();itTrack++){
+    for(unsigned int itHit=0;itHit<conformalTracks[itTrack]->m_clusters.size();itHit++){
+      conformalTracks[itTrack]->m_clusters[itHit]->used(true);
     }
-    
-    // Sort the KDClusters from larger to smaller radius
-    if(kdClusters.size() == 0) continue;
-    std::cout<<"Number of hits: "<<kdClusters.size()<<std::endl;
-    streamlog_out( DEBUG4 )<<"Number of hits: "<<kdClusters.size()<<std::endl;
-    std::sort(kdClusters.begin(),kdClusters.end(),sort_by_radiusKD);
-    
-    // Make the binary search tree. This tree class contains two binary trees - one sorted by u-v and the other by theta
-    KDTree* nearestNeighbours = new KDTree(kdClusters,m_thetaRange);
-  
-  	// ---------------------------------------------------------------------
-    // Try to extend current tracks (if any) with unused hits
-  	// ---------------------------------------------------------------------
-
-    streamlog_out( DEBUG4 )<<"Seeding with tracks"<<std::endl;
-    streamlog_out( DEBUG4 )<<"Attempting to extend tracks: "<<conformalTracks.size()<<std::endl;
-    if(collection > 1) extendTracks(conformalTracks, kdClusters, nearestNeighbours);
- 
-  	// ---------------------------------------------------------------------
-		// Try to create new tracks using all of the kdHits currently held
-	  // ---------------------------------------------------------------------
-    streamlog_out( DEBUG4 )<<"Seeding with hits"<<std::endl;
-    streamlog_out( DEBUG4 )<<"Attempting to seed with hits: "<<kdClusters.size()<<std::endl;
-    if(collection <= 1) buildNewTracks(conformalTracks, kdClusters, nearestNeighbours);
-    
-    // Now finished looking at this hit collection. All tracks which can have extra hits added
-    // have had them added, and no new tracks were possible using the sum of all collections
-    // till now. Add the next collection and try again...
-    delete nearestNeighbours;
-    
-    // Mark hits from "good" tracks as being used
-    for(unsigned int itTrack=0;itTrack<conformalTracks.size();itTrack++){
-        for(unsigned int itHit=0;itHit<conformalTracks[itTrack]->m_clusters.size();itHit++){
-          conformalTracks[itTrack]->m_clusters[itHit]->used(true);
-        }
-    }
-
   }
+
+  // Extend them through the inner and outer trackers
+  std::vector<int> trackerHits = {2, 3, 4, 5};
+  combineCollections(kdClusters,nearestNeighbours,trackerHits,collectionClusters);
+  extendTracks(conformalTracks, kdClusters, nearestNeighbours);
   
-    
+  // Mark hits from "good" tracks as being used
+  for(unsigned int itTrack=0;itTrack<conformalTracks.size();itTrack++){
+    for(unsigned int itHit=0;itHit<conformalTracks[itTrack]->m_clusters.size();itHit++){
+      conformalTracks[itTrack]->m_clusters[itHit]->used(true);
+    }
+  }
+
+  // Try to reconstruct late-lived tracks
+//  std::vector<int> allHits = {0, 1, 2, 3, 4, 5};
+//  combineCollections(kdClusters,nearestNeighbours,allHits,collectionClusters);
+//  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours);
+//
+//  // Mark hits from "good" tracks as being used
+//  for(unsigned int itTrack=0;itTrack<conformalTracks.size();itTrack++){
+//    for(unsigned int itHit=0;itHit<conformalTracks[itTrack]->m_clusters.size();itHit++){
+//      conformalTracks[itTrack]->m_clusters[itHit]->used(true);
+//    }
+//  }
+
+  // Clean up
+  delete nearestNeighbours;
+  
     // Now in principle have all conformal tracks, but due to how the check for clones is performed (ish) there is a possibility
     // that clones/fakes are still present. Try to remove them by looking at overlapping hits. Turned off at the moment
     
@@ -743,6 +721,32 @@ void ConformalTracking::end(){
 //===================================
 // Tracking strategies
 //===================================
+
+// Combine collections
+void ConformalTracking::combineCollections(std::vector<KDCluster*>& kdClusters, KDTree*& nearestNeighbours, std::vector<int> combination, std::map<int,std::vector<KDCluster*>> collectionClusters){
+  
+  // Clear the input objects
+  kdClusters.clear();
+  if(nearestNeighbours != NULL) delete nearestNeighbours;
+  
+  // Loop over all given collections
+  for(unsigned int i=0; i<combination.size();i++){
+
+    // Copy the clusters to the output vector
+    std::vector<KDCluster*> clusters = collectionClusters[combination[i]]; //this makes a copy FIX ME
+    int nhits = clusters.size();
+    for(int hit=0;hit<nhits;hit++){
+      kdClusters.push_back(clusters[hit]);
+    }
+  }
+  
+  // Sort the KDClusters from larger to smaller radius
+  std::sort(kdClusters.begin(),kdClusters.end(),sort_by_radiusKD);
+  
+  // Make the binary search tree. This tree class contains two binary trees - one sorted by u-v and the other by theta
+  nearestNeighbours = new KDTree(kdClusters,m_thetaRange);
+
+}
 
 // Take a collection of hits and try to produce tracks out of them
 void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, std::vector<KDCluster*>& collection, KDTree* nearestNeighbours){
@@ -1060,10 +1064,6 @@ void ConformalTracking::extendTracks(std::vector<KDTrack*>& conformalTracks, std
     
   } // End of loop over tracks
 }
-
-
-
-
 
 // Extend seed cells
 void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, KDTree* nearestNeighbours, bool extendingTrack, std::vector<KDCluster*> debugHits){
