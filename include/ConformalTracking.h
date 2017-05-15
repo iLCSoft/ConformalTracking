@@ -72,6 +72,7 @@ public:
   // Track finding
   void buildNewTracks(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*);
   void extendTracks(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*);
+  void combineCollections(std::vector<KDCluster*>&, KDTree*&, std::vector<int>, std::map<int, std::vector<KDCluster*>>);
 
   void createTracksNew(std::vector<cellularTrack*>&, Cell*, std::map<Cell*, bool>&);
   bool toBeUpdated(std::vector<cellularTrack*> const&);
