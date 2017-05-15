@@ -70,6 +70,9 @@ public:
   void       extendSeedCells(std::vector<Cell*>&, KDTree*, bool, std::vector<KDCluster*>);
 
   // Track finding
+  void buildNewTracks(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*);
+  void extendTracks(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*);
+
   void createTracksNew(std::vector<cellularTrack*>&, Cell*, std::map<Cell*, bool>&);
   bool toBeUpdated(std::vector<cellularTrack*> const&);
   void updateCell(Cell*);
