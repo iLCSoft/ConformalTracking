@@ -130,7 +130,14 @@ protected:
   TH1F* m_conformalChi2real;
   TH1F* m_conformalChi2fake;
   TH2F* m_conformalChi2Purity;
+
   TH1F* m_conformalChi2MC;
+  TH2F* m_conformalChi2PtMC;
+  TH2F* m_conformalChi2VertexRMC;
+
+  TH1F* m_conformalChi2SzMC;
+  TH2F* m_conformalChi2SzPtMC;
+  TH2F* m_conformalChi2SzVertexRMC;
 
   TH1F* m_cellAngleMC;
   TH1F* m_cellAngleRZMC;
