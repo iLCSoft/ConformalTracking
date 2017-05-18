@@ -63,6 +63,8 @@ public:
   KalmanTrack*            kalmanTrack() { return m_kalmanTrack; }
   void setKalmanTrack(KalmanTrack* track) { m_kalmanTrack = track; }
 
+  double pt() { return m_pT; }
+
   //--- Each KDTrack contains parameters for the two separate fits,
   //--- along with the errors and list of clusters used
 
