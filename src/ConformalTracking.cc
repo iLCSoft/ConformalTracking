@@ -173,8 +173,15 @@ void ConformalTracking::init(){
         m_conformalChi2real = new TH1F("conformalChi2real","conformalChi2real",1000,0,1000);
         m_conformalChi2fake = new TH1F("conformalChi2fake","conformalChi2fake",1000,0,1000);
         m_conformalChi2Purity = new TH2F("conformalChi2Purity","conformalChi2Purity",150,0,1.5,1000,0,1000);
-        m_conformalChi2MC = new TH1F("conformalChi2MC","conformalChi2MC",1000,0,1000);
-        
+
+      m_conformalChi2MC = new TH1F("conformalChi2MC","conformalChi2MC",1000,0,1000);
+      m_conformalChi2PtMC = new TH2F("conformalChi2PtMC","conformalChi2PtMC",1000,0,1000,1000,0,100);
+      m_conformalChi2VertexRMC = new TH2F("conformalChi2VertexRMC","conformalChi2VertexRMC",1000,0,1000,100,0,100);
+
+      m_conformalChi2SzMC = new TH1F("conformalChi2SzMC","conformalChi2SzMC",1000,0,1000);
+      m_conformalChi2SzPtMC = new TH2F("conformalChi2SzPtMC","conformalChi2SzPtMC",1000,0,1000,1000,0,100);
+      m_conformalChi2SzVertexRMC = new TH2F("conformalChi2SzVertexRMC","conformalChi2SzVertexRMC",1000,0,1000,100,0,100);
+
         m_cellAngleMC = new TH1F("cellAngleMC","cellAngleMC",1250,0,0.05);
         m_cellAngleRadiusMC = new TH2F("cellAngleRadiusMC","cellAngleRadiusMC",400,0,0.04,1000,0,0.04);
         m_cellLengthRadiusMC = new TH2F("cellLengthRadiusMC","cellLengthRadiusMC",300,0,0.03,1000,0,0.04);
@@ -362,7 +369,17 @@ void ConformalTracking::processEvent(LCEvent* evt){
       
       // Fit the track and plot the chi2
       mcTrack->linearRegression();
+      mcTrack->linearRegressionConformal();
       m_conformalChi2MC->Fill(mcTrack->chi2ndof());
+      m_conformalChi2PtMC->Fill(mcTrack->chi2ndof(),particlePt);
+      m_conformalChi2SzMC->Fill(mcTrack->chi2ndofZS());
+      m_conformalChi2SzPtMC->Fill(mcTrack->chi2ndofZS(),particlePt);
+      
+      double mcVertexX=mcParticle->getVertex()[0];
+      double mcVertexY=mcParticle->getVertex()[1];
+      double mcVertexR=sqrt(pow(mcVertexX,2)+pow(mcVertexY,2));
+      m_conformalChi2VertexRMC->Fill(mcTrack->chi2ndof(),mcVertexR);
+      m_conformalChi2SzVertexRMC->Fill(mcTrack->chi2ndofZS(),mcVertexR);
       delete mcTrack;
       
       // Now loop over the hits and make cells - filling histograms along the way
@@ -436,14 +453,12 @@ void ConformalTracking::processEvent(LCEvent* evt){
     //------------------------------------------------------------------------------
 
     // The final vector of conformal tracks
-  
-  std::vector<KDTrack*> conformalTracks;
-
-  std::vector<KDCluster*> kdClusters;
-  KDTree* nearestNeighbours = NULL;
+  	std::vector<KDTrack*> conformalTracks;
+  	std::vector<KDCluster*> kdClusters;
+  	KDTree* nearestNeighbours = NULL;
   
   // Build tracks in the vertex detector
-  std::vector<int> vertexHits = {0, 1};
+  std::vector<int> vertexHits = {0};
   combineCollections(kdClusters,nearestNeighbours,vertexHits,collectionClusters);
   buildNewTracks(conformalTracks, kdClusters, nearestNeighbours);
 
@@ -453,6 +468,14 @@ void ConformalTracking::processEvent(LCEvent* evt){
       conformalTracks[itTrack]->m_clusters[itHit]->used(true);
     }
   }
+
+  std::vector<int> vertexEndcapHits = {1};
+  combineCollections(kdClusters,nearestNeighbours,vertexEndcapHits,collectionClusters);
+  extendTracks(conformalTracks, kdClusters, nearestNeighbours);
+
+  std::vector<int> vertexCombinedHits = {0, 1};
+  combineCollections(kdClusters,nearestNeighbours,vertexCombinedHits,collectionClusters);
+  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours);
 
   // Extend them through the inner and outer trackers
   std::vector<int> trackerHits = {2, 3, 4, 5};
@@ -615,6 +638,7 @@ void ConformalTracking::processEvent(LCEvent* evt){
       KDTrack* debugTrack = conformalTracksFinal[itrack];
       
       m_conformalChi2->Fill(debugTrack->chi2ndof());
+      std::cout<<"-------------------- New TRACK --------------------"<<std::endl;
       double purity = checkReal(debugTrack,kdParticles,reconstructed,particleHits);
       if(purity >= m_purity){
         m_conformalChi2real->Fill(debugTrack->chi2ndof());
@@ -670,6 +694,10 @@ void ConformalTracking::processEvent(LCEvent* evt){
       // Check if it was stable
       if(mcParticle->getGeneratorStatus() != 1) continue;
       // Check if it was reconstructed
+      std::cout<<"-------------------- New PARTICLE --------------------"<<std::endl;
+      // List the pt
+      double particlePt = sqrt( mcParticle->getMomentum()[0]*mcParticle->getMomentum()[0] + mcParticle->getMomentum()[1]*mcParticle->getMomentum()[1] );
+      std::cout<<"Particle pt: "<<particlePt<<std::endl;
         checkReconstructionFailure(mcParticle, particleHits, nearestNeighbours);
       if(reconstructed.count(mcParticle)){nReconstructed++; continue;}
       // Draw the cells connecting the hits
@@ -677,8 +705,6 @@ void ConformalTracking::processEvent(LCEvent* evt){
       for(int iHit=0;iHit<(mcHits.size()-1);iHit++){
         drawline(mcHits[iHit],mcHits[iHit+1],iHit+1);
       }
-      // List the pt of unreconstructed particles
-      double particlePt = sqrt( mcParticle->getMomentum()[0]*mcParticle->getMomentum()[0] + mcParticle->getMomentum()[1]*mcParticle->getMomentum()[1] );
       std::cout<<"Unreconstructed particle pt: "<<particlePt<<std::endl;
       nUnreconstructed++;
       
@@ -905,7 +931,10 @@ void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, s
       
       // Cut on chi2
       //        if(collection != trackerHitCollections.size() && (bestTracks[itTrack]->chi2ndof() > m_chi2cut || bestTracks[itTrack]->chi2ndofZS() > m_chi2cut)) {
-      if(bestTracks[itTrack]->chi2ndof() > m_chi2cut || bestTracks[itTrack]->chi2ndofZS() > m_chi2cut) {
+      double chi2cut = m_chi2cut;
+      if(bestTracks[itTrack]->pt() < 5.) chi2cut = 1000.;
+      
+      if(bestTracks[itTrack]->chi2ndof() > chi2cut || bestTracks[itTrack]->chi2ndofZS() > chi2cut) {
         delete bestTracks[itTrack];
         bestTracks[itTrack] = NULL;
         continue;
@@ -1001,6 +1030,7 @@ void ConformalTracking::extendTracks(std::vector<KDTrack*>& conformalTracks, std
   // the track and do a nearest neighbours search, but this seemed to fail for some reason, TODO!
   
   std::cout<<"EXTENDING tracks"<<std::endl;
+  if(collection.size() == 0) return;
   int nTracks = conformalTracks.size();
   for(int currentTrack=0;currentTrack<nTracks;currentTrack++){
     
@@ -1051,7 +1081,7 @@ void ConformalTracking::extendTracks(std::vector<KDTrack*>& conformalTracks, std
 
       // We have an estimate of the pT here, could use it in the chi2 criteria
       //          if(deltaChi2 > (10.*1000./conformalTracks[currentTrack]->m_pT)) continue;
-      if(deltaChi2 > 20.) continue;
+      if(deltaChi2 > 10.) continue;
 
       conformalTracks[currentTrack]->add(kdhit);
       kdhit->used(true);
