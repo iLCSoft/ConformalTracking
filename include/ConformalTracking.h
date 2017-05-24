@@ -70,7 +70,7 @@ public:
   void       extendSeedCells(std::vector<Cell*>&, KDTree*, bool, std::vector<KDCluster*>);
 
   // Track finding
-  void buildNewTracks(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*);
+  void buildNewTracks(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*, bool radialSearch = false);
   void extendTracks(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*);
   void combineCollections(std::vector<KDCluster*>&, KDTree*&, std::vector<int>, std::map<int, std::vector<KDCluster*>>);
 
@@ -204,10 +204,10 @@ bool sort_by_lower_radiusKD(KDCluster* hit1, KDCluster* hit2) {
 bool sort_by_layer(KDCluster* hit1, KDCluster* hit2) {
   if (hit1->getSubdetector() != hit2->getSubdetector())
     return (hit1->getSubdetector() < hit2->getSubdetector());
-  else if (hit1->getSide() != hit2->getSide())
-    return (hit1->getSide() < hit2->getSide());
   else if (hit1->getLayer() != hit2->getLayer())
     return (hit1->getLayer() < hit2->getLayer());
+  else if (hit1->getSide() != hit2->getSide())
+    return (hit1->getSide() < hit2->getSide());
   else
     return false;
 }
