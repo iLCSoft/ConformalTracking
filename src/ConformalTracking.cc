@@ -470,7 +470,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   std::vector<KDCluster*> kdClusters;
   KDTree*                 nearestNeighbours = NULL;
 
-  // Build tracks in the vertex detector
+  // Build tracks in the vertex detector, barrel then combined
   std::vector<int> vertexHits = {0};
   combineCollections(kdClusters, nearestNeighbours, vertexHits, collectionClusters);
   buildNewTracks(conformalTracks, kdClusters, nearestNeighbours);
@@ -490,29 +490,58 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   combineCollections(kdClusters, nearestNeighbours, vertexCombinedHits, collectionClusters);
   buildNewTracks(conformalTracks, kdClusters, nearestNeighbours);
 
-  // Extend them through the inner and outer trackers
-  std::vector<int> trackerHits = {2, 3, 4, 5};
-  combineCollections(kdClusters, nearestNeighbours, trackerHits, collectionClusters);
-  extendTracks(conformalTracks, kdClusters, nearestNeighbours);
+  // EXPAND PARAMETERS HERE, THEN SORT BY PT BEFORE EXTRAPOLATION!
 
+  // Extend them through the inner and outer trackers
+  /*
+  std::vector<int> trackerHits = {2, 3, 4, 5};
+  combineCollections(kdClusters,nearestNeighbours,trackerHits,collectionClusters);
+  extendTracks(conformalTracks, kdClusters, nearestNeighbours);
+  
   // Mark hits from "good" tracks as being used
+  for(unsigned int itTrack=0;itTrack<conformalTracks.size();itTrack++){
+    for(unsigned int itHit=0;itHit<conformalTracks[itTrack]->m_clusters.size();itHit++){
+      conformalTracks[itTrack]->m_clusters[itHit]->used(true);
+    }
+  }
+  */
+
+  double maxCellAngle   = m_maxCellAngle;
+  double maxCellAngleRZ = m_maxCellAngleRZ;
+  double chi2cut        = m_chi2cut;
+
+  m_maxCellAngle *= 20.;
+  m_maxCellAngleRZ *= 20.;
+  m_chi2cut *= 20.;
+  combineCollections(kdClusters, nearestNeighbours, vertexCombinedHits, collectionClusters);
+  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours);
+
+  //  // Mark hits from "good" tracks as being used
   for (unsigned int itTrack = 0; itTrack < conformalTracks.size(); itTrack++) {
     for (unsigned int itHit = 0; itHit < conformalTracks[itTrack]->m_clusters.size(); itHit++) {
       conformalTracks[itTrack]->m_clusters[itHit]->used(true);
     }
   }
 
+  // Extend tracks through the trackers
+  /*combineCollections(kdClusters,nearestNeighbours,trackerHits,collectionClusters);
+  extendTracks(conformalTracks, kdClusters, nearestNeighbours);
+  
+  // Mark hits from "good" tracks as being used
+  for(unsigned int itTrack=0;itTrack<conformalTracks.size();itTrack++){
+    for(unsigned int itHit=0;itHit<conformalTracks[itTrack]->m_clusters.size();itHit++){
+      conformalTracks[itTrack]->m_clusters[itHit]->used(true);
+    }
+  }*/
+
+  m_maxCellAngle   = maxCellAngle;
+  m_maxCellAngleRZ = maxCellAngleRZ;
+  m_chi2cut        = chi2cut;
+
   // Try to reconstruct late-lived tracks
-  //  std::vector<int> allHits = {0, 1, 2, 3, 4, 5};
-  //  combineCollections(kdClusters,nearestNeighbours,allHits,collectionClusters);
-  //  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours);
-  //
-  //  // Mark hits from "good" tracks as being used
-  //  for(unsigned int itTrack=0;itTrack<conformalTracks.size();itTrack++){
-  //    for(unsigned int itHit=0;itHit<conformalTracks[itTrack]->m_clusters.size();itHit++){
-  //      conformalTracks[itTrack]->m_clusters[itHit]->used(true);
-  //    }
-  //  }
+  //std::vector<int> allHits = {0, 1, 2, 3, 4, 5};
+  //combineCollections(kdClusters,nearestNeighbours,allHits,collectionClusters);
+  //buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, true);
 
   // Clean up
   delete nearestNeighbours;
@@ -792,7 +821,12 @@ void ConformalTracking::combineCollections(std::vector<KDCluster*>& kdClusters, 
 
 // Take a collection of hits and try to produce tracks out of them
 void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, std::vector<KDCluster*>& collection,
-                                       KDTree* nearestNeighbours) {
+                                       KDTree* nearestNeighbours, bool radialSearch) {
+  std::cout << "BUILDING new tracks" << std::endl;
+
+  // Sort the input collection by radius
+  std::sort(collection.begin(), collection.end(), sort_by_radiusKD);
+
   // Loop over all hits, using each as a seed to produce a new track
   unsigned int nKDHits = collection.size();
   for (unsigned int nKDHit = 0; nKDHit < nKDHits; nKDHit++) {
@@ -800,7 +834,8 @@ void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, s
     KDCluster* kdhit = collection[nKDHit];
     if (debugSeed && kdhit == debugSeed)
       std::cout << "Starting to seed with debug cluster" << std::endl;
-    //      if( kdhit->used() ) continue;
+    if (kdhit->used())
+      continue;
     //      if(kdhit->getR() < 0.003) break; // new cut - once we get to inner radius we will never make tracks. temp? TODO: make parameter? FCC (0.005 to 0.003)
 
     // The tracking differentiates between the first and all subsequent hits on a chain.
@@ -815,8 +850,10 @@ void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, s
     // radial distance. Check that they are at lower radius and further from the IP
     VecCluster results;
     double     theta = kdhit->getTheta();
-    nearestNeighbours->allNeighboursInTheta(theta, m_thetaRange, results);
-    //      nearestNeighbours->allNeighboursInRadius(kdhit, m_maxDistance, results);
+    if (radialSearch)
+      nearestNeighbours->allNeighboursInRadius(kdhit, m_maxDistance, results);
+    else
+      nearestNeighbours->allNeighboursInTheta(theta, m_thetaRange, results);
 
     // Sort the neighbours from outer to inner radius
     if (debugSeed && kdhit == debugSeed)
@@ -834,7 +871,8 @@ void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, s
       KDCluster* nhit = results[neighbour];
 
       // Check that it is not used, is not on the same detector layer, points inwards and has real z pointing away from IP
-      //        if( nhit->used() ) continue;
+      if (nhit->used())
+        continue;
       if (kdhit->sameLayer(nhit))
         continue;
       if (nhit->getR() >= kdhit->getR())
@@ -1097,11 +1135,26 @@ void ConformalTracking::extendTracks(std::vector<KDTrack*>& conformalTracks, std
     // Loop over all hits found and check if any have a sufficiently good delta Chi2
     vector<KDCluster*> goodHits;
     KDCluster*         bestCluster = NULL;
-    //      for(int newHit=0;newHit<results2.size();newHit++){
+    double             bestChi2    = 0.;
+
+    // Sort the hit collection by layer
+    std::sort(collection.begin(), collection.end(), sort_by_layer);
+
     unsigned int nKDHits = collection.size();
+    //std::cout<<"STARTING"<<std::endl;
+    //      for(int newHit=0;newHit<results2.size();newHit++){
     for (unsigned int nKDHit = 0; nKDHit < nKDHits; nKDHit++) {
       // Get the kdHit and check if it has already been used (assigned to a track)
       KDCluster* kdhit = collection[nKDHit];
+      //std::cout<<"Detector "<<kdhit->getSubdetector()<<", layer "<<kdhit->getLayer()<<", side "<<kdhit->getSide()<<std::endl;
+
+      // If this hit is on a new layer, then add the hit from the previous layer and start anew
+      if (bestCluster != NULL && !(kdhit->sameLayer(bestCluster))) {
+        bestCluster->used(true);
+        conformalTracks[currentTrack]->add(bestCluster);
+        bestCluster = NULL;
+      }
+
       if (kdhit->used())
         continue;
 
@@ -1121,14 +1174,25 @@ void ConformalTracking::extendTracks(std::vector<KDTrack*>& conformalTracks, std
 
       // We have an estimate of the pT here, could use it in the chi2 criteria
       //          if(deltaChi2 > (10.*1000./conformalTracks[currentTrack]->m_pT)) continue;
-      if (deltaChi2 > 10.)
+      if (deltaChi2 > 1000.)
         continue;
 
-      conformalTracks[currentTrack]->add(kdhit);
-      kdhit->used(true);
+      if (bestCluster == NULL || deltaChi2 < bestChi2) {
+        bestCluster = kdhit;
+        bestChi2    = deltaChi2;
+      }
+
+      //conformalTracks[currentTrack]->add(kdhit);
+      //kdhit->used(true);
 
       // New hit has been added, go back to the beginning and start again...
-      nKDHit = 0;
+      // nKDHit = 0;
+    }
+
+    if (bestCluster != NULL) {
+      bestCluster->used(true);
+      conformalTracks[currentTrack]->add(bestCluster);
+      bestCluster = NULL;
     }
 
     delete seedCell;
@@ -1174,7 +1238,8 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, KDTree* neare
 
         // Check that it is not used, is not on the same detector layer, points inwards and has real z pointing away from IP
         //        if(used.count(nhit)){if(extendingTrack) std::cout<<"- used"<<std::endl; continue;}
-        //        if( nhit->used() )continue;
+        if (nhit->used())
+          continue;
         if (hit->sameLayer(nhit)) {
           if (extendingTrack)
             std::cout << "- same layer" << std::endl;
@@ -1431,6 +1496,9 @@ void ConformalTracking::getLowestChi2(std::vector<KDTrack*>& finalTracks, std::v
     }
   }
 
+  //finalTracks.push_back(lowestChi2ndofTrack);
+  //return;
+
   // Loop over all other tracks and decide whether or not to save them
   for (unsigned int itTrack = 0; itTrack < trackContainer.size(); itTrack++) {
     // Look at the difference in chi2/ndof - we want to keep tracks with similar chi2/ndof. If they
@@ -1664,10 +1732,24 @@ double ConformalTracking::checkReal(KDTrack* track, std::map<KDCluster*, MCParti
             << ((uniqueHits > bestHits) ? "is missing hits" : "all hits found.") << std::endl;
 
   std::vector<KDCluster*> trackHits = track->m_clusters;
-  for (int th = 0; th < trackHits.size(); th++)
+  for (int th = 0; th < trackHits.size(); th++) {
     std::cout << "Hit " << th << " u = " << trackHits[th]->getU() << " v = " << trackHits[th]->getV()
               << " x = " << trackHits[th]->getX() << " y = " << trackHits[th]->getY() << " z = " << trackHits[th]->getZ()
               << std::endl;
+
+    // Check which particle the hit belongs to
+    MCParticle* particle  = kdParticles[trackHits[th]];
+    double      mcVertexX = particle->getVertex()[0];
+    double      mcVertexY = particle->getVertex()[1];
+    double      mcVertexR = sqrt(pow(mcVertexX, 2) + pow(mcVertexY, 2));
+
+    std::cout << "Come from particle with id " << particle->getPDG() << " produced at vertexR = " << mcVertexR;
+
+    if (particle->getParents().size() != 0) {
+      std::cout << ". Comes from particle with id " << particle->getParents()[0]->getPDG();
+    }
+    std::cout << std::endl;
+  }
 
   //  for(int itCluster=0;itCluster<clusters.size();itCluster++) std::cout<<"Hit "<<itCluster<<" has position: "<<clusters[itCluster]->getU()<<","<<clusters[itCluster]->getV()<<std::endl;
   std::cout << "== Terms in conformal fit: " << track->m_intercept << ", " << track->m_gradient << ", " << track->m_quadratic
