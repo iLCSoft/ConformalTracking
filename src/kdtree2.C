@@ -9,6 +9,7 @@
 
 #include <algorithm> 
 #include <iostream>
+#include <streamlog/streamlog.h>
 
 namespace kdtree2 {
 // utility
@@ -660,10 +661,10 @@ void KDTreeNode::process_terminal_node(SearchRecord& sr) {
 
   if (debug) {
     printf("Processing terminal node %d, %d\n",l,u);
-    std::cout << "Query vector = [";
-    for (int i=0; i<dim; i++) std::cout << sr.qv[i] << ','; 
-    std::cout << "]\n";
-    std::cout << "nn = " << nn << '\n';
+    streamlog_out(DEBUG) << "Query vector = [";
+    for (int i=0; i<dim; i++) streamlog_out(DEBUG) << sr.qv[i] << ','; 
+    streamlog_out(DEBUG) << "]\n";
+    streamlog_out(DEBUG) << "nn = " << nn << '\n';
     check_query_in_bound(sr);
   }
 
@@ -722,12 +723,12 @@ void KDTreeNode::process_terminal_node(SearchRecord& sr) {
       e.idx = indexofi;
       e.dis = dis;
       sr.result.push_element_and_heapify(e); 
-      if (debug) std::cout << "unilaterally pushed dis=" << dis;
+      if (debug) streamlog_out(DEBUG) << "unilaterally pushed dis=" << dis;
       if (sr.result.size() == nn) ballsize = sr.result.max_value();
       // Set the ball radius to the largest on the list (maximum priority).
       if (debug) {
-	std::cout << " ballsize = " << ballsize << "\n"; 
-	std::cout << "sr.result.size() = "  << sr.result.size() << '\n';
+	streamlog_out(DEBUG) << " ballsize = " << ballsize << "\n"; 
+	streamlog_out(DEBUG) << "sr.result.size() = "  << sr.result.size() << '\n';
       }
     } else {
       //
@@ -740,7 +741,7 @@ void KDTreeNode::process_terminal_node(SearchRecord& sr) {
       e.dis = dis;
       ballsize = sr.result.replace_maxpri_elt_return_new_maxpri(e); 
       if (debug) {
-	std::cout << "Replaced maximum dis with dis=" << dis << 
+	streamlog_out(DEBUG) << "Replaced maximum dis with dis=" << dis << 
 	  " new ballsize =" << ballsize << '\n';
       }
     }
