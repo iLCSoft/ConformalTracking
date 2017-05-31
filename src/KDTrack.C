@@ -1,4 +1,5 @@
 #include "KDTrack.h"
+#include <streamlog/streamlog.h>
 
 // Constructor
 KDTrack::KDTrack(){
@@ -94,13 +95,13 @@ double KDTrack::calculateChi2SZ(TH2F* histo, bool debug){
     
     // Loop over all hits on the track and calculate the residual.
     // The y error includes a projection of the x error onto the y axis
-    if(debug) std::cout<<"== Calculating track chi2 in sz"<<std::endl;
+    if(debug) streamlog_out(DEBUG)<<"== Calculating track chi2 in sz"<<std::endl;
     
     // Make an estimate of the momentum
     m_pT = 0.3 * 4. * sqrt(b*b + a*a) / 1000.;
-    if(debug) std::cout<<"== Momentum estimate is "<<m_pT<<" GeV/c"<<std::endl;
+    if(debug) streamlog_out(DEBUG)<<"== Momentum estimate is "<<m_pT<<" GeV/c"<<std::endl;
     
-    if(fillFit) std::cout<<"== note that a is "<<a<<" +/- "<<da<<" and b is "<<b<<" +/- "<<db<<std::endl;
+    if(fillFit) streamlog_out(DEBUG)<<"== note that a is "<<a<<" +/- "<<da<<" and b is "<<b<<" +/- "<<db<<std::endl;
     for(int hit=1;hit<m_nPoints;hit++){
         
         // Get the global point details
@@ -142,11 +143,11 @@ double KDTrack::calculateChi2SZ(TH2F* histo, bool debug){
         chi2 += (residualS*residualS)/(ds2);
 
         // Debug info
-        if(debug) std::cout<<"- hit "<<hit<<" has residualS = "<<residualS<<", with error dz = "<<errorZ<<", error ds = "<<sqrt(errorS2)<<" and total error = "<<sqrt(ds2)<<std::endl;
-        if(debug) std::cout<<"Total chi2 increase "<<(residualS*residualS)/(ds2)<<". Chi2 is currently "<<chi2<<std::endl;
+        if(debug) streamlog_out(DEBUG)<<"- hit "<<hit<<" has residualS = "<<residualS<<", with error dz = "<<errorZ<<", error ds = "<<sqrt(errorS2)<<" and total error = "<<sqrt(ds2)<<std::endl;
+        if(debug) streamlog_out(DEBUG)<<"Total chi2 increase "<<(residualS*residualS)/(ds2)<<". Chi2 is currently "<<chi2<<std::endl;
         if(fillFit){
             histo->Fill(m_clusters[hit]->getZ(),s);
-            std::cout<<"== hit has s = "<<s<<", z = "<<m_clusters[hit]->getZ()<<std::endl;
+            streamlog_out(DEBUG)<<"== hit has s = "<<s<<", z = "<<m_clusters[hit]->getZ()<<std::endl;
         }
     }
     
@@ -279,7 +280,7 @@ void KDTrack::linearRegressionConformal(bool debug){
     double errorPhi0 = ( 1./((y0-b)*(1+(ratio*ratio))) ) * sqrt( ( ((errorx0*errorx0+da*da)*ratio*ratio*ratio*ratio) + (errory0*errory0+db*db)*ratio*ratio) );
     
     // Loop over all hits and fill the matrices
-    if(debug)std::cout<<"== Fitting track in sz"<<std::endl;
+    if(debug)streamlog_out(DEBUG)<<"== Fitting track in sz"<<std::endl;
     std::vector<double> sValues, sError2Values;
     for(int hit=1;hit<m_nPoints;hit++){
         
@@ -298,7 +299,7 @@ void KDTrack::linearRegressionConformal(bool debug){
         // Calculate the delta phi w.r.t the first hit, and then s
         double deltaPhi = atan2(yi-y0,xi-x0);
         double s = ((xi-x0)*cPhi0 + (yi-y0)*sPhi0)/(sinc(deltaPhi));
-        if(debug) std::cout<<"- for hit "<<hit<<" s = "<<s<<std::endl;
+        if(debug) streamlog_out(DEBUG)<<"- for hit "<<hit<<" s = "<<s<<std::endl;
         
         // Calculate the errors on everything
         double dsdx = deltaPhi*cPhi0/sin(deltaPhi);
