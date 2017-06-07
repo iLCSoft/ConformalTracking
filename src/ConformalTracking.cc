@@ -753,7 +753,15 @@ void ConformalTracking::processEvent(LCEvent* evt){
   
   // Increment the event number
   m_eventNumber++ ;
-  
+
+  //clean up
+  for (auto& cluster: kdClusterMap) {
+    delete cluster.first;
+  }
+  for (auto* relation: relations) {
+    delete relation;
+  }
+
 }
 
 void ConformalTracking::end(){
