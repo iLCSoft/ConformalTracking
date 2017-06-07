@@ -648,7 +648,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     TrackImpl* track = new TrackImpl;
 
     // First, for some reason there are 2 track objects, one which gets saved and one which is used for fitting. Don't ask...
-    MarlinTrk::IMarlinTrack* marlinTrack = trackFactory->createTrack();
+    shared_ptr<MarlinTrk::IMarlinTrack> marlinTrack(trackFactory->createTrack());
 
     // Make an initial covariance matrix with very broad default values
     EVENT::FloatVec covMatrix(15, 0);             // Size 15, filled with 0s
@@ -659,7 +659,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     covMatrix[14] = (m_initialTrackError_tanL);   //sigma_tanl^2
 
     // Try to fit
-    int fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack, trackHits, track, MarlinTrk::IMarlinTrack::forward,
+    int fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack.get(), trackHits, track, MarlinTrk::IMarlinTrack::forward,
                                                        covMatrix, m_magneticField, m_maxChi2perHit);
 
     // Check track quality - if fit fails chi2 will be 0. For the moment add hits by hand to any track that fails the track fit, and store it as if it were ok...
@@ -667,7 +667,6 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       streamlog_out(DEBUG7) << "Fit failed. Track has " << track->getTrackerHits().size() << " hits" << std::endl;
       streamlog_out(DEBUG7) << "Fit fail error " << fitError << std::endl;
       delete track;
-      delete marlinTrack;
       continue;
     }
 
