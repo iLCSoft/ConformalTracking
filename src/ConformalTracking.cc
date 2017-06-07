@@ -629,7 +629,7 @@ void ConformalTracking::processEvent(LCEvent* evt){
     TrackImpl* track = new TrackImpl ;
     
     // First, for some reason there are 2 track objects, one which gets saved and one which is used for fitting. Don't ask...
-    MarlinTrk::IMarlinTrack* marlinTrack = trackFactory->createTrack();
+    shared_ptr<MarlinTrk::IMarlinTrack> marlinTrack( trackFactory->createTrack() );
     
     // Make an initial covariance matrix with very broad default values
     EVENT::FloatVec covMatrix (15,0); // Size 15, filled with 0s
@@ -640,7 +640,7 @@ void ConformalTracking::processEvent(LCEvent* evt){
     covMatrix[14] = ( m_initialTrackError_tanL  ); //sigma_tanl^2
     
     // Try to fit
-    int fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack, trackHits, track, MarlinTrk::IMarlinTrack::forward, covMatrix, m_magneticField, m_maxChi2perHit);
+    int fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack.get(), trackHits, track, MarlinTrk::IMarlinTrack::forward, covMatrix, m_magneticField, m_maxChi2perHit);
     
     // Check track quality - if fit fails chi2 will be 0. For the moment add hits by hand to any track that fails the track fit, and store it as if it were ok...
     if(track->getChi2() == 0.){
@@ -651,7 +651,7 @@ void ConformalTracking::processEvent(LCEvent* evt){
      // }
 //    }//
 //    delete marlinTrack;
-     delete track; delete marlinTrack; continue;
+     delete track; continue;
     }
     
     // Add hit information TODO: this is just a fudge for the moment, since we only use vertex hits. Should do for each subdetector once enabled
