@@ -1725,9 +1725,8 @@ double ConformalTracking::checkReal(KDTrack* track, std::map<KDCluster*, MCParti
   // Calculate the purity
   double purity = bestHits / nHits;
   streamlog_out(DEBUG) << "Number of hits on track: " << nHits << ". Good hits: " << bestHits << ". Purity: " << purity
-                       << ". Pt: "
-                       << sqrt(bestParticle->getMomentum()[0] * bestParticle->getMomentum()[0] +
-                               bestParticle->getMomentum()[1] * bestParticle->getMomentum()[1])
+                       << ". Pt: " << sqrt(bestParticle->getMomentum()[0] * bestParticle->getMomentum()[0] +
+                                           bestParticle->getMomentum()[1] * bestParticle->getMomentum()[1])
                        << ". Track chi2/ndof: " << track->chi2ndof() << ". Chi2/ndof in SZ fit: " << track->chi2ndofZS()
                        << std::endl;
 
