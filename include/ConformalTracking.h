@@ -164,6 +164,7 @@ protected:
   // Other constants
   double     m_thetaRange;
   double     m_chi2cut;
+  double     m_chi2increase;
   double     m_maxCellAngle;
   double     m_maxCellAngleRZ;
   double     m_maxDistance;
@@ -222,4 +223,6 @@ bool sort_by_cellWeight(Cell* cell1, Cell* cell2) {
 // Sort kdtracks from longest to shortest
 bool sort_by_length(KDTrack* track1, KDTrack* track2) { return (track1->m_clusters.size() > track2->m_clusters.size()); }
 
+// Sort kdtracks from lowest to highest pt
+bool sort_by_pt(KDTrack* track1, KDTrack* track2) { return (track1->pt() < track2->pt()); }
 #endif
