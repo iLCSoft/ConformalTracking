@@ -1747,8 +1747,8 @@ double ConformalTracking::checkReal(KDTrack* track, std::map<KDCluster*, MCParti
   mc_helper.SetPxPyPzE(bestParticle->getMomentum()[0], bestParticle->getMomentum()[1], bestParticle->getMomentum()[2],
                        bestParticle->getEnergy());
 
-  std::cout << "Particle at theta = " << mc_helper.Theta() * 180. / M_PI << ", with pt = " << mc_helper.Pt()
-            << ". pt estimate: " << track->pt() << std::endl;
+  streamlog_out(DEBUG7) << "Particle at theta = " << mc_helper.Theta() * 180. / M_PI << ", with pt = " << mc_helper.Pt()
+                        << ". pt estimate: " << track->pt() << std::endl;
 
   // Check if any hits are missing
   std::vector<KDCluster*> mcHits     = MCparticleHits[bestParticle];
