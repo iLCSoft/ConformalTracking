@@ -10,6 +10,7 @@ env:
   matrix:
     - COMPILER=gcc
     - COMPILER=llvm
+    - COMPILER=format
 
 
 before_install:
@@ -47,6 +48,8 @@ script:
     then docker exec -it CI_container /bin/bash -c "./Package/.travis-ci.d/coverity_scan.sh";
     elif [[ "${TRAVIS_EVENT_TYPE}" == "cron" && "${COMPILER}" == "llvm"  ]];
     then echo "Running the weekly Coverity Scan, no LLVM/Clang build this time";
+    elif [[ "${COMPILER}" == "format"  ]];
+    then echo "Checking Format"; docker exec -it CI_container /bin/bash -c "./Package/.travis-ci.d/check_format.sh";
     else docker exec -it CI_container /bin/bash -c "./Package/.travis-ci.d/compile_and_test.sh";
     fi
   - if [[ "${TRAVIS_EVENT_TYPE}" == "cron" && "${COMPILER}" == "gcc"  ]];
