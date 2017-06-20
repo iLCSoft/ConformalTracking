@@ -62,7 +62,7 @@
 using namespace lcio;
 using namespace marlin;
 using namespace std;
-using namespace DD4hep;
+using namespace dd4hep;
 using namespace AIDA;
 
 // Static instantiation of the processor
