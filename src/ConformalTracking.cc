@@ -706,6 +706,10 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     }
   }
 
+  for (auto* track : conformalTracksFinal) {
+    delete track;
+  }
+
   // Draw the conformal event display hits for debugging
   if (m_debugPlots && m_eventNumber == 0) {
     m_canvConformalEventDisplay->cd();
