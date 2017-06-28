@@ -25,7 +25,6 @@
 
 #include <marlinutil/GeometryUtil.h>
 
-
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 
@@ -150,7 +149,7 @@ void ConformalTracking::init() {
   m_maxChi2perHit           = 1.e2;
 
   // Get the magnetic field
-  m_magneticField = MarlinUtil::getBzAtOrigin();    // z component at (0,0,0)
+  m_magneticField = MarlinUtil::getBzAtOrigin();  // z component at (0,0,0)
 
   // Seed hit for debug printouts. If not set later, isn't used
   debugSeed = NULL;
