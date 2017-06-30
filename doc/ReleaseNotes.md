@@ -1,3 +1,33 @@
+# v01-03
+
+* 2017-06-13 Daniel Hynds ([PR#11](https://github.com/iLCSoft/ConformalTracking/pull/11))
+  - Added clang-format to cmake lists and added extra target. "make format" will now format the code, and will be prepared automatically if clang-format exists.
+  - Updated tracking strategy and added some improvements in terms of refitting tracks each time a hit is added, and included a maximum chi2 criteria for adding hits
+
+* 2017-06-13 Andre Sailer ([PR#10](https://github.com/iLCSoft/ConformalTracking/pull/10))
+  - ConformalTracking: Fix some memory leaks
+
+* 2017-06-28 Andre Sailer ([PR#14](https://github.com/iLCSoft/ConformalTracking/pull/14))
+  -  Add format checker as a CI check
+
+* 2017-06-28 Andre Sailer ([PR#13](https://github.com/iLCSoft/ConformalTracking/pull/13))
+  - ConformalTracking: cleanup final conformal tracks
+
+* 2017-05-31 Andre Sailer ([PR#7](https://github.com/iLCSoft/ConformalTracking/pull/7))
+  - Make all output DEBUG for now, because there is too much output for the grid to handle
+
+* 2017-06-20 Andre Sailer ([PR#12](https://github.com/iLCSoft/ConformalTracking/pull/12))
+  - Adapt to DD4hep namespace change, get BField from utility function
+
+* 2017-06-03 Daniel Hynds ([PR#8](https://github.com/iLCSoft/ConformalTracking/pull/8))
+  - Put track fit back in, accidentally missing during debugging
+
+* 2017-05-24 Daniel Hynds ([PR#6](https://github.com/iLCSoft/ConformalTracking/pull/6))
+  - Chi2 calculations completely reworked
+  - Significant code cleanup
+  - Code modularised to allow different tracking strategies 
+  - Default state currently still vertex-only track construction
+
 # v01-02
 
 * 2017-03-29 Daniel Hynds ([PR#3](https://github.com/iLCSoft/ConformalTracking/pull/3))
