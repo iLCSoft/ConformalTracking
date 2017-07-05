@@ -109,6 +109,7 @@ public:
       m_errorY = m_error * cos(m_theta);
 
       // Need to set endcap error in z!
+      m_errorZ = 0.00001;
 
     } else {
       m_errorU = m_error * m_r * m_r * sin(m_theta);
