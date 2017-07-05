@@ -672,7 +672,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       continue;
     }//*/
 
-    for (unsigned int p = 0; p < trackHits.size(); p++) {
+    /*for (unsigned int p = 0; p < trackHits.size(); p++) {
       track->addHit(trackHits[p]);
     }  //*/
 
