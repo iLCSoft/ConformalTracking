@@ -26,6 +26,7 @@
 #include <AIDA/AIDA.h>
 
 #include "Cell.h"
+#include "DebugTool.h"
 #include "KDTrack.h"
 #include "KDTree.h"
 #include "KalmanTrack.h"
@@ -85,9 +86,9 @@ public:
   double fitWithoutPoint(KDTrack, int);
   int    overlappingHits(const KDTrack*, const KDTrack*);
 
-  void   extendTrack(KDTrack*, std::vector<cellularTrack*>, std::map<KDCluster*, bool>&, std::map<Cell*, bool>&);
-  double fitWithPoint(KalmanTrack, KDCluster*);
-  double fitWithPoint(KDTrack, KDCluster*);
+  void extendTrack(KDTrack*, std::vector<cellularTrack*>, std::map<KDCluster*, bool>&, std::map<Cell*, bool>&);
+  //double fitWithPoint(KalmanTrack, KDCluster*);
+  void fitWithPoint(KDTrack, KDCluster*, double&, double&);
 
   double fitWithExtension(KDTrack, std::vector<KDCluster*>, double&, double&);
 
@@ -131,6 +132,8 @@ protected:
   TH1F* m_conformalChi2fake;
   TH2F* m_conformalChi2Purity;
 
+  TH1F* m_absZ;
+
   TH1F* m_conformalChi2MC;
   TH2F* m_conformalChi2PtMC;
   TH2F* m_conformalChi2VertexRMC;
@@ -162,16 +165,17 @@ protected:
   TH3F* m_xyzDistribution;
 
   // Other constants
-  double     m_thetaRange;
-  double     m_chi2cut;
-  double     m_chi2increase;
-  double     m_maxCellAngle;
-  double     m_maxCellAngleRZ;
-  double     m_maxDistance;
-  int        m_minClustersOnTrack;
-  bool       m_debugPlots;
-  double     m_purity;
-  KDCluster* debugSeed;
+  double            m_thetaRange;
+  double            m_chi2cut;
+  double            m_chi2increase;
+  double            m_maxCellAngle;
+  double            m_maxCellAngleRZ;
+  double            m_maxDistance;
+  int               m_minClustersOnTrack;
+  bool              m_debugPlots;
+  double            m_purity;
+  KDCluster*        debugSeed;
+  ConformalDebugger m_debugger;
 };
 
 // ---------------------------
