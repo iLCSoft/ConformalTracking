@@ -14,6 +14,13 @@ KDTrack::KDTrack() {
 // Destructor
 KDTrack::~KDTrack() {}
 
+// Sort kd hits from larger to smaller radius
+bool sort_by_radiusKDT(KDCluster* hit1, KDCluster* hit2) {
+  double radius1 = hit1->getR();
+  double radius2 = hit2->getR();
+  return (radius1 > radius2);
+}
+
 // Function to calculate the chi2
 double KDTrack::calculateChi2() {
   // Value to return
@@ -76,18 +83,28 @@ double KDTrack::calculateChi2SZ(TH2F* histo, bool debug) {
   double da = sqrt(db * db * m_gradient * m_gradient + m_gradientError * m_gradientError * b * b);
 
   // Calculate the initial phi0 and its error, used for the calculation of s
-  double x0      = -1. * m_clusters[0]->getX();
+  double x0      = m_clusters[0]->getX();
   double y0      = m_clusters[0]->getY();
   double errorx0 = m_clusters[0]->getErrorX();
   double errory0 = m_clusters[0]->getErrorY();
-  ;
+
   if (m_rotated) {
     x0      = m_clusters[0]->getY();
-    y0      = m_clusters[0]->getX();
+    y0      = -1. * m_clusters[0]->getX();
     errorx0 = m_clusters[0]->getErrorY();
     errory0 = m_clusters[0]->getErrorX();
   }
-  double phi0  = atan2(y0 - b, x0 - a);
+  double phi0 = atan2(y0 - b, x0 - a) + M_PI;
+  // convert to 2pi radian range
+  //  if(phi0 < 0.) phi0=(2.*M_PI-fabs(phi0));
+  double prevPhi = phi0;
+
+  double radC = sqrt((y0 - b) * (y0 - b) + (x0 - a) * (x0 - a));
+
+  double errorRadC =
+      sqrt((da * da + errorx0 * errorx0) * (x0 - a) * (x0 - a) + (db * db + errory0 * errory0) * (y0 - b) * (y0 - b)) /
+      (radC);
+
   double cPhi0 = cos(phi0);
   double sPhi0 = sin(phi0);
   double ratio = (y0 - b) / (x0 - a);
@@ -98,31 +115,52 @@ double KDTrack::calculateChi2SZ(TH2F* histo, bool debug) {
   // Loop over all hits on the track and calculate the residual.
   // The y error includes a projection of the x error onto the y axis
   if (debug)
-    streamlog_out(DEBUG) << "== Calculating track chi2 in sz" << std::endl;
+    streamlog_out(DEBUG6) << "== Calculating track chi2 in sz" << std::endl;
 
   // Make an estimate of the momentum
   m_pT = 0.3 * 4. * sqrt(b * b + a * a) / 1000.;
   if (debug)
-    streamlog_out(DEBUG) << "== Momentum estimate is " << m_pT << " GeV/c" << std::endl;
+    streamlog_out(DEBUG6) << "== Momentum estimate is " << m_pT << " GeV/c" << std::endl;
 
   if (fillFit)
-    streamlog_out(DEBUG) << "== note that a is " << a << " +/- " << da << " and b is " << b << " +/- " << db << std::endl;
+    streamlog_out(DEBUG6) << "== note that a is " << a << " +/- " << da << " and b is " << b << " +/- " << db << std::endl;
   for (int hit = 1; hit < m_nPoints; hit++) {
     // Get the global point details
-    double xi     = -1. * m_clusters[hit]->getX();
+    double xi     = m_clusters[hit]->getX();
     double yi     = m_clusters[hit]->getY();
     double errorx = m_clusters[hit]->getErrorX();
     double errory = m_clusters[hit]->getErrorY();
     if (m_rotated) {
       xi     = m_clusters[hit]->getY();
-      yi     = m_clusters[hit]->getX();
+      yi     = -1. * m_clusters[hit]->getX();
       errorx = m_clusters[hit]->getErrorY();
       errory = m_clusters[hit]->getErrorX();
     }
 
     // Calculate the delta phi w.r.t the first hit, and then s
-    double deltaPhi = atan2(yi - y0, xi - x0);
-    double s        = ((xi - x0) * cPhi0 + (yi - y0) * sPhi0) / (sinc(deltaPhi));
+    //    double deltaPhi = atan2(yi - y0, xi - x0);
+
+    double phi = atan2(yi - b, xi - a) + M_PI;
+
+    if (fabs(phi - prevPhi) > M_PI) {
+      if (prevPhi > phi)
+        phi += (2. * M_PI);
+      else
+        phi -= (2. * M_PI);
+    }
+    prevPhi = phi;
+
+    /*if(phi < 0.) phi=(2.*M_PI-fabs(phi));
+    
+    if(fabs(phi-prevPhi) > M_PI){
+      if(prevPhi > M_PI) phi += (2.*M_PI);
+      else phi = (2.*M_PI) - phi;
+    }*/
+
+    double deltaPhi = phi - phi0;
+
+    //double s        = ((xi - x0) * cPhi0 + (yi - y0) * sPhi0) / (sinc(deltaPhi));
+    double s = radC * deltaPhi;
 
     // Calculate the errors on everything
     double dsdx        = deltaPhi * cPhi0 / sin(deltaPhi);
@@ -132,10 +170,19 @@ double KDTrack::calculateChi2SZ(TH2F* histo, bool debug) {
     double dsdPhi0     = ((yi - y0) * cPhi0 - (xi - x0) * sPhi0) / (sinc(deltaPhi));
     double dsdDeltaPhi = ((xi - x0) * cPhi0 + (yi - y0) * sPhi0) * (sin(deltaPhi) - deltaPhi * cos(deltaPhi)) /
                          (sin(deltaPhi) * sin(deltaPhi));
-    double newRatio      = (yi - y0) / (xi - x0);
-    double errorDeltaPhi = (1. / ((yi - y0) * (1 + (newRatio * newRatio)))) *
-                           sqrt((((errorx * errorx + errorx0 * errorx0) * newRatio * newRatio * newRatio * newRatio) +
-                                 (errory * errory + errory0 * errory0) * newRatio * newRatio));
+    //double newRatio      = (yi - y0) / (xi - x0);
+    double newRatio = (yi - b) / (xi - a);
+
+    //double errorDeltaPhi = (1. / ((yi - y0) * (1 + (newRatio * newRatio)))) *
+    //                       sqrt((((errorx * errorx + errorx0 * errorx0) * newRatio * newRatio * newRatio * newRatio) +
+    //                             (errory * errory + errory0 * errory0) * newRatio * newRatio));
+
+    double errorDeltaPhi = (1. / ((yi - b) * (1 + (newRatio * newRatio)))) *
+                           sqrt((((errorx * errorx + da * da) * newRatio * newRatio * newRatio * newRatio) +
+                                 (errory * errory + db * db) * newRatio * newRatio));
+
+    errorDeltaPhi = sqrt((errorDeltaPhi * errorDeltaPhi) + (errorPhi0 * errorPhi0));
+
     double errorS2 = (dsdx * dsdx * errorx * errorx) + (dsdy * dsdy * errory * errory) +
                      (dsdx0 * dsdx0 * errorx0 * errorx0) + (dsdy0 * dsdy0 * errory0 * errory0) +
                      (dsdPhi0 * dsdPhi0 * errorPhi0 * errorPhi0) +
@@ -154,14 +201,19 @@ double KDTrack::calculateChi2SZ(TH2F* histo, bool debug) {
 
     // Debug info
     if (debug)
-      streamlog_out(DEBUG) << "- hit " << hit << " has residualS = " << residualS << ", with error dz = " << errorZ
-                           << ", error ds = " << sqrt(errorS2) << " and total error = " << sqrt(ds2) << std::endl;
+      streamlog_out(DEBUG6) << "- hit " << hit << " has residualS = " << residualS << ", with error dz = " << errorZ
+                            << ", error ds = " << sqrt(errorS2) << " and total error = " << sqrt(ds2) << std::endl;
+
+    double debugError2 = sqrt(deltaPhi * deltaPhi * errorRadC * errorRadC + errorDeltaPhi * errorDeltaPhi * radC * radC);
     if (debug)
-      streamlog_out(DEBUG) << "Total chi2 increase " << (residualS * residualS) / (ds2) << ". Chi2 is currently " << chi2
-                           << std::endl;
+      streamlog_out(DEBUG6) << "- alternative ds = " << debugError2 << std::endl;
+
+    if (debug)
+      streamlog_out(DEBUG6) << "Total chi2 increase " << (residualS * residualS) / (ds2) << ". Chi2 is currently " << chi2
+                            << std::endl;
     if (fillFit) {
       histo->Fill(m_clusters[hit]->getZ(), s);
-      streamlog_out(DEBUG) << "== hit has s = " << s << ", z = " << m_clusters[hit]->getZ() << std::endl;
+      streamlog_out(DEBUG6) << "== hit has s = " << s << ", z = " << m_clusters[hit]->getZ() << std::endl;
     }
   }
 
@@ -181,6 +233,9 @@ void KDTrack::linearRegression() {
   // Decide if this track should be rotated for the fit (fits fail where
   // the track points along the y-axis. Check the theta of the first hit,
   // those close to the y-axis should be rotated.
+
+  // Quick fix: sort hits from outside in
+  std::sort(m_clusters.begin(), m_clusters.end(), sort_by_radiusKDT);
 
   // If track has not yet been fitted
   if (m_gradient == 0.) {
@@ -279,18 +334,24 @@ void KDTrack::linearRegressionConformal(bool debug) {
   double da = sqrt(db * db * m_gradient * m_gradient + m_gradientError * m_gradientError * b * b);
 
   // Calculate the initial phi0 and its error, used for the calculation of s
-  double x0      = -1. * m_clusters[0]->getX();
+  double x0      = m_clusters[0]->getX();
   double y0      = m_clusters[0]->getY();
   double errorx0 = m_clusters[0]->getErrorX();
   double errory0 = m_clusters[0]->getErrorY();
-  ;
+
   if (m_rotated) {
     x0      = m_clusters[0]->getY();
-    y0      = m_clusters[0]->getX();
+    y0      = -1. * m_clusters[0]->getX();
     errorx0 = m_clusters[0]->getErrorY();
     errory0 = m_clusters[0]->getErrorX();
   }
-  double phi0  = atan2(y0 - b, x0 - a);
+  double phi0 = atan2(y0 - b, x0 - a) + M_PI;
+  // convert to 2pi radian range
+  //  if(phi0 < 0.) phi0=(2.*M_PI-fabs(phi0));
+  double prevPhi = phi0;
+
+  double radC = sqrt((y0 - b) * (y0 - b) + (x0 - a) * (x0 - a));
+
   double cPhi0 = cos(phi0);
   double sPhi0 = sin(phi0);
   double ratio = (y0 - b) / (x0 - a);
@@ -299,27 +360,52 @@ void KDTrack::linearRegressionConformal(bool debug) {
                                                         (errory0 * errory0 + db * db) * ratio * ratio));
 
   // Loop over all hits and fill the matrices
-  if (debug)
-    streamlog_out(DEBUG) << "== Fitting track in sz" << std::endl;
+  if (debug) {
+    streamlog_out(DEBUG6) << "== Fitting track in sz" << std::endl;
+    streamlog_out(DEBUG6) << "- phi0 is " << phi0 << std::endl;
+  }
   std::vector<double> sValues, sError2Values;
   for (int hit = 1; hit < m_nPoints; hit++) {
     // Get the global point details
-    double xi     = -1. * m_clusters[hit]->getX();
+    double xi     = m_clusters[hit]->getX();
     double yi     = m_clusters[hit]->getY();
     double errorx = m_clusters[hit]->getErrorX();
     double errory = m_clusters[hit]->getErrorY();
     if (m_rotated) {
       xi     = m_clusters[hit]->getY();
-      yi     = m_clusters[hit]->getX();
+      yi     = -1. * m_clusters[hit]->getX();
       errorx = m_clusters[hit]->getErrorY();
       errory = m_clusters[hit]->getErrorX();
     }
 
     // Calculate the delta phi w.r.t the first hit, and then s
-    double deltaPhi = atan2(yi - y0, xi - x0);
-    double s        = ((xi - x0) * cPhi0 + (yi - y0) * sPhi0) / (sinc(deltaPhi));
+    //    double deltaPhi = atan2(yi - y0, xi - x0);
+    double phi = atan2(yi - b, xi - a) + M_PI;
     if (debug)
-      streamlog_out(DEBUG) << "- for hit " << hit << " s = " << s << std::endl;
+      streamlog_out(DEBUG6) << "- raw phi is " << phi << std::endl;
+    //    if(phi < 0.) phi=(2.*M_PI-fabs(phi));
+    //
+    if (fabs(phi - prevPhi) > M_PI) {
+      if (prevPhi > phi)
+        phi += (2. * M_PI);
+      else
+        phi -= (2. * M_PI);
+    }
+    prevPhi = phi;
+
+    if (debug)
+      streamlog_out(DEBUG6) << "- modified phi is " << phi << std::endl;
+
+    double deltaPhi = phi - phi0;
+
+    //double s        = ((xi - x0) * cPhi0 + (yi - y0) * sPhi0) / (sinc(deltaPhi));
+    double s = radC * deltaPhi;
+
+    if (debug) {
+      streamlog_out(DEBUG6) << "- for hit " << hit << " s = " << s << std::endl;
+      double deltaPhi2 = atan2(yi - b, xi - a) - phi0;
+      streamlog_out(DEBUG6) << "- deltaPhi is " << deltaPhi << ", calculating by hand gives " << deltaPhi2 << std::endl;
+    }
 
     // Calculate the errors on everything
     double dsdx        = deltaPhi * cPhi0 / sin(deltaPhi);
@@ -329,10 +415,19 @@ void KDTrack::linearRegressionConformal(bool debug) {
     double dsdPhi0     = ((yi - y0) * cPhi0 - (xi - x0) * sPhi0) / (sinc(deltaPhi));
     double dsdDeltaPhi = ((xi - x0) * cPhi0 + (yi - y0) * sPhi0) * (sin(deltaPhi) - deltaPhi * cos(deltaPhi)) /
                          (sin(deltaPhi) * sin(deltaPhi));
-    double newRatio      = (yi - y0) / (xi - x0);
-    double errorDeltaPhi = (1. / ((yi - y0) * (1 + (newRatio * newRatio)))) *
-                           sqrt((((errorx * errorx + errorx0 * errorx0) * newRatio * newRatio * newRatio * newRatio) +
-                                 (errory * errory + errory0 * errory0) * newRatio * newRatio));
+    //    double newRatio      = (yi - y0) / (xi - x0);
+    double newRatio = (yi - b) / (xi - a);
+
+    //double errorDeltaPhi = (1. / ((yi - y0) * (1 + (newRatio * newRatio)))) *
+    //                       sqrt((((errorx * errorx + errorx0 * errorx0) * newRatio * newRatio * newRatio * newRatio) +
+    //                             (errory * errory + errory0 * errory0) * newRatio * newRatio));
+
+    double errorDeltaPhi = (1. / ((yi - b) * (1 + (newRatio * newRatio)))) *
+                           sqrt((((errorx * errorx + da * da) * newRatio * newRatio * newRatio * newRatio) +
+                                 (errory * errory + db * db) * newRatio * newRatio));
+
+    errorDeltaPhi = sqrt((errorDeltaPhi * errorDeltaPhi) + (errorPhi0 * errorPhi0));
+
     double errorS2 = (dsdx * dsdx * errorx * errorx) + (dsdy * dsdy * errory * errory) +
                      (dsdx0 * dsdx0 * errorx0 * errorx0) + (dsdy0 * dsdy0 * errory0 * errory0) +
                      (dsdPhi0 * dsdPhi0 * errorPhi0 * errorPhi0) +
