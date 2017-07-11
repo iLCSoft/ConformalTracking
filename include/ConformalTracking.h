@@ -176,6 +176,7 @@ protected:
   double            m_purity;
   KDCluster*        debugSeed;
   ConformalDebugger m_debugger;
+  bool              m_highPTfit;
 };
 
 // ---------------------------
