@@ -567,13 +567,13 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
   // Finally reconstruct displaced tracks
 
-  m_maxDistance = 0.0015;
+  //m_maxDistance = 0.0015;
 
-  std::vector<int> allHits = {0, 1, 2, 3, 4, 5};
-  combineCollections(kdClusters, nearestNeighbours, allHits, collectionClusters);
-  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, true);
+  //std::vector<int> allHits = {0, 1, 2, 3, 4, 5};
+  //combineCollections(kdClusters, nearestNeighbours, allHits, collectionClusters);
+  //buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, true);
 
-  m_maxDistance = 0.02;
+  //m_maxDistance = 0.02;
 
   // Clean up
   delete nearestNeighbours;
