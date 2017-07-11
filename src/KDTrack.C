@@ -229,7 +229,7 @@ void KDTrack::FillDistribution(TH2F* histo) {
 }
 
 // Fit the track in uv (multiple linear regression)
-void KDTrack::linearRegression() {
+void KDTrack::linearRegression(bool highPTfit) {
   // Decide if this track should be rotated for the fit (fits fail where
   // the track points along the y-axis. Check the theta of the first hit,
   // those close to the y-axis should be rotated.
@@ -286,6 +286,8 @@ void KDTrack::linearRegression() {
                 matx[1][0] * (matx[1][0] * matx[2][2] - matx[2][1] * matx[2][0]) +
                 matx[2][0] * (matx[1][0] * matx[2][1] - matx[1][1] * matx[2][0]);
 
+  if (highPTfit)
+    detx = matx[0][0] * matx[1][1] - matx[1][0] * matx[1][0];
   // Check for singularities.
   if (detx == 0.)
     return;
@@ -304,6 +306,12 @@ void KDTrack::linearRegression() {
   double intercept = (vecx[0] * adjx[0][0] + vecx[1] * adjx[1][0] + vecx[2] * adjx[2][0]) / detx;
   double gradient  = (vecx[0] * adjx[1][0] + vecx[1] * adjx[1][1] + vecx[2] * adjx[2][1]) / detx;
   double quadratic = (vecx[0] * adjx[2][0] + vecx[1] * adjx[2][1] + vecx[2] * adjx[2][2]) / detx;
+
+  if (highPTfit) {
+    gradient  = (vecx[1] * matx[0][0] - vecx[0] * matx[1][0]) / detx;
+    intercept = (vecx[0] * matx[1][1] - vecx[1] * matx[1][0]) / detx;
+    quadratic = 0.;
+  }
 
   // Set the track parameters
   m_intercept = intercept;

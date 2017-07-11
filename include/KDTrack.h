@@ -36,7 +36,7 @@ public:
   //--- Fit functions
   double calculateChi2();
   double calculateChi2SZ(TH2F* histo = NULL, bool debug = false);
-  void linearRegression();
+  void linearRegression(bool highPTfit = false);
   void linearRegressionConformal(bool debug = false);
   double sinc(double);
   void   FillDistribution(TH2F*);
