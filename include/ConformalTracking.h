@@ -42,18 +42,20 @@ public:
   virtual Processor* newProcessor() { return new ConformalTracking; }
 
   ConformalTracking();
+  ConformalTracking(const ConformalTracking&) = delete;
+  ConformalTracking& operator=(const ConformalTracking&) = delete;
 
   // Initialisation - run at the beginning to start histograms, etc.
   virtual void init();
 
   // Called at the beginning of every run
-  virtual void processRunHeader(LCRunHeader* run) { m_runNumber++; }
+  virtual void processRunHeader(LCRunHeader*) { m_runNumber++; }
 
   // Run over each event - the main algorithm
   virtual void processEvent(LCEvent* evt);
 
   // Run at the end of each event
-  virtual void check(LCEvent* evt){};
+  virtual void check(LCEvent*){};
 
   // Called at the very end for cleanup, histogram saving, etc.
   virtual void end();
@@ -68,7 +70,7 @@ public:
 
   // Cell creation
   KDCluster* extrapolateCell(Cell*, double);
-  void       extendSeedCells(std::vector<Cell*>&, KDTree*, bool, std::vector<KDCluster*>);
+  void       extendSeedCells(std::vector<Cell*>&, KDTree*, bool, const std::vector<KDCluster*>&);
 
   // Track finding
   void buildNewTracks(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*, bool radialSearch = false);
@@ -103,85 +105,85 @@ public:
 
 protected:
   // Collection names for (in/out)put
-  std::vector<std::string> m_inputTrackerHitCollections;
-  std::string              m_outputTrackCollection;
-  std::string              m_inputParticleCollection;
-  std::vector<std::string> m_inputRelationCollections;
-  std::string              m_outputDebugHits;
+  std::vector<std::string> m_inputTrackerHitCollections{};
+  std::string              m_outputTrackCollection{};
+  std::string              m_inputParticleCollection{};
+  std::vector<std::string> m_inputRelationCollections{};
+  std::string              m_outputDebugHits{};
 
   // Run and event counters
-  int m_eventNumber;
-  int m_runNumber;
+  int m_eventNumber = 0;
+  int m_runNumber   = 0;
 
   // Track fit factory
-  MarlinTrk::IMarlinTrkSystem* trackFactory;
+  MarlinTrk::IMarlinTrkSystem* trackFactory = nullptr;
 
   // Track fit parameters
-  double m_initialTrackError_d0;
-  double m_initialTrackError_phi0;
-  double m_initialTrackError_omega;
-  double m_initialTrackError_z0;
-  double m_initialTrackError_tanL;
-  double m_maxChi2perHit;
-  double m_magneticField;
+  double m_initialTrackError_d0    = 0.0;
+  double m_initialTrackError_phi0  = 0.0;
+  double m_initialTrackError_omega = 0.0;
+  double m_initialTrackError_z0    = 0.0;
+  double m_initialTrackError_tanL  = 0.0;
+  double m_maxChi2perHit           = 0.0;
+  double m_magneticField           = 0.0;
 
   // Histograms
-  TH1F* m_cellAngle;
-  TH1F* m_cellDOCA;
-  TH2F* m_cellAngleRadius;
-  TH2F* m_cellLengthRadius;
-  TH2F* m_cellAngleLength;
-  TH1F* m_conformalChi2;
-  TH1F* m_conformalChi2real;
-  TH1F* m_conformalChi2fake;
-  TH2F* m_conformalChi2Purity;
+  TH1F* m_cellAngle           = nullptr;
+  TH1F* m_cellDOCA            = nullptr;
+  TH2F* m_cellAngleRadius     = nullptr;
+  TH2F* m_cellLengthRadius    = nullptr;
+  TH2F* m_cellAngleLength     = nullptr;
+  TH1F* m_conformalChi2       = nullptr;
+  TH1F* m_conformalChi2real   = nullptr;
+  TH1F* m_conformalChi2fake   = nullptr;
+  TH2F* m_conformalChi2Purity = nullptr;
 
-  TH1F* m_absZ;
+  TH1F* m_absZ = nullptr;
 
-  TH1F* m_conformalChi2MC;
-  TH2F* m_conformalChi2PtMC;
-  TH2F* m_conformalChi2VertexRMC;
+  TH1F* m_conformalChi2MC        = nullptr;
+  TH2F* m_conformalChi2PtMC      = nullptr;
+  TH2F* m_conformalChi2VertexRMC = nullptr;
 
-  TH1F* m_conformalChi2SzMC;
-  TH2F* m_conformalChi2SzPtMC;
-  TH2F* m_conformalChi2SzVertexRMC;
+  TH1F* m_conformalChi2SzMC        = nullptr;
+  TH2F* m_conformalChi2SzPtMC      = nullptr;
+  TH2F* m_conformalChi2SzVertexRMC = nullptr;
 
-  TH1F* m_cellAngleMC;
-  TH1F* m_cellDOCAMC;
-  TH1F* m_cellAngleRZMC;
-  TH2F* m_cellAngleRadiusMC;
-  TH2F* m_cellLengthRadiusMC;
-  TH2F* m_cellAngleLengthMC;
+  TH1F* m_cellAngleMC        = nullptr;
+  TH1F* m_cellDOCAMC         = nullptr;
+  TH1F* m_cellAngleRZMC      = nullptr;
+  TH2F* m_cellAngleRadiusMC  = nullptr;
+  TH2F* m_cellLengthRadiusMC = nullptr;
+  TH2F* m_cellAngleLengthMC  = nullptr;
 
-  TH2F* m_conformalEvents;
-  TH2F* m_nonconformalEvents;
-  TH2F* m_conformalEventsRTheta;
-  TH2F* m_conformalEventsMC;
+  TH2F* m_conformalEvents       = nullptr;
+  TH2F* m_nonconformalEvents    = nullptr;
+  TH2F* m_conformalEventsRTheta = nullptr;
+  TH2F* m_conformalEventsMC     = nullptr;
 
-  TCanvas* m_canvConformalEventDisplay;
-  TCanvas* m_canvConformalEventDisplayAllCells;
-  TCanvas* m_canvConformalEventDisplayAcceptedCells;
-  TCanvas* m_canvConformalEventDisplayMC;
-  TCanvas* m_canvConformalEventDisplayMCunreconstructed;
+  TCanvas* m_canvConformalEventDisplay                  = nullptr;
+  TCanvas* m_canvConformalEventDisplayAllCells          = nullptr;
+  TCanvas* m_canvConformalEventDisplayAcceptedCells     = nullptr;
+  TCanvas* m_canvConformalEventDisplayMC                = nullptr;
+  TCanvas* m_canvConformalEventDisplayMCunreconstructed = nullptr;
 
-  TH2F* m_szDistribution;
-  TH2F* m_uvDistribution;
-  TH2F* m_xyDistribution;
-  TH3F* m_xyzDistribution;
+  TH2F* m_szDistribution  = nullptr;
+  TH2F* m_uvDistribution  = nullptr;
+  TH2F* m_xyDistribution  = nullptr;
+  TH3F* m_xyzDistribution = nullptr;
 
   // Other constants
-  double            m_thetaRange;
-  double            m_chi2cut;
-  double            m_chi2increase;
-  double            m_maxCellAngle;
-  double            m_maxCellAngleRZ;
-  double            m_maxDistance;
-  int               m_minClustersOnTrack;
-  bool              m_debugPlots;
-  double            m_purity;
-  KDCluster*        debugSeed;
-  ConformalDebugger m_debugger;
-  bool              m_highPTfit;
+  double            m_thetaRange         = 0.0;
+  double            m_chi2cut            = 0.0;
+  double            m_chi2increase       = 0.0;
+  double            m_maxCellAngle       = 0.0;
+  double            m_maxCellAngleRZ     = 0.0;
+  double            m_maxDistance        = 0.0;
+  int               m_minClustersOnTrack = 0;
+  bool              m_debugPlots         = false;
+  double            m_purity             = 0.0;
+  KDCluster*        debugSeed            = nullptr;
+  ConformalDebugger m_debugger{};
+  bool              m_highPTfit = false;
 };
 
 // ---------------------------
