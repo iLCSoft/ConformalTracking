@@ -41,6 +41,9 @@ public:
   explicit KDTree(const VecCluster& pts, double overlapTheta);
   ~KDTree();
 
+  KDTree(const KDTree&) = delete;
+  KDTree& operator=(const KDTree&) = delete;
+
   void nearestNeighbours(KDCluster* pt, int N, VecCluster& result);
   void allNeighboursInRadius(KDCluster* pt, const double radius, VecCluster& result);
   void allNeighboursInTheta(KDCluster* pt, const double thetaRange, VecCluster& result);
@@ -51,12 +54,12 @@ private:
   void transformThetaResults(KDTreeResultVector& vec, VecCluster& result);
 
   static const int k;
-  boost::multi_array<double, 2> array;
-  boost::multi_array<double, 2> arrayTheta;
-  kdtree2::KDTree* tree;
-  kdtree2::KDTree* treeTheta;
-  VecCluster       det;
-  std::map<double, KDCluster*> thetaLookup;
+  boost::multi_array<double, 2> array{};
+  boost::multi_array<double, 2> arrayTheta{};
+  kdtree2::KDTree* tree      = nullptr;
+  kdtree2::KDTree* treeTheta = nullptr;
+  VecCluster       det{};
+  std::map<double, KDCluster*> thetaLookup{};
 };
 
 bool distComparator(const kdtree2::KDTreeResult& a, const kdtree2::KDTreeResult& b);
