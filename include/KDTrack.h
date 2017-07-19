@@ -17,7 +17,10 @@ class KDTrack {
 public:
   //--- Constructor and destructor
   KDTrack();
-  virtual ~KDTrack();
+  ~KDTrack();
+
+  KDTrack(const KDTrack&) = default;
+  KDTrack& operator=(const KDTrack&) = delete;
 
   //--- Functions to add and remove clusters
   void add(KDCluster* cluster) {
@@ -69,28 +72,28 @@ public:
   //--- along with the errors and list of clusters used
 
   // UV fit parameters
-  double m_gradient;
-  double m_gradientError;
-  double m_intercept;
-  double m_interceptError;
-  double m_quadratic;
-  double m_chi2;
-  double m_chi2ndof;
-  bool   m_rotated;
+  double m_gradient       = 0.0;
+  double m_gradientError  = 0.0;
+  double m_intercept      = 0.0;
+  double m_interceptError = 0.0;
+  double m_quadratic      = 0.0;
+  double m_chi2           = 0.0;
+  double m_chi2ndof       = 0.0;
+  bool   m_rotated        = false;
 
   // SZ fit parameters
-  double m_gradientZS;
-  double m_interceptZS;
-  double m_chi2ZS;
-  double m_chi2ndofZS;
-  bool   m_rotatedSZ;
-  bool   fillFit;
+  double m_gradientZS  = 0.0;
+  double m_interceptZS = 0.0;
+  double m_chi2ZS      = 0.0;
+  double m_chi2ndofZS  = 0.0;
+  bool   m_rotatedSZ   = 0.0;
+  bool   fillFit       = false;
 
   // Clusters and kalman track pointer
-  int                     m_nPoints;
-  double                  m_pT;
-  std::vector<KDCluster*> m_clusters;
-  KalmanTrack*            m_kalmanTrack;
+  int                     m_nPoints = 0;
+  double                  m_pT      = 0.0;
+  std::vector<KDCluster*> m_clusters{};
+  KalmanTrack*            m_kalmanTrack = nullptr;
 
 private:
 };

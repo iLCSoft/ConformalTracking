@@ -2,14 +2,8 @@
 #include "KDTrack.h"
 
 // Constructor
-KDTrack::KDTrack() {
-  m_gradient    = 0.;
-  m_intercept   = 0.;
-  m_nPoints     = 0;
-  fillFit       = false;
-  m_rotated     = false;
-  m_kalmanTrack = NULL;
-}
+KDTrack::KDTrack()
+    : m_gradient(0.), m_intercept(0.), m_rotated(false), fillFit(false), m_nPoints(0), m_kalmanTrack(nullptr) {}
 
 // Destructor
 KDTrack::~KDTrack() {}
