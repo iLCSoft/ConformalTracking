@@ -22,17 +22,20 @@ class ConformalDebugger {
 public:
   //--- Constructor and destructor
   ConformalDebugger(){};
-  virtual ~ConformalDebugger(){};
+  ~ConformalDebugger(){};
+
+  ConformalDebugger(const ConformalDebugger&) = delete;
+  ConformalDebugger& operator=(const ConformalDebugger&) = delete;
 
   //--- Member variables
-  LCCollection*                     m_particleCollection;     // MC particles
-  std::vector<LCRelationNavigator*> m_relations;              // relations from tracker hits to MCP
-  std::vector<LCCollection*>        m_trackerHitCollections;  // tracker hits
+  LCCollection*                     m_particleCollection = nullptr;  // MC particles
+  std::vector<LCRelationNavigator*> m_relations{};                   // relations from tracker hits to MCP
+  std::vector<LCCollection*>        m_trackerHitCollections{};       // tracker hits
 
-  std::map<int, std::vector<KDCluster*>>         m_kdClusters;    // list of kd clusters
-  std::map<KDCluster*, TrackerHitPlane*>         m_kdClusterMap;  // their link to "real" hits
-  std::map<KDCluster*, MCParticle*>              m_kdParticles;   // link from conformal hit to MC particle
-  std::map<MCParticle*, std::vector<KDCluster*>> m_particleHits;  // list of conformal hits on each MC particle
+  std::map<int, std::vector<KDCluster*>>         m_kdClusters{};    // list of kd clusters
+  std::map<KDCluster*, TrackerHitPlane*>         m_kdClusterMap{};  // their link to "real" hits
+  std::map<KDCluster*, MCParticle*>              m_kdParticles{};   // link from conformal hit to MC particle
+  std::map<MCParticle*, std::vector<KDCluster*>> m_particleHits{};  // list of conformal hits on each MC particle
 
   //--- Set member variables
   void setMCParticles(LCCollection* particleCollection) { m_particleCollection = particleCollection; }
@@ -83,7 +86,7 @@ public:
     std::vector<KDCluster*> clusters = track->m_clusters;
 
     // Loop over all hits and see which particle they are associated to
-    for (int itCluster = 0; itCluster < clusters.size(); itCluster++) {
+    for (size_t itCluster = 0; itCluster < clusters.size(); itCluster++) {
       // Get the hit
       KDCluster* cluster = clusters[itCluster];
       nHits++;
@@ -101,7 +104,7 @@ public:
     // Now look how many hits are on each particle and calculate the purity
     double      bestHits           = 0.;
     MCParticle* associatedParticle = NULL;
-    for (int iPart = 0; iPart < particles.size(); iPart++) {
+    for (size_t iPart = 0; iPart < particles.size(); iPart++) {
       if (particleHits[particles[iPart]] > bestHits) {
         bestHits           = particleHits[particles[iPart]];
         associatedParticle = particles[iPart];
