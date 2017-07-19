@@ -24,13 +24,15 @@ class Cell {
 public:
   // Constructors, main initialisation is with two kd hits
   Cell() { m_weight = 0; }
-  Cell(KDCluster* hit1, KDCluster* hit2) {
-    m_start      = hit1;
-    m_end        = hit2;
-    m_gradient   = (hit2->getV() - hit1->getV()) / (hit2->getU() - hit1->getU());
-    m_gradientRZ = (hit2->getRadius() - hit1->getRadius()) / (hit2->getZ() - hit1->getZ());
-    m_weight     = 0;
-  }
+  Cell(const Cell&) = delete;
+  Cell& operator=(const Cell&) = delete;
+
+  Cell(KDCluster* hit1, KDCluster* hit2)
+      : m_weight(0),
+        m_gradient((hit2->getV() - hit1->getV()) / (hit2->getU() - hit1->getU())),
+        m_gradientRZ((hit2->getRadius() - hit1->getRadius()) / (hit2->getZ() - hit1->getZ())),
+        m_start(hit1),
+        m_end(hit2) {}
 
   // Destructor
   virtual ~Cell() {
@@ -86,14 +88,14 @@ public:
 private:
   // Each cell contains a weight, a gradient, two hits which it connects
   // and a list of cells that it connects to or from
-  int                m_weight;
-  double             m_gradient;
-  double             m_gradientRZ;
-  KDCluster*         m_start;
-  KDCluster*         m_end;
-  std::vector<Cell*> m_from;
-  std::vector<int>   m_weights;
-  std::vector<Cell*> m_to;
+  int                m_weight     = 0;
+  double             m_gradient   = 0.0;
+  double             m_gradientRZ = 0.0;
+  KDCluster*         m_start      = nullptr;
+  KDCluster*         m_end        = nullptr;
+  std::vector<Cell*> m_from{};
+  std::vector<int>   m_weights{};
+  std::vector<Cell*> m_to{};
 };
 
 // Vector of cells
