@@ -354,7 +354,7 @@ namespace kdtree2 {
     bool                 rearrange;
     unsigned int         nn;  // , nfound;
     double               ballsize;
-    int                  centeridx, correltime;
+    int                  centeridx = -1, correltime = 0;
 
     KDTreeResultVector&     result;  // results
     const KDTreeArray*      data;
@@ -363,12 +363,14 @@ namespace kdtree2 {
 
   public:
     SearchRecord(std::vector<double>& qv_in, KDTree& tree_in, KDTreeResultVector& result_in)
-        : qv(qv_in), result(result_in), data(tree_in.data), ind(tree_in.ind) {
-      dim       = tree_in.dim;
-      rearrange = tree_in.rearrange;
-      ballsize  = infinity;
-      nn        = 0;
-    };
+        : qv(qv_in),
+          dim(tree_in.dim),
+          rearrange(tree_in.rearrange),
+          nn(0),
+          ballsize(infinity),
+          result(result_in),
+          data(tree_in.data),
+          ind(tree_in.ind){};
   };
 
   void KDTree::n_nearest_brute_force(std::vector<double>& qv, KDTreeResultVector& result) {

@@ -98,6 +98,9 @@ namespace kdtree2 {
 
     KDTree(KDTreeArray& data_in, bool rearrange_in = true, int dim_in = -1);
 
+    KDTree(const KDTree&) = delete;
+    KDTree& operator=(const KDTree&) = delete;
+
     // destructor
     ~KDTree();
 
@@ -144,7 +147,7 @@ namespace kdtree2 {
     // the index for the tree leaves.  Data in a leaf with bounds [l,u] are
     // in  'the_data[ind[l],*] to the_data[ind[u],*]
 
-    KDTreeArray rearranged_data;
+    KDTreeArray rearranged_data{};
     // if rearrange is true then this is the rearranged data storage.
 
     static const int bucketsize = 12;  // global constant.
@@ -174,17 +177,20 @@ namespace kdtree2 {
     // destructor
     ~KDTreeNode();
 
+    KDTreeNode(const KDTreeNode&) = delete;
+    KDTreeNode& operator=(const KDTreeNode&) = delete;
+
   private:
     // visible to self and KDTree.
     friend class KDTree;  // allow kdtree2 to access private
 
-    int    cut_dim;                               // dimension to cut;
-    double cut_val, cut_val_left, cut_val_right;  //cut value
-    int    l, u;                                  // extents in index array for searching
+    int    cut_dim = 0;                                             // dimension to cut;
+    double cut_val = 0.0, cut_val_left = 0.0, cut_val_right = 0.0;  //cut value
+    int    l = 0, u = 0;                                            // extents in index array for searching
 
     std::vector<interval> box;  // [min,max] of the box enclosing all points
 
-    KDTreeNode *left, *right;  // pointers to left and right nodes.
+    KDTreeNode *left = nullptr, *right = nullptr;  // pointers to left and right nodes.
 
     void search(SearchRecord& sr);
     // recursive innermost core routine for searching..
