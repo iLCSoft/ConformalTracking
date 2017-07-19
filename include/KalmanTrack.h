@@ -34,28 +34,28 @@ public:
 
   // Member variables. The gradient at this node after filtering, and
   // the predicted, measured and filtered positions
-  double m_gradient;
-  double m_quadratic;
-  double m_uMeasured;
-  double m_vMeasured;
-  double m_errorMeasured;
-  double m_uPredicted;
-  double m_vPredicted;
-  double m_errorPredicted;
-  double m_uFiltered;
-  double m_vFiltered;
+  double m_gradient       = 0.0;
+  double m_quadratic      = 0.0;
+  double m_uMeasured      = 0.0;
+  double m_vMeasured      = 0.0;
+  double m_errorMeasured  = 0.0;
+  double m_uPredicted     = 0.0;
+  double m_vPredicted     = 0.0;
+  double m_errorPredicted = 0.0;
+  double m_uFiltered      = 0.0;
+  double m_vFiltered      = 0.0;
 
-  double m_gradientZS;
-  double m_sMeasured;
-  double m_zMeasured;
-  double m_errorMeasuredZS;
-  double m_sPredicted;
-  double m_zPredicted;
-  double m_errorPredictedZS;
-  double m_sFiltered;
-  double m_zFiltered;
+  double m_gradientZS       = 0.0;
+  double m_sMeasured        = 0.0;
+  double m_zMeasured        = 0.0;
+  double m_errorMeasuredZS  = 0.0;
+  double m_sPredicted       = 0.0;
+  double m_zPredicted       = 0.0;
+  double m_errorPredictedZS = 0.0;
+  double m_sFiltered        = 0.0;
+  double m_zFiltered        = 0.0;
 
-  double m_deltaChi2;
+  double m_deltaChi2 = 0.0;
 
 private:
 };
@@ -67,6 +67,9 @@ public:
   KalmanTrack();
   KalmanTrack(KDTrack*);
 
+  KalmanTrack(const KalmanTrack&) = default;
+  KalmanTrack& operator=(const KalmanTrack&) = default;
+
   // Destructor
   ~KalmanTrack() = default;
 
@@ -74,12 +77,12 @@ public:
   double addCluster(KDCluster*);  // returns delta chi2 for adding this cluster
 
   // Member variables
-  KDTrack*                m_conformalTrack;  // The parent conformal track
-  std::vector<KDCluster*> m_kalmanClusters;  // The additional clusters to which the kalman filter is applied
-  std::vector<std::shared_ptr<KalmanNode>> m_nodes;
-  double                                   m_moliere;  // Multiple scattering angle
-  double                                   m_theta;    // Polar angle of the parent KDTrack
-  bool                                     m_rotated;
+  KDTrack*                m_conformalTrack = nullptr;  // The parent conformal track
+  std::vector<KDCluster*> m_kalmanClusters{};          // The additional clusters to which the kalman filter is applied
+  std::vector<std::shared_ptr<KalmanNode>> m_nodes{};
+  double                                   m_moliere = 0.0;  // Multiple scattering angle
+  double                                   m_theta   = 0.0;  // Polar angle of the parent KDTrack
+  bool                                     m_rotated = false;
 
 private:
 };
