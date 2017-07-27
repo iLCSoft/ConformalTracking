@@ -28,6 +28,7 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 
+#include <marlin/Exceptions.h>
 #include "marlin/AIDAProcessor.h"
 #include "marlin/Global.h"
 #include "marlin/ProcessorEventSeeder.h"
@@ -230,6 +231,9 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   //
   // Where several paths are possible back to the seed position, the candidate with lowest chi2/ndof is chosen.
   //------------------------------------------------------------------------------------------------------------------
+
+  // Restore flag
+  m_skipEvent = false;
 
   streamlog_out(DEBUG7) << "Event number: " << m_eventNumber << std::endl;
 
@@ -818,6 +822,11 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   for (auto* relation : relations) {
     delete relation;
   }
+
+  if (m_skipEvent) {
+    streamlog_out(ERROR) << "Skipping event" << std::endl;
+    throw marlin::SkipEventException(this);
+  }
 }
 
 void ConformalTracking::end() {
@@ -869,6 +878,9 @@ void ConformalTracking::combineCollections(std::vector<KDCluster*>& kdClusters, 
 // Take a collection of hits and try to produce tracks out of them
 void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, std::vector<KDCluster*>& collection,
                                        KDTree* nearestNeighbours, bool radialSearch) {
+  if (m_skipEvent) {
+    return;
+  }
   streamlog_out(DEBUG7) << "BUILDING new tracks" << std::endl;
 
   // Sort the input collection by radius
@@ -877,6 +889,9 @@ void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, s
   // Loop over all hits, using each as a seed to produce a new track
   unsigned int nKDHits = collection.size();
   for (unsigned int nKDHit = 0; nKDHit < nKDHits; nKDHit++) {
+    if (m_skipEvent) {
+      break;
+    }
     // Get the kdHit and check if it has already been used (assigned to a track)
     KDCluster* kdhit = collection[nKDHit];
     if (debugSeed && kdhit == debugSeed)
@@ -914,6 +929,9 @@ void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, s
 
     // Make seed cells pointing inwards (conformal space)
     for (unsigned int neighbour = 0; neighbour < results.size(); neighbour++) {
+      if (m_skipEvent) {
+        break;
+      }
       // Get the neighbouring hit
       KDCluster* nhit = results[neighbour];
 
@@ -979,6 +997,9 @@ void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, s
     // Create tracks by following a path along cells
     int nCells = cells.size();
     for (int itCell = 0; itCell < nCells; itCell++) {
+      if (m_skipEvent) {
+        break;
+      }
       // Check if this cell has already been used
       if (debugSeed && kdhit == debugSeed)
         streamlog_out(DEBUG7) << "-- looking at cell " << itCell << std::endl;
@@ -1421,6 +1442,9 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, KDTree* neare
 // on number of clusters on each track, and pass back (good tracks to then be decided based on best chi2
 void ConformalTracking::createTracksNew(std::vector<cellularTrack*>& finalcellularTracks, Cell* seedCell,
                                         std::map<Cell*, bool>&                                  usedCells) {
+  if (m_skipEvent) {
+    return;
+  }
   // Final container to be returned
   std::vector<cellularTrack*> cellularTracks;
 
@@ -1435,6 +1459,18 @@ void ConformalTracking::createTracksNew(std::vector<cellularTrack*>& finalcellul
     //   streamlog_out(DEBUG7)<<"== Updating "<<cellularTracks.size()<<" tracks"<<std::endl;
     // Loop over all (currently existing) tracks
     int nTracks = cellularTracks.size();
+    if (nTracks > 10000) {
+      streamlog_out(WARNING) << "Going to create " << nTracks << std::endl;
+    }
+    if (nTracks > 2e5) {
+      streamlog_out(ERROR) << "Too many tracks (" << nTracks << " > 2e5) are going to be created, skipping this event"
+                           << std::endl;
+      for (auto* track : cellularTracks) {
+        delete track;
+      }
+      m_skipEvent = true;
+      return;
+    }
     for (int itTrack = 0; itTrack < nTracks; itTrack++) {
       // If the track is finished, do nothing
       //      if(cellularTracks[itTrack].back()->getWeight() == 0) continue;
