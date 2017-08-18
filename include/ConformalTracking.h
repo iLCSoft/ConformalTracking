@@ -75,6 +75,8 @@ public:
   void extendTracks(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*);
   void combineCollections(std::vector<KDCluster*>&, KDTree*&, std::vector<int>, std::map<int, std::vector<KDCluster*>>);
 
+  void extendHighPT(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*, bool radialSearch = false);
+
   void createTracksNew(std::vector<cellularTrack*>&, Cell*, std::map<Cell*, bool>&);
   bool toBeUpdated(std::vector<cellularTrack*> const&);
   void updateCell(Cell*);
@@ -97,6 +99,7 @@ public:
                    std::map<MCParticle*, std::vector<KDCluster*>>);
   int  getUniqueHits(std::vector<KDCluster*>);
   void checkReconstructionFailure(MCParticle*, std::map<MCParticle*, std::vector<KDCluster*>>, KDTree*);
+  void checkUnallowedTracks(std::vector<cellularTrack*>);
 
 protected:
   // Collection names for (in/out)put
@@ -229,5 +232,5 @@ bool sort_by_cellWeight(Cell* cell1, Cell* cell2) {
 bool sort_by_length(KDTrack* track1, KDTrack* track2) { return (track1->m_clusters.size() > track2->m_clusters.size()); }
 
 // Sort kdtracks from lowest to highest pt
-bool sort_by_pt(KDTrack* track1, KDTrack* track2) { return (track1->pt() < track2->pt()); }
+bool sort_by_pt(KDTrack* track1, KDTrack* track2) { return (track1->pt() > track2->pt()); }
 #endif
