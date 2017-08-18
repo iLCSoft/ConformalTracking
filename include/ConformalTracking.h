@@ -177,8 +177,6 @@ protected:
   KDCluster*        debugSeed;
   ConformalDebugger m_debugger;
   bool              m_highPTfit;
-
-  bool m_skipEvent = false;
 };
 
 // ---------------------------
