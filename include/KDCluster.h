@@ -59,7 +59,7 @@ public:
         m_removed(false),
         m_used(false),
         m_endcap(false) {}
-  KDCluster(TrackerHitPlane* hit, bool endcap)
+  KDCluster(TrackerHitPlane* hit, bool endcap, bool forward = false)
       : m_x(hit->getPosition()[0]),
         m_y(hit->getPosition()[1]),
         m_u(0.0),
@@ -82,7 +82,8 @@ public:
         m_deltaChi2(0),
         m_removed(false),
         m_used(false),
-        m_endcap(endcap) {
+        m_endcap(endcap),
+        m_forward(forward) {
     // Calculate conformal position in cartesian co-ordinates
     const double radius2 = (m_x * m_x + m_y * m_y);
     m_u                  = m_x / radius2;
@@ -109,7 +110,7 @@ public:
       m_errorY = m_error * cos(m_theta);
 
       // Need to set endcap error in z!
-      m_errorZ = 0.00001;
+      m_errorZ = 0.25;
 
     } else {
       m_errorU = m_error * m_r * m_r * sin(m_theta);
@@ -161,9 +162,10 @@ public:
     m_side   = side;
     m_layer  = layer;
   }
-  int getSubdetector() { return m_subdet; }
-  int getSide() { return m_side; }
-  int getLayer() { return m_layer; }
+  int  getSubdetector() { return m_subdet; }
+  int  getSide() { return m_side; }
+  int  getLayer() { return m_layer; }
+  bool forward() { return m_forward; }
 
   // Check if another hit is on the same detecting layer
   bool sameLayer(KDCluster* kdhit) {
@@ -198,6 +200,7 @@ private:
   bool   m_endcap;
   bool   m_used;
   double m_deltaChi2;
+  bool   m_forward;
 };
 
 // Vector of kd clusters
