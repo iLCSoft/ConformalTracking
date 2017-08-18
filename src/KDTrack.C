@@ -115,7 +115,7 @@ double KDTrack::calculateChi2SZ(TH2F* histo, bool debug) {
   // Loop over all hits on the track and calculate the residual.
   // The y error includes a projection of the x error onto the y axis
   if (debug)
-    streamlog_out(DEBUG6) << "== Calculating track chi2 in sz" << std::endl;
+    streamlog_out(DEBUG5) << "== Calculating track chi2 in sz" << std::endl;
 
   // Make an estimate of the momentum
   m_pT = 0.3 * 4. * sqrt(b * b + a * a) / 1000.;
@@ -123,7 +123,7 @@ double KDTrack::calculateChi2SZ(TH2F* histo, bool debug) {
     streamlog_out(DEBUG6) << "== Momentum estimate is " << m_pT << " GeV/c" << std::endl;
 
   if (fillFit)
-    streamlog_out(DEBUG6) << "== note that a is " << a << " +/- " << da << " and b is " << b << " +/- " << db << std::endl;
+    streamlog_out(DEBUG5) << "== note that a is " << a << " +/- " << da << " and b is " << b << " +/- " << db << std::endl;
   for (int hit = 1; hit < m_nPoints; hit++) {
     // Get the global point details
     double xi     = m_clusters[hit]->getX();
@@ -201,19 +201,19 @@ double KDTrack::calculateChi2SZ(TH2F* histo, bool debug) {
 
     // Debug info
     if (debug)
-      streamlog_out(DEBUG6) << "- hit " << hit << " has residualS = " << residualS << ", with error dz = " << errorZ
+      streamlog_out(DEBUG5) << "- hit " << hit << " has residualS = " << residualS << ", with error dz = " << errorZ
                             << ", error ds = " << sqrt(errorS2) << " and total error = " << sqrt(ds2) << std::endl;
 
     double debugError2 = sqrt(deltaPhi * deltaPhi * errorRadC * errorRadC + errorDeltaPhi * errorDeltaPhi * radC * radC);
     if (debug)
-      streamlog_out(DEBUG6) << "- alternative ds = " << debugError2 << std::endl;
+      streamlog_out(DEBUG5) << "- alternative ds = " << debugError2 << std::endl;
 
     if (debug)
-      streamlog_out(DEBUG6) << "Total chi2 increase " << (residualS * residualS) / (ds2) << ". Chi2 is currently " << chi2
+      streamlog_out(DEBUG5) << "Total chi2 increase " << (residualS * residualS) / (ds2) << ". Chi2 is currently " << chi2
                             << std::endl;
     if (fillFit) {
       histo->Fill(m_clusters[hit]->getZ(), s);
-      streamlog_out(DEBUG6) << "== hit has s = " << s << ", z = " << m_clusters[hit]->getZ() << std::endl;
+      streamlog_out(DEBUG5) << "== hit has s = " << s << ", z = " << m_clusters[hit]->getZ() << std::endl;
     }
   }
 
@@ -369,8 +369,8 @@ void KDTrack::linearRegressionConformal(bool debug) {
 
   // Loop over all hits and fill the matrices
   if (debug) {
-    streamlog_out(DEBUG6) << "== Fitting track in sz" << std::endl;
-    streamlog_out(DEBUG6) << "- phi0 is " << phi0 << std::endl;
+    streamlog_out(DEBUG5) << "== Fitting track in sz" << std::endl;
+    streamlog_out(DEBUG5) << "- phi0 is " << phi0 << std::endl;
   }
   std::vector<double> sValues, sError2Values;
   for (int hit = 1; hit < m_nPoints; hit++) {
@@ -390,7 +390,7 @@ void KDTrack::linearRegressionConformal(bool debug) {
     //    double deltaPhi = atan2(yi - y0, xi - x0);
     double phi = atan2(yi - b, xi - a) + M_PI;
     if (debug)
-      streamlog_out(DEBUG6) << "- raw phi is " << phi << std::endl;
+      streamlog_out(DEBUG5) << "- raw phi is " << phi << std::endl;
     //    if(phi < 0.) phi=(2.*M_PI-fabs(phi));
     //
     if (fabs(phi - prevPhi) > M_PI) {
@@ -402,7 +402,7 @@ void KDTrack::linearRegressionConformal(bool debug) {
     prevPhi = phi;
 
     if (debug)
-      streamlog_out(DEBUG6) << "- modified phi is " << phi << std::endl;
+      streamlog_out(DEBUG5) << "- modified phi is " << phi << std::endl;
 
     double deltaPhi = phi - phi0;
 
@@ -410,9 +410,9 @@ void KDTrack::linearRegressionConformal(bool debug) {
     double s = radC * deltaPhi;
 
     if (debug) {
-      streamlog_out(DEBUG6) << "- for hit " << hit << " s = " << s << std::endl;
+      streamlog_out(DEBUG5) << "- for hit " << hit << " s = " << s << std::endl;
       double deltaPhi2 = atan2(yi - b, xi - a) - phi0;
-      streamlog_out(DEBUG6) << "- deltaPhi is " << deltaPhi << ", calculating by hand gives " << deltaPhi2 << std::endl;
+      streamlog_out(DEBUG5) << "- deltaPhi is " << deltaPhi << ", calculating by hand gives " << deltaPhi2 << std::endl;
     }
 
     // Calculate the errors on everything
