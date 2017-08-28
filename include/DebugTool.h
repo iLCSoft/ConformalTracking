@@ -18,6 +18,8 @@
 // MCParticles to KDClusters and then give purity values etc. for given tracks.
 // ------------------------------------------------------------------------------------
 
+using SLCRelationNavigator = std::shared_ptr<LCRelationNavigator>;
+
 class ConformalDebugger {
 public:
   //--- Constructor and destructor
@@ -29,7 +31,7 @@ public:
 
   //--- Member variables
   LCCollection*                     m_particleCollection = nullptr;  // MC particles
-  std::vector<LCRelationNavigator*> m_relations{};                   // relations from tracker hits to MCP
+  std::vector<SLCRelationNavigator> m_relations{};                   // relations from tracker hits to MCP
   std::vector<LCCollection*>        m_trackerHitCollections{};       // tracker hits
 
   std::map<int, SharedKDClusters>         m_kdClusters{};    // list of kd clusters
@@ -39,7 +41,7 @@ public:
 
   //--- Set member variables
   void setMCParticles(LCCollection* particleCollection) { m_particleCollection = particleCollection; }
-  void setRelations(std::vector<LCRelationNavigator*> relations) { m_relations = relations; }
+  void setRelations(std::vector<SLCRelationNavigator> relations) { m_relations = relations; }
   void setTrackerHits(std::vector<LCCollection*> trackerHitCollections) { m_trackerHitCollections = trackerHitCollections; }
   void setKDClusters(int collection, SharedKDClusters clusters) { m_kdClusters[collection] = clusters; }
 
