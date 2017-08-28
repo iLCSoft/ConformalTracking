@@ -27,6 +27,7 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 
+#include <marlin/Exceptions.h>
 #include "marlin/AIDAProcessor.h"
 #include "marlin/Global.h"
 #include "marlin/ProcessorEventSeeder.h"
@@ -239,7 +240,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
   // Object to store all of the track hit collections passed to the pattern recognition
   std::vector<LCCollection*>        trackerHitCollections;
-  std::vector<LCRelationNavigator*> relations;
+  std::vector<SLCRelationNavigator> relations;
   LCCollection*                     particleCollection;
 
   // Loop over each input collection and get the hits
@@ -261,8 +262,8 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       if (trackerHitRelationCollection == 0)
         continue;
       // Create the relations navigator
-      LCRelationNavigator* relation = new LCRelationNavigator(trackerHitRelationCollection);
-      relations.push_back(relation);
+      auto relation = std::make_shared<LCRelationNavigator>(trackerHitRelationCollection);
+      relations.push_back(std::move(relation));
     }
   }
 
@@ -270,8 +271,8 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   getCollection(particleCollection, m_inputParticleCollection, evt);
 
   // Make the output track collection
-  LCCollectionVec* trackCollection    = new LCCollectionVec(LCIO::TRACK);
-  LCCollectionVec* debugHitCollection = new LCCollectionVec(LCIO::TRACKERHITPLANE);
+  auto trackCollection    = std::unique_ptr<LCCollectionVec>(new LCCollectionVec(LCIO::TRACK));
+  auto debugHitCollection = std::unique_ptr<LCCollectionVec>(new LCCollectionVec(LCIO::TRACKERHITPLANE));
   debugHitCollection->setSubset(true);
 
   // Enable the track collection to point back to hits
@@ -864,16 +865,11 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   }
 
   // Save the output track collection
-  evt->addCollection(trackCollection, m_outputTrackCollection);
-  evt->addCollection(debugHitCollection, m_outputDebugHits);
+  evt->addCollection(trackCollection.release(), m_outputTrackCollection);
+  evt->addCollection(debugHitCollection.release(), m_outputDebugHits);
 
   // Increment the event number
   m_eventNumber++;
-
-  //clean up
-  for (auto* relation : relations) {
-    delete relation;
-  }
 }
 
 void ConformalTracking::end() {
@@ -1676,6 +1672,14 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
     //   streamlog_out(DEBUG7)<<"== Updating "<<cellularTracks.size()<<" tracks"<<std::endl;
     // Loop over all (currently existing) tracks
     int nTracks = cellularTracks.size();
+    if (nTracks > 10000) {
+      streamlog_out(WARNING) << "Going to create " << nTracks << std::endl;
+    }
+    if (nTracks > 5e5) {
+      streamlog_out(ERROR) << "Too many tracks (" << nTracks << " > 1e6) are going to be created, skipping this event"
+                           << std::endl;
+      throw marlin::SkipEventException(this);
+    }
     for (int itTrack = 0; itTrack < nTracks; itTrack++) {
       // If the track is finished, do nothing
       //      if(cellularTracks[itTrack].back()->getWeight() == 0) continue;
