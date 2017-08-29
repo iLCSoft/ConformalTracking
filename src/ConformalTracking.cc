@@ -1277,6 +1277,12 @@ void ConformalTracking::extendTracks(std::vector<KDTrack*>& conformalTracks, std
   // First extend high pt tracks
   extendHighPT(conformalTracks, collection, nearestNeighbours);
 
+  // Mark hits from "good" tracks as being used
+  for (unsigned int itTrack = 0; itTrack < conformalTracks.size(); itTrack++) {
+    for (unsigned int itHit = 0; itHit < conformalTracks[itTrack]->m_clusters.size(); itHit++)
+      conformalTracks[itTrack]->m_clusters[itHit]->used(true);
+  }
+
   for (int currentTrack = 0; currentTrack < nTracks; currentTrack++) {
     // Make sure that track hits are ordered from largest to smallest radius
     std::sort(conformalTracks[currentTrack]->m_clusters.begin(), conformalTracks[currentTrack]->m_clusters.end(),
