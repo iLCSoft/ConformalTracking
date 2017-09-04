@@ -505,7 +505,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   }
 
   stopwatch->Stop();
-  streamlog_out(DEBUG6) << "Building vertex barrel tracks took " << stopwatch->RealTime() << " seconds" << std::endl;
+  streamlog_out(DEBUG7) << "Building vertex barrel tracks took " << stopwatch->RealTime() << " seconds" << std::endl;
   stopwatch->Reset();
 
   // Extend through the endcap
@@ -514,7 +514,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   combineCollections(kdClusters, nearestNeighbours, vertexEndcapHits, collectionClusters);
   extendTracks(conformalTracks, kdClusters, nearestNeighbours);
   stopwatch->Stop();
-  streamlog_out(DEBUG6) << "Extending through vertex endcap took " << stopwatch->RealTime() << " seconds" << std::endl;
+  streamlog_out(DEBUG7) << "Extending through vertex endcap took " << stopwatch->RealTime() << " seconds" << std::endl;
   stopwatch->Reset();
 
   // Make combined vertex tracks
@@ -529,7 +529,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       conformalTracks[itTrack]->m_clusters[itHit]->used(true);
   }
   stopwatch->Stop();
-  streamlog_out(DEBUG6) << "Building vertex tracks took " << stopwatch->RealTime() << " seconds" << std::endl;
+  streamlog_out(DEBUG7) << "Building vertex tracks took " << stopwatch->RealTime() << " seconds" << std::endl;
   stopwatch->Reset();
 
   // Make leftover tracks in the vertex with lower requirements
@@ -556,7 +556,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   }
 
   stopwatch->Stop();
-  streamlog_out(DEBUG6) << "Building low pt vertex tracks (1) took " << stopwatch->RealTime() << " seconds" << std::endl;
+  streamlog_out(DEBUG7) << "Building low pt vertex tracks (1) took " << stopwatch->RealTime() << " seconds" << std::endl;
   stopwatch->Reset();
   stopwatch->Start(false);
 
@@ -571,7 +571,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   }
 
   stopwatch->Stop();
-  streamlog_out(DEBUG6) << "Building low pt vertex tracks (2) took " << stopwatch->RealTime() << " seconds" << std::endl;
+  streamlog_out(DEBUG7) << "Building low pt vertex tracks (2) took " << stopwatch->RealTime() << " seconds" << std::endl;
   stopwatch->Reset();
 
   // Lower number of hits on track
@@ -586,7 +586,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       conformalTracks[itTrack]->m_clusters[itHit]->used(true);
   }
   stopwatch->Stop();
-  streamlog_out(DEBUG6) << "Building low pt vertex tracks with 4 hits took " << stopwatch->RealTime() << " seconds"
+  streamlog_out(DEBUG7) << "Building low pt vertex tracks with 4 hits took " << stopwatch->RealTime() << " seconds"
                         << std::endl;
   stopwatch->Reset();
   m_chi2cut = chi2cut;
@@ -608,7 +608,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   combineCollections(kdClusters, nearestNeighbours, trackerHits, collectionClusters);
   extendTracks(conformalTracks, kdClusters, nearestNeighbours);
   stopwatch->Stop();
-  streamlog_out(DEBUG6) << "Extending through trackers took " << stopwatch->RealTime() << " seconds" << std::endl;
+  streamlog_out(DEBUG7) << "Extending through trackers took " << stopwatch->RealTime() << " seconds" << std::endl;
   stopwatch->Reset();
 
   //  extendHighPT(conformalTracks, kdClusters, nearestNeighbours);
@@ -638,7 +638,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       conformalTracks[itTrack]->m_clusters[itHit]->used(true);
   }
   stopwatch->Stop();
-  streamlog_out(DEBUG6) << "Building displaced tracks using vertex + inner tracker " << stopwatch->RealTime() << " seconds"
+  streamlog_out(DEBUG7) << "Building displaced tracks using vertex + inner tracker " << stopwatch->RealTime() << " seconds"
                         << std::endl;
   stopwatch->Reset();
 
@@ -647,7 +647,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   combineCollections(kdClusters, nearestNeighbours, trackerHits, collectionClusters);
   extendTracks(conformalTracks, kdClusters, nearestNeighbours);
   stopwatch->Stop();
-  streamlog_out(DEBUG6) << "Extending through trackers took " << stopwatch->RealTime() << " seconds" << std::endl;
+  streamlog_out(DEBUG7) << "Extending through trackers took " << stopwatch->RealTime() << " seconds" << std::endl;
   stopwatch->Reset();
 
   allHits = {0, 1, 2, 3, 4, 5};
@@ -661,7 +661,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       conformalTracks[itTrack]->m_clusters[itHit]->used(true);
   }
   stopwatch->Stop();
-  streamlog_out(DEBUG6) << "Building displaced tracks with all detectors took " << stopwatch->RealTime() << " seconds"
+  streamlog_out(DEBUG7) << "Building displaced tracks with all detectors took " << stopwatch->RealTime() << " seconds"
                         << std::endl;
   stopwatch->Reset();
 
