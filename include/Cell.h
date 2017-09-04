@@ -77,6 +77,12 @@ public:
   std::vector<Cell*>* getFrom() { return &m_from; }
   std::vector<Cell*>* getTo() { return &m_to; }
 
+  double doca() {
+    double intercept = m_start->getV() - m_start->getU() * m_gradient;
+    double doca      = fabs(intercept) / sqrt(m_gradient * m_gradient + 1.);
+    return doca;
+  }
+
 private:
   // Each cell contains a weight, a gradient, two hits which it connects
   // and a list of cells that it connects to or from
