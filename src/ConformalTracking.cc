@@ -1853,10 +1853,12 @@ void ConformalTracking::getLowestChi2(std::vector<KDTrack*>& finalTracks, std::v
   // Get the lowest chi2/ndof value from the given tracks
   //  double lowestChi2ndof = *std::min_element(trackChi2ndofs.begin(),trackChi2ndofs.end());
   KDTrack* lowestChi2ndofTrack = trackContainer[0];
-  double   lowestChi2ndof      = lowestChi2ndofTrack->chi2ndof();
+  double   lowestChi2ndof      = lowestChi2ndofTrack->chi2ndof() * lowestChi2ndofTrack->chi2ndof() +
+                          lowestChi2ndofTrack->chi2ndofZS() * lowestChi2ndofTrack->chi2ndofZS();
 
   for (unsigned int itTrack = 0; itTrack < trackContainer.size(); itTrack++) {
-    if (trackContainer[itTrack]->chi2ndof() < lowestChi2ndof) {
+    if ((trackContainer[itTrack]->chi2ndof() * trackContainer[itTrack]->chi2ndof() +
+         trackContainer[itTrack]->chi2ndofZS() * trackContainer[itTrack]->chi2ndofZS()) < lowestChi2ndof) {
       lowestChi2ndof      = trackContainer[itTrack]->chi2ndof();
       lowestChi2ndofTrack = trackContainer[itTrack];
     }
