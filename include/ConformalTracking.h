@@ -127,6 +127,7 @@ protected:
 
   // Histograms
   TH1F* m_cellAngle;
+  TH1F* m_cellDOCA;
   TH2F* m_cellAngleRadius;
   TH2F* m_cellLengthRadius;
   TH2F* m_cellAngleLength;
@@ -146,6 +147,7 @@ protected:
   TH2F* m_conformalChi2SzVertexRMC;
 
   TH1F* m_cellAngleMC;
+  TH1F* m_cellDOCAMC;
   TH1F* m_cellAngleRZMC;
   TH2F* m_cellAngleRadiusMC;
   TH2F* m_cellLengthRadiusMC;

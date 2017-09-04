@@ -169,6 +169,7 @@ void ConformalTracking::init() {
 
     // Histograms for tuning parameters (cell angle cut, cell length cut)
     m_cellAngle           = new TH1F("cellAngle", "cellAngle", 1250, 0, 0.05);
+    m_cellDOCA            = new TH1F("cellDOCA", "cellDOCA", 100., 0, 0.1);
     m_cellAngleRadius     = new TH2F("cellAngleRadius", "cellAngleRadius", 400, 0, 0.04, 1000, 0, 0.04);
     m_cellLengthRadius    = new TH2F("cellLengthRadius", "cellLengthRadius", 300, 0, 0.03, 1000, 0, 0.04);
     m_cellAngleLength     = new TH2F("cellAngleLength", "cellAngleLength", 400, 0, 0.04, 300, 0, 0.03);
@@ -187,6 +188,7 @@ void ConformalTracking::init() {
         new TH2F("conformalChi2SzVertexRMC", "conformalChi2SzVertexRMC", 1000, 0, 1000, 100, 0, 100);
 
     m_cellAngleMC        = new TH1F("cellAngleMC", "cellAngleMC", 1250, 0, 0.05);
+    m_cellDOCAMC         = new TH1F("cellDOCAMC", "cellDOCAMC", 100., 0, 0.1);
     m_cellAngleRadiusMC  = new TH2F("cellAngleRadiusMC", "cellAngleRadiusMC", 400, 0, 0.04, 1000, 0, 0.04);
     m_cellLengthRadiusMC = new TH2F("cellLengthRadiusMC", "cellLengthRadiusMC", 300, 0, 0.03, 1000, 0, 0.04);
     m_cellAngleLengthMC  = new TH2F("cellAngleLengthMC", "cellAngleLengthMC", 400, 0, 0.04, 300, 0, 0.03);
@@ -422,6 +424,9 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         cell->setWeight(itHit);
         Cell* cell1 = new Cell(cluster1, cluster2);
         cell1->setWeight(itHit + 1);
+
+        if (itHit == 0)
+          m_cellDOCAMC->Fill(cell->doca());
 
         // Fill the debug/tuning plots
         double angleBetweenCells   = cell->getAngle(cell1);
@@ -1035,15 +1040,24 @@ void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, s
 
       // Create the new seed cell
       Cell* cell = new Cell(kdhit, nhit);
+
+      if (cell->doca() > 0.01) {
+        delete cell;
+        continue;
+      }
+
       cells.push_back(cell);
       if (debugSeed && kdhit == debugSeed)
         streamlog_out(DEBUG7) << "- made cell with neighbour " << neighbour << " at " << nhit->getU() << "," << nhit->getV()
                               << std::endl;
 
       // Debug plotting
-      if (m_debugPlots && m_eventNumber == 0) {
-        m_canvConformalEventDisplayAllCells->cd();
-        drawline(kdhit, nhit, 1);
+      if (m_debugPlots) {
+        m_cellDOCA->Fill(cell->doca());
+        if (m_eventNumber == 0) {
+          m_canvConformalEventDisplayAllCells->cd();
+          drawline(kdhit, nhit, 1);
+        }
       }
     }
 
