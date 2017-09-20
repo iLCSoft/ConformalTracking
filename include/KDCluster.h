@@ -177,30 +177,30 @@ public:
 private:
   // Each hit contains the conformal co-ordinates in cartesian
   // and polar notation, plus the subdetector information
-  double m_x;
-  double m_y;
-  double m_u;
-  double m_v;
-  double m_r;
-  double m_radius;  // "real" radius in xy
-  double m_z;
-  double m_s;
-  double m_error;
-  double m_errorX;
-  double m_errorY;
-  double m_errorU;
-  double m_errorV;
-  double m_errorZ;
-  double m_errorS;
-  double m_theta;
-  int    m_subdet;
-  int    m_side;
-  int    m_layer;
-  bool   m_removed;
-  bool   m_endcap;
-  bool   m_used;
-  double m_deltaChi2;
-  bool   m_forward;
+  double m_x         = 0.0;
+  double m_y         = 0.0;
+  double m_u         = 0.0;
+  double m_v         = 0.0;
+  double m_r         = 0.0;
+  double m_radius    = 0.0;  // "real" radius in xy
+  double m_z         = 0.0;
+  double m_s         = 0.0;
+  double m_error     = 0.0;
+  double m_errorX    = 0.0;
+  double m_errorY    = 0.0;
+  double m_errorU    = 0.0;
+  double m_errorV    = 0.0;
+  double m_errorZ    = 0.0;
+  double m_errorS    = 0.0;
+  double m_theta     = 0.0;
+  int    m_subdet    = 0;
+  int    m_side      = 0;
+  int    m_layer     = 0;
+  double m_deltaChi2 = 0.0;
+  bool   m_removed   = false;
+  bool   m_used      = false;
+  bool   m_endcap    = false;
+  bool   m_forward   = false;
 };
 
 // Vector of kd clusters
