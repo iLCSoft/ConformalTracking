@@ -388,7 +388,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       std::sort(trackHits.begin(), trackHits.end(), sort_by_radiusKD);
 
       // Make a track
-      KDTrack* mcTrack = new KDTrack();
+      auto mcTrack = std::unique_ptr<KDTrack>(new KDTrack());
       // Loop over all hits for debugging
       for (size_t itHit = 0; itHit < trackHits.size(); itHit++) {
         // Get the conformal clusters
@@ -409,7 +409,6 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       double mcVertexR = sqrt(pow(mcVertexX, 2) + pow(mcVertexY, 2));
       m_conformalChi2VertexRMC->Fill(mcTrack->chi2ndof(), mcVertexR);
       m_conformalChi2SzVertexRMC->Fill(mcTrack->chi2ndofZS(), mcVertexR);
-      delete mcTrack;
 
       // Now loop over the hits and make cells - filling histograms along the way
       int nHits = trackHits.size();
