@@ -1635,10 +1635,9 @@ void ConformalTracking::extendHighPT(std::vector<KDTrack*>& conformalTracks, std
       cellularTrack*     extension = extensions[itTrack];
       vector<KDCluster*> hits      = track->clusters();
 
-      int cells = extension->size();
-      if (cells < 2)
+      if (extension->size() < 2)
         continue;
-      //hits.push_back((*extension)[cells-1]->getEnd());
+      //hits.push_back((*extension)[extension->size()-1]->getEnd());
       for (int cell = (extension->size() - 2); cell >= 0; cell--) {
         //hits.push_back((*extension)[cell]->getStart());
         hits.push_back((*extension)[cell]->getEnd());
