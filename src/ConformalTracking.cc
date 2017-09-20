@@ -1377,11 +1377,6 @@ void ConformalTracking::extendTracks(std::vector<KDTrack*>& conformalTracks, std
           (conformalTracks[currentTrack]->m_clusters[nclusters - 1]->getZ() < 0. && kdhit->getZ() > 0.))
         continue;
 
-      // Don't pick up hits in the opposite side of the detector
-      if ((conformalTracks[currentTrack]->m_clusters[nclusters - 1]->getZ() > 0. && kdhit->getZ() < 0.) ||
-          (conformalTracks[currentTrack]->m_clusters[nclusters - 1]->getZ() < 0. && kdhit->getZ() > 0.))
-        continue;
-
       // First check that the hit is not wildly away from the track (make cell and check angle)
       //        Cell* extensionCell = new Cell(conformalTracks[currentTrack]->m_clusters[0],results2[newHit]);
       Cell*  extensionCell = new Cell(conformalTracks[currentTrack]->m_clusters[nclusters - 1], kdhit);
