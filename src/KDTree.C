@@ -122,7 +122,7 @@ void KDTree::transformResults(KDTreeResultVector& vec, VecCluster& result) {
 
   KDTreeResultVector::const_iterator       iter = vec.begin();
   const KDTreeResultVector::const_iterator end  = vec.end();
-  const VecCluster::const_iterator         end2 = det.end();
+  //const VecCluster::const_iterator         end2 = det.end();
 
   KDCluster* res;
 
@@ -160,7 +160,7 @@ void KDTree::transformThetaResults(KDTreeResultVector& vec, VecCluster& result) 
 
   KDTreeResultVector::const_iterator       iter = vec.begin();
   const KDTreeResultVector::const_iterator end  = vec.end();
-  const VecCluster::const_iterator         end2 = det.end();
+  //const VecCluster::const_iterator         end2 = det.end();
 
   KDCluster* res;
 
