@@ -955,8 +955,8 @@ void ConformalTracking::combineCollections(std::vector<KDCluster*>& kdClusters, 
   // Loop over all given collections
   for (unsigned int i = 0; i < combination.size(); i++) {
     // Copy the clusters to the output vector
-    std::vector<KDCluster*> clusters = collectionClusters[combination[i]];  //this makes a copy FIX ME
-    int                     nhits    = clusters.size();
+    const std::vector<KDCluster*>& clusters = collectionClusters[combination[i]];
+    int                            nhits    = clusters.size();
     for (int hit = 0; hit < nhits; hit++) {
       kdClusters.push_back(clusters[hit]);
     }
