@@ -493,7 +493,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   std::vector<KDTrack*>   conformalTracks;
   std::vector<KDCluster*> kdClusters;
   KDTree*                 nearestNeighbours = NULL;
-  TStopwatch*             stopwatch         = new TStopwatch();
+  auto                    stopwatch         = std::unique_ptr<TStopwatch>(new TStopwatch());
 
   // Build tracks in the vertex barrel
   m_highPTfit = true;
@@ -681,7 +681,6 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
   // Clean up
   delete nearestNeighbours;
-  delete stopwatch;
 
   // Now in principle have all conformal tracks, but due to how the check for clones is performed (ish) there is a possibility
   // that clones/fakes are still present. Try to remove them by looking at overlapping hits. Turned off at the moment
