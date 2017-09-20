@@ -79,18 +79,18 @@ public:
 
   void extendHighPT(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*, bool radialSearch = false);
 
-  void createTracksNew(std::vector<cellularTrack*>&, Cell*, std::map<Cell*, bool>&);
-  bool toBeUpdated(std::vector<cellularTrack*> const&);
+  void createTracksNew(UniqueCellularTracks&, Cell*, std::map<Cell*, bool>&);
+  bool toBeUpdated(UniqueCellularTracks const&);
   void updateCell(Cell*);
 
   // Track fitting
-  void getFittedTracks(std::vector<KDTrack*>&, std::vector<cellularTrack*>&, std::map<Cell*, bool>&);
+  void getFittedTracks(std::vector<KDTrack*>&, UniqueCellularTracks&, std::map<Cell*, bool>&);
   void getLowestChi2(std::vector<KDTrack*>&, std::vector<KDTrack*>);
 
   double fitWithoutPoint(KDTrack, int);
   int    overlappingHits(const KDTrack*, const KDTrack*);
 
-  void extendTrack(KDTrack*, std::vector<cellularTrack*>, std::map<KDCluster*, bool>&, std::map<Cell*, bool>&);
+  void extendTrack(KDTrack*, UniqueCellularTracks, std::map<KDCluster*, bool>&, std::map<Cell*, bool>&);
   //double fitWithPoint(KalmanTrack, KDCluster*);
   void fitWithPoint(KDTrack, KDCluster*, double&, double&);
 
@@ -101,7 +101,7 @@ public:
                    std::map<MCParticle*, std::vector<KDCluster*>>);
   int  getUniqueHits(std::vector<KDCluster*>);
   void checkReconstructionFailure(MCParticle*, std::map<MCParticle*, std::vector<KDCluster*>>, KDTree*);
-  void checkUnallowedTracks(std::vector<cellularTrack*>);
+  void checkUnallowedTracks(UniqueCellularTracks);
 
 protected:
   // Collection names for (in/out)put
