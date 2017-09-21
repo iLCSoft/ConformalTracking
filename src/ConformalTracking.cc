@@ -770,7 +770,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     std::sort(trackHits.begin(), trackHits.end(), sort_by_radius);
 
     // Now we can make the track object and relations object, and fit the track
-    TrackImpl* track = new TrackImpl;
+    auto track = std::unique_ptr<TrackImpl>(new TrackImpl);
 
     // First, for some reason there are 2 track objects, one which gets saved and one which is used for fitting. Don't ask...
     shared_ptr<MarlinTrk::IMarlinTrack> marlinTrack(trackFactory->createTrack());
@@ -784,14 +784,14 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     covMatrix[14] = (m_initialTrackError_tanL);   //sigma_tanl^2
 
     // Try to fit
-    int fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack.get(), trackHits, track, MarlinTrk::IMarlinTrack::forward,
-                                                       covMatrix, m_magneticField, m_maxChi2perHit);
+    int fitError =
+        MarlinTrk::createFinalisedLCIOTrack(marlinTrack.get(), trackHits, track.get(), MarlinTrk::IMarlinTrack::forward,
+                                            covMatrix, m_magneticField, m_maxChi2perHit);
 
     // Check track quality - if fit fails chi2 will be 0. For the moment add hits by hand to any track that fails the track fit, and store it as if it were ok...
     if (track->getChi2() == 0.) {
       streamlog_out(DEBUG7) << "Fit failed. Track has " << track->getTrackerHits().size() << " hits" << std::endl;
       streamlog_out(DEBUG7) << "Fit fail error " << fitError << std::endl;
-      delete track;
       continue;
     }  //*/
 
@@ -804,7 +804,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     track->subdetectorHitNumbers()[2 * lcio::ILDDetID::VXD - 2] = trackHits.size();
 
     // Push back to the output container
-    trackCollection->addElement(track);
+    trackCollection->addElement(track.release());
   }
 
   // calculate purities and check if tracks have been reconstructed
