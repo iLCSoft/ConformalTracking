@@ -8,7 +8,7 @@ KalmanTrack::KalmanTrack(KDTrack* seedTrack) {
   m_conformalTrack = seedTrack;
   m_rotated        = seedTrack->rotated();
   // Save a seed node to start the kalman filter from
-  KDCluster*                  seed     = seedTrack->m_clusters[0];
+  SKDCluster                  seed     = seedTrack->m_clusters[0];
   std::shared_ptr<KalmanNode> seedNode = std::make_shared<KalmanNode>(seed, m_rotated);
   seedNode->m_uFiltered                = seedNode->m_uMeasured;
   seedNode->m_vFiltered                = seedNode->m_uMeasured * seedTrack->gradient() + seedTrack->intercept();
@@ -28,7 +28,7 @@ KalmanTrack::KalmanTrack(KDTrack* seedTrack) {
 //}
 
 // Function to add a cluster to the track. Returns the delta chi2
-double KalmanTrack::addCluster(KDCluster* cluster) {
+double KalmanTrack::addCluster(SKDCluster cluster) {
   //  std::cout<<"adding cluster to kalman filter"<<std::endl;
   // Store the cluster and make a new node
   m_kalmanClusters.push_back(cluster);

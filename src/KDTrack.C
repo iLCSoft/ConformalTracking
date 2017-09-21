@@ -9,7 +9,7 @@ KDTrack::KDTrack()
 KDTrack::~KDTrack() {}
 
 // Sort kd hits from larger to smaller radius
-bool sort_by_radiusKDT(KDCluster* hit1, KDCluster* hit2) {
+bool sort_by_radiusKDT(SKDCluster const& hit1, SKDCluster const& hit2) {
   double radius1 = hit1->getR();
   double radius2 = hit2->getR();
   return (radius1 > radius2);

@@ -32,16 +32,16 @@ public:
   std::vector<LCRelationNavigator*> m_relations{};                   // relations from tracker hits to MCP
   std::vector<LCCollection*>        m_trackerHitCollections{};       // tracker hits
 
-  std::map<int, std::vector<KDCluster*>>         m_kdClusters{};    // list of kd clusters
-  std::map<KDCluster*, TrackerHitPlane*>         m_kdClusterMap{};  // their link to "real" hits
-  std::map<KDCluster*, MCParticle*>              m_kdParticles{};   // link from conformal hit to MC particle
-  std::map<MCParticle*, std::vector<KDCluster*>> m_particleHits{};  // list of conformal hits on each MC particle
+  std::map<int, SharedKDClusters>         m_kdClusters{};    // list of kd clusters
+  std::map<SKDCluster, TrackerHitPlane*>  m_kdClusterMap{};  // their link to "real" hits
+  std::map<SKDCluster, MCParticle*>       m_kdParticles{};   // link from conformal hit to MC particle
+  std::map<MCParticle*, SharedKDClusters> m_particleHits{};  // list of conformal hits on each MC particle
 
   //--- Set member variables
   void setMCParticles(LCCollection* particleCollection) { m_particleCollection = particleCollection; }
   void setRelations(std::vector<LCRelationNavigator*> relations) { m_relations = relations; }
   void setTrackerHits(std::vector<LCCollection*> trackerHitCollections) { m_trackerHitCollections = trackerHitCollections; }
-  void setKDClusters(int collection, std::vector<KDCluster*> clusters) { m_kdClusters[collection] = clusters; }
+  void setKDClusters(int collection, SharedKDClusters clusters) { m_kdClusters[collection] = clusters; }
 
   //--- Clear all member variables
   void clear() {
@@ -55,7 +55,7 @@ public:
   }
 
   //--- Register a tracker hit and its kd hit
-  void registerHit(int collection, KDCluster* kdHit, TrackerHitPlane* hit) {
+  void registerHit(int collection, SKDCluster kdHit, TrackerHitPlane* hit) {
     // Store the link between the kdhit and tracker hit
     m_kdClusterMap[kdHit] = hit;
 
@@ -83,12 +83,12 @@ public:
     double nHits = 0.;
 
     // Get the clusters from this track
-    std::vector<KDCluster*> clusters = track->m_clusters;
+    SharedKDClusters clusters = track->m_clusters;
 
     // Loop over all hits and see which particle they are associated to
     for (size_t itCluster = 0; itCluster < clusters.size(); itCluster++) {
       // Get the hit
-      KDCluster* cluster = clusters[itCluster];
+      SKDCluster cluster = clusters[itCluster];
       nHits++;
 
       // If we already have hits on this particle, then just increment the counter
@@ -116,14 +116,14 @@ public:
   }
 
   //--- Check if a hit is associated to the given MC particle
-  bool isAssociated(KDCluster* kdHit, MCParticle* particle) {
+  bool isAssociated(SKDCluster const& kdHit, MCParticle* particle) {
     if (std::find(m_particleHits[particle].begin(), m_particleHits[particle].end(), kdHit) != m_particleHits[particle].end())
       return true;
     else
       return false;
   }
 
-  std::vector<KDCluster*> getAssociatedHits(MCParticle* particle) { return m_particleHits[particle]; }
+  SharedKDClusters getAssociatedHits(MCParticle* particle) { return m_particleHits[particle]; }
 };
 
 #endif
