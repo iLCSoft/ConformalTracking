@@ -73,31 +73,31 @@ public:
   void       extendSeedCells(SharedCells&, KDTree*, bool, const std::vector<KDCluster*>&);
 
   // Track finding
-  void buildNewTracks(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*, bool radialSearch = false);
-  void extendTracks(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*);
+  void buildNewTracks(UniqueKDTracks&, std::vector<KDCluster*>&, KDTree*, bool radialSearch = false);
+  void extendTracks(UniqueKDTracks&, std::vector<KDCluster*>&, KDTree*);
   void combineCollections(std::vector<KDCluster*>&, KDTree*&, std::vector<int>, std::map<int, std::vector<KDCluster*>>);
 
-  void extendHighPT(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*, bool radialSearch = false);
+  void extendHighPT(UniqueKDTracks&, std::vector<KDCluster*>&, KDTree*, bool radialSearch = false);
 
   void createTracksNew(UniqueCellularTracks&, Cell::SCell, std::map<Cell*, bool>&);
   bool toBeUpdated(UniqueCellularTracks const&);
   void updateCell(Cell::SCell);
 
   // Track fitting
-  void getFittedTracks(std::vector<KDTrack*>&, UniqueCellularTracks&, std::map<Cell*, bool>&);
-  void getLowestChi2(std::vector<KDTrack*>&, std::vector<KDTrack*>);
+  void getFittedTracks(UniqueKDTracks&, UniqueCellularTracks&, std::map<Cell*, bool>&);
+  void getLowestChi2(UniqueKDTracks&, UniqueKDTracks&);
 
   double fitWithoutPoint(KDTrack, int);
-  int    overlappingHits(const KDTrack*, const KDTrack*);
+  int    overlappingHits(const UKDTrack&, const UKDTrack&);
 
-  void extendTrack(KDTrack*, UniqueCellularTracks, std::map<KDCluster*, bool>&, std::map<Cell*, bool>&);
+  void extendTrack(UKDTrack&, UniqueCellularTracks, std::map<KDCluster*, bool>&, std::map<Cell*, bool>&);
   //double fitWithPoint(KalmanTrack, KDCluster*);
   void fitWithPoint(KDTrack, KDCluster*, double&, double&);
 
   double fitWithExtension(KDTrack, std::vector<KDCluster*>, double&, double&);
 
   // MC truth debug
-  double checkReal(KDTrack*, std::map<KDCluster*, MCParticle*>, std::map<MCParticle*, bool>&,
+  double checkReal(UKDTrack&, std::map<KDCluster*, MCParticle*>, std::map<MCParticle*, bool>&,
                    std::map<MCParticle*, std::vector<KDCluster*>>);
   int  getUniqueHits(std::vector<KDCluster*>);
   void checkReconstructionFailure(MCParticle*, std::map<MCParticle*, std::vector<KDCluster*>>, KDTree*);
@@ -233,8 +233,8 @@ bool sort_by_cellWeight(Cell::SCell cell1, Cell::SCell cell2) {
 }
 
 // Sort kdtracks from longest to shortest
-bool sort_by_length(KDTrack* track1, KDTrack* track2) { return (track1->m_clusters.size() > track2->m_clusters.size()); }
+bool sort_by_length(UKDTrack& track1, UKDTrack& track2) { return (track1->m_clusters.size() > track2->m_clusters.size()); }
 
 // Sort kdtracks from lowest to highest pt
-bool sort_by_pt(KDTrack* track1, KDTrack* track2) { return (track1->pt() > track2->pt()); }
+bool sort_by_pt(UKDTrack& track1, UKDTrack& track2) { return (track1->pt() > track2->pt()); }
 #endif

@@ -76,7 +76,7 @@ public:
   }
 
   //--- Get the particle that corresponds to the largest number of hits on this track
-  MCParticle* getAssociatedParticle(KDTrack* track) {
+  MCParticle* getAssociatedParticle(UKDTrack& track) {
     // Temporarily store all mcparticles associated to this track
     std::vector<MCParticle*> particles;
     std::map<MCParticle*, double> particleHits;

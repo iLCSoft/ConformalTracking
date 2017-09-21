@@ -98,4 +98,7 @@ public:
 private:
 };
 
+typedef std::vector<std::unique_ptr<KDTrack>> UniqueKDTracks;
+typedef std::unique_ptr<KDTrack>              UKDTrack;
+
 #endif
