@@ -64,20 +64,20 @@ public:
   void getCollection(LCCollection*&, std::string, LCEvent*);
 
   // Plotting function for displaying cells
-  void drawline(KDCluster*, KDCluster*, int, int style = 1);
+  void drawline(SKDCluster const&, SKDCluster const&, int, int style = 1);
 
   // Pattern recognition algorithms:
 
   // Cell creation
-  KDCluster* extrapolateCell(Cell::SCell, double);
-  void       extendSeedCells(SharedCells&, KDTree*, bool, const std::vector<KDCluster*>&);
+  SKDCluster extrapolateCell(Cell::SCell, double);
+  void       extendSeedCells(SharedCells&, KDTree*, bool, const SharedKDClusters&);
 
   // Track finding
-  void buildNewTracks(UniqueKDTracks&, std::vector<KDCluster*>&, KDTree*, bool radialSearch = false);
-  void extendTracks(UniqueKDTracks&, std::vector<KDCluster*>&, KDTree*);
-  void combineCollections(std::vector<KDCluster*>&, KDTree*&, std::vector<int>, std::map<int, std::vector<KDCluster*>>);
+  void buildNewTracks(UniqueKDTracks&, SharedKDClusters&, KDTree*, bool radialSearch = false);
+  void extendTracks(UniqueKDTracks&, SharedKDClusters&, KDTree*);
+  void combineCollections(SharedKDClusters&, KDTree*&, std::vector<int>, std::map<int, SharedKDClusters>);
 
-  void extendHighPT(UniqueKDTracks&, std::vector<KDCluster*>&, KDTree*, bool radialSearch = false);
+  void extendHighPT(UniqueKDTracks&, SharedKDClusters&, KDTree*, bool radialSearch = false);
 
   void createTracksNew(UniqueCellularTracks&, Cell::SCell, std::map<Cell*, bool>&);
   bool toBeUpdated(UniqueCellularTracks const&);
@@ -90,17 +90,17 @@ public:
   double fitWithoutPoint(KDTrack, int);
   int    overlappingHits(const UKDTrack&, const UKDTrack&);
 
-  void extendTrack(UKDTrack&, UniqueCellularTracks, std::map<KDCluster*, bool>&, std::map<Cell*, bool>&);
+  void extendTrack(UKDTrack&, UniqueCellularTracks, std::map<SKDCluster, bool>&, std::map<Cell*, bool>&);
   //double fitWithPoint(KalmanTrack, KDCluster*);
-  void fitWithPoint(KDTrack, KDCluster*, double&, double&);
+  void fitWithPoint(KDTrack, SKDCluster&, double&, double&);
 
-  double fitWithExtension(KDTrack, std::vector<KDCluster*>, double&, double&);
+  double fitWithExtension(KDTrack, SharedKDClusters, double&, double&);
 
   // MC truth debug
-  double checkReal(UKDTrack&, std::map<KDCluster*, MCParticle*>, std::map<MCParticle*, bool>&,
-                   std::map<MCParticle*, std::vector<KDCluster*>>);
-  int  getUniqueHits(std::vector<KDCluster*>);
-  void checkReconstructionFailure(MCParticle*, std::map<MCParticle*, std::vector<KDCluster*>>, KDTree*);
+  double checkReal(UKDTrack&, std::map<SKDCluster, MCParticle*>, std::map<MCParticle*, bool>&,
+                   std::map<MCParticle*, SharedKDClusters>);
+  int  getUniqueHits(SharedKDClusters);
+  void checkReconstructionFailure(MCParticle*, std::map<MCParticle*, SharedKDClusters>, KDTree*);
   void checkUnallowedTracks(UniqueCellularTracks);
 
 protected:
@@ -181,7 +181,7 @@ protected:
   int               m_minClustersOnTrack = 0;
   bool              m_debugPlots         = false;
   double            m_purity             = 0.0;
-  KDCluster*        debugSeed            = nullptr;
+  SKDCluster        debugSeed            = nullptr;
   ConformalDebugger m_debugger{};
   bool              m_highPTfit = false;
 };
@@ -200,21 +200,21 @@ bool sort_by_radius(EVENT::TrackerHit* hit1, EVENT::TrackerHit* hit2) {
 }
 
 // Sort kd hits from larger to smaller radius
-bool sort_by_radiusKD(KDCluster* hit1, KDCluster* hit2) {
+bool sort_by_radiusKD(SKDCluster const& hit1, SKDCluster const& hit2) {
   double radius1 = hit1->getR();
   double radius2 = hit2->getR();
   return (radius1 > radius2);
 }
 
 // Sort kd hits from smaller to larger radius
-bool sort_by_lower_radiusKD(KDCluster* hit1, KDCluster* hit2) {
+bool sort_by_lower_radiusKD(const SKDCluster hit1, SKDCluster const& hit2) {
   double radius1 = hit1->getR();
   double radius2 = hit2->getR();
   return (radius1 < radius2);
 }
 
 // Sort kdhits by lower to higher layer number
-bool sort_by_layer(KDCluster* hit1, KDCluster* hit2) {
+bool sort_by_layer(SKDCluster const& hit1, SKDCluster const& hit2) {
   if (hit1->getSubdetector() != hit2->getSubdetector())
     return (hit1->getSubdetector() < hit2->getSubdetector());
   else if (hit1->getLayer() != hit2->getLayer())

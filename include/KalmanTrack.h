@@ -15,7 +15,7 @@ class KalmanNode {
 public:
   // Constructor
   KalmanNode(){};
-  KalmanNode(KDCluster* measurement, bool rotated) {
+  KalmanNode(SKDCluster measurement, bool rotated) {
     if (!rotated) {
       m_uMeasured     = measurement->getU();
       m_vMeasured     = measurement->getV();
@@ -74,11 +74,11 @@ public:
   ~KalmanTrack() = default;
 
   // Functions
-  double addCluster(KDCluster*);  // returns delta chi2 for adding this cluster
+  double addCluster(SKDCluster);  // returns delta chi2 for adding this cluster
 
   // Member variables
-  KDTrack*                m_conformalTrack = nullptr;  // The parent conformal track
-  std::vector<KDCluster*> m_kalmanClusters{};          // The additional clusters to which the kalman filter is applied
+  KDTrack*         m_conformalTrack = nullptr;  // The parent conformal track
+  SharedKDClusters m_kalmanClusters{};          // The additional clusters to which the kalman filter is applied
   std::vector<std::shared_ptr<KalmanNode>> m_nodes{};
   double                                   m_moliere = 0.0;  // Multiple scattering angle
   double                                   m_theta   = 0.0;  // Polar angle of the parent KDTrack

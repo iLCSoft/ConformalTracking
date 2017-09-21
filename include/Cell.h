@@ -32,7 +32,7 @@ public:
   Cell(const Cell&) = delete;
   Cell& operator=(const Cell&) = delete;
 
-  Cell(KDCluster* hit1, KDCluster* hit2)
+  Cell(SKDCluster const& hit1, SKDCluster const& hit2)
       : m_weight(0),
         m_gradient((hit2->getV() - hit1->getV()) / (hit2->getU() - hit1->getU())),
         m_gradientRZ((hit2->getRadius() - hit1->getRadius()) / (hit2->getZ() - hit1->getZ())),
@@ -62,8 +62,8 @@ public:
   }
 
   // Start and end points of the cell
-  KDCluster* getStart() const { return m_start; }
-  KDCluster* getEnd()  const { return m_end; }
+  SKDCluster getStart() const { return m_start; }
+  SKDCluster getEnd() const { return m_end; }
 
   // Increment the cell weight (usually if the chain length is extended upstream of this cell)
   void update(SCell const& cell2) {
@@ -95,8 +95,8 @@ private:
   int              m_weight     = 0;
   double           m_gradient   = 0.0;
   double           m_gradientRZ = 0.0;
-  KDCluster*       m_start      = nullptr;
-  KDCluster*       m_end        = nullptr;
+  SKDCluster       m_start      = nullptr;
+  SKDCluster       m_end        = nullptr;
   WeakCells        m_from{};
   std::vector<int> m_weights{};
   WeakCells        m_to{};

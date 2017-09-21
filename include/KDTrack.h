@@ -23,11 +23,11 @@ public:
   KDTrack& operator=(const KDTrack&) = delete;
 
   //--- Functions to add and remove clusters
-  void add(KDCluster* cluster) {
+  void add(SKDCluster cluster) {
     m_clusters.push_back(cluster);
     m_nPoints++;
   }
-  void insert(KDCluster* cluster) {
+  void insert(SKDCluster cluster) {
     m_clusters.insert(m_clusters.begin(), cluster);
     m_nPoints++;
   }
@@ -61,9 +61,9 @@ public:
   double chi2ndofZS() { return m_chi2ndofZS; }
 
   // Clusters and kalman track pointer
-  int                     nPoints() { return m_nPoints; }
-  std::vector<KDCluster*> clusters() { return m_clusters; }
-  KalmanTrack*            kalmanTrack() { return m_kalmanTrack; }
+  int              nPoints() { return m_nPoints; }
+  SharedKDClusters clusters() { return m_clusters; }
+  KalmanTrack*     kalmanTrack() { return m_kalmanTrack; }
   void setKalmanTrack(KalmanTrack* track) { m_kalmanTrack = track; }
 
   double pt() { return m_pT; }
@@ -90,10 +90,10 @@ public:
   bool   fillFit       = false;
 
   // Clusters and kalman track pointer
-  int                     m_nPoints = 0;
-  double                  m_pT      = 0.0;
-  std::vector<KDCluster*> m_clusters{};
-  KalmanTrack*            m_kalmanTrack = nullptr;
+  int              m_nPoints = 0;
+  double           m_pT      = 0.0;
+  SharedKDClusters m_clusters{};
+  KalmanTrack*     m_kalmanTrack = nullptr;
 
 private:
 };

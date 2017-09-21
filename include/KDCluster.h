@@ -124,25 +124,25 @@ public:
   virtual ~KDCluster() {}
 
   // Calls to get co-ordinates
-  double getX() { return m_x; }
-  double getY() { return m_y; }
-  double getU() { return m_u; }
-  double getV() { return m_v; }
-  double getR() { return m_r; }
-  double getRadius() { return m_radius; }  // "real" radius in xy
-  double getTheta() { return m_theta; }
-  double getZ() { return m_z; }
-  double getS() { return m_s; }
-  double getError() { return m_error; }
-  double getErrorX() { return m_errorX; }
-  double getErrorY() { return m_errorY; }
-  double getErrorU() { return m_errorU; }
-  double getErrorV() { return m_errorV; }
-  double getErrorZ() { return m_errorZ; }
-  double getErrorS() { return m_errorS; }
-  double getDeltaChi2() { return m_deltaChi2; }
-  bool   removed() { return m_removed; }
-  bool   used() { return m_used; }
+  double getX() const { return m_x; }
+  double getY() const { return m_y; }
+  double getU() const { return m_u; }
+  double getV() const { return m_v; }
+  double getR() const { return m_r; }
+  double getRadius() const { return m_radius; }  // "real" radius in xy
+  double getTheta() const { return m_theta; }
+  double getZ() const { return m_z; }
+  double getS() const { return m_s; }
+  double getError() const { return m_error; }
+  double getErrorX() const { return m_errorX; }
+  double getErrorY() const { return m_errorY; }
+  double getErrorU() const { return m_errorU; }
+  double getErrorV() const { return m_errorV; }
+  double getErrorZ() const { return m_errorZ; }
+  double getErrorS() const { return m_errorS; }
+  double getDeltaChi2() const { return m_deltaChi2; }
+  bool   removed() const { return m_removed; }
+  bool   used() const { return m_used; }
 
   // Manually set co-ordinates
   void setU(double u) { m_u = u; }
@@ -162,13 +162,13 @@ public:
     m_side   = side;
     m_layer  = layer;
   }
-  int  getSubdetector() { return m_subdet; }
-  int  getSide() { return m_side; }
-  int  getLayer() { return m_layer; }
-  bool forward() { return m_forward; }
+  int  getSubdetector() const { return m_subdet; }
+  int  getSide() const { return m_side; }
+  int  getLayer() const { return m_layer; }
+  bool forward() const { return m_forward; }
 
   // Check if another hit is on the same detecting layer
-  bool sameLayer(KDCluster* kdhit) {
+  bool sameLayer(std::shared_ptr<KDCluster> const& kdhit) const {
     if (kdhit->getSubdetector() == m_subdet && kdhit->getSide() == m_side && kdhit->getLayer() == m_layer)
       return true;
     return false;
@@ -206,4 +206,6 @@ private:
 // Vector of kd clusters
 //typedef std::vector<KDCluster*> KDTrack;
 
+typedef std::shared_ptr<KDCluster> SKDCluster;
+typedef std::vector<SKDCluster>    SharedKDClusters;
 #endif

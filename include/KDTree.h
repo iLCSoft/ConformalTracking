@@ -31,35 +31,35 @@
 // Where N is the number of nearest neighbours to be returned
 
 // Define some typedefs for use later
-typedef std::vector<KDCluster*> VecCluster;
+typedef std::vector<SKDCluster> VecCluster;
 
 // build the class
 class KDTree {
 public:
   typedef kdtree2::KDTreeResultVector KDTreeResultVector;
 
-  explicit KDTree(const VecCluster& pts, double overlapTheta);
+  explicit KDTree(const SharedKDClusters& pts, double overlapTheta);
   ~KDTree();
 
   KDTree(const KDTree&) = delete;
   KDTree& operator=(const KDTree&) = delete;
 
-  void nearestNeighbours(KDCluster* pt, int N, VecCluster& result);
-  void allNeighboursInRadius(KDCluster* pt, const double radius, VecCluster& result);
-  void allNeighboursInTheta(KDCluster* pt, const double thetaRange, VecCluster& result);
-  void allNeighboursInTheta(double theta, const double thetaRange, VecCluster& result);
+  void nearestNeighbours(SKDCluster pt, int N, SharedKDClusters& result);
+  void allNeighboursInRadius(SKDCluster pt, const double radius, SharedKDClusters& result);
+  void allNeighboursInTheta(SKDCluster pt, const double thetaRange, SharedKDClusters& result);
+  void allNeighboursInTheta(double theta, const double thetaRange, SharedKDClusters& result);
 
 private:
-  void transformResults(KDTreeResultVector& vec, VecCluster& result);
-  void transformThetaResults(KDTreeResultVector& vec, VecCluster& result);
+  void transformResults(KDTreeResultVector& vec, SharedKDClusters& result);
+  void transformThetaResults(KDTreeResultVector& vec, SharedKDClusters& result);
 
   static const int k;
   boost::multi_array<double, 2> array{};
   boost::multi_array<double, 2> arrayTheta{};
   kdtree2::KDTree* tree      = nullptr;
   kdtree2::KDTree* treeTheta = nullptr;
-  VecCluster       det{};
-  std::map<double, KDCluster*> thetaLookup{};
+  SharedKDClusters det{};
+  std::map<double, SKDCluster> thetaLookup{};
 };
 
 bool distComparator(const kdtree2::KDTreeResult& a, const kdtree2::KDTreeResult& b);
