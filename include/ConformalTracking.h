@@ -69,8 +69,8 @@ public:
   // Pattern recognition algorithms:
 
   // Cell creation
-  KDCluster* extrapolateCell(Cell*, double);
-  void       extendSeedCells(std::vector<Cell*>&, KDTree*, bool, const std::vector<KDCluster*>&);
+  KDCluster* extrapolateCell(Cell::SCell, double);
+  void       extendSeedCells(SharedCells&, KDTree*, bool, const std::vector<KDCluster*>&);
 
   // Track finding
   void buildNewTracks(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*, bool radialSearch = false);
@@ -79,9 +79,9 @@ public:
 
   void extendHighPT(std::vector<KDTrack*>&, std::vector<KDCluster*>&, KDTree*, bool radialSearch = false);
 
-  void createTracksNew(UniqueCellularTracks&, Cell*, std::map<Cell*, bool>&);
+  void createTracksNew(UniqueCellularTracks&, Cell::SCell, std::map<Cell*, bool>&);
   bool toBeUpdated(UniqueCellularTracks const&);
-  void updateCell(Cell*);
+  void updateCell(Cell::SCell);
 
   // Track fitting
   void getFittedTracks(std::vector<KDTrack*>&, UniqueCellularTracks&, std::map<Cell*, bool>&);
@@ -226,7 +226,7 @@ bool sort_by_layer(KDCluster* hit1, KDCluster* hit2) {
 }
 
 // Sort cells from higher to lower weight
-bool sort_by_cellWeight(Cell* cell1, Cell* cell2) {
+bool sort_by_cellWeight(Cell::SCell cell1, Cell::SCell cell2) {
   int weight1 = cell1->getWeight();
   int weight2 = cell2->getWeight();
   return (weight1 > weight2);
