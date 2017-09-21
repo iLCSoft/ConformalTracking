@@ -79,18 +79,18 @@ public:
 
   void extendHighPT(UniqueKDTracks&, SharedKDClusters&, KDTree*, bool radialSearch = false);
 
-  void createTracksNew(UniqueCellularTracks&, Cell::SCell, std::map<Cell*, bool>&);
+  void createTracksNew(UniqueCellularTracks&, Cell::SCell, std::map<Cell::SCell, bool>&);
   bool toBeUpdated(UniqueCellularTracks const&);
   void updateCell(Cell::SCell);
 
   // Track fitting
-  void getFittedTracks(UniqueKDTracks&, UniqueCellularTracks&, std::map<Cell*, bool>&);
+  void getFittedTracks(UniqueKDTracks&, UniqueCellularTracks&, std::map<Cell::SCell, bool>&);
   void getLowestChi2(UniqueKDTracks&, UniqueKDTracks&);
 
   double fitWithoutPoint(KDTrack, int);
   int    overlappingHits(const UKDTrack&, const UKDTrack&);
 
-  void extendTrack(UKDTrack&, UniqueCellularTracks, std::map<SKDCluster, bool>&, std::map<Cell*, bool>&);
+  void extendTrack(UKDTrack&, UniqueCellularTracks, std::map<SKDCluster, bool>&, std::map<Cell::SCell, bool>&);
   //double fitWithPoint(KalmanTrack, KDCluster*);
   void fitWithPoint(KDTrack, SKDCluster&, double&, double&);
 

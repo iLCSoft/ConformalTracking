@@ -103,7 +103,7 @@ private:
 };
 
 // Vector of cells
-typedef std::vector<Cell*>                 cellularTrack;
+typedef std::vector<Cell::SCell>           cellularTrack;
 typedef std::vector<std::shared_ptr<Cell>> SharedCells;
 
 typedef std::vector<std::unique_ptr<cellularTrack>> UniqueCellularTracks;
