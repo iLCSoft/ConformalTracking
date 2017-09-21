@@ -69,17 +69,17 @@ public:
   // Pattern recognition algorithms:
 
   // Cell creation
-  SKDCluster extrapolateCell(Cell::SCell, double);
+  SKDCluster extrapolateCell(Cell::SCell const&, double);
   void       extendSeedCells(SharedCells&, KDTree*, bool, const SharedKDClusters&);
 
   // Track finding
   void buildNewTracks(UniqueKDTracks&, SharedKDClusters&, KDTree*, bool radialSearch = false);
   void extendTracks(UniqueKDTracks&, SharedKDClusters&, KDTree*);
-  void combineCollections(SharedKDClusters&, KDTree*&, std::vector<int>, std::map<int, SharedKDClusters>);
+  void combineCollections(SharedKDClusters&, KDTree*&, std::vector<int> const&, std::map<int, SharedKDClusters> const&);
 
   void extendHighPT(UniqueKDTracks&, SharedKDClusters&, KDTree*, bool radialSearch = false);
 
-  void createTracksNew(UniqueCellularTracks&, Cell::SCell, std::map<Cell::SCell, bool>&);
+  void createTracksNew(UniqueCellularTracks&, Cell::SCell&, std::map<Cell::SCell, bool>&);
   bool toBeUpdated(UniqueCellularTracks const&);
   void updateCell(Cell::SCell);
 
@@ -207,7 +207,7 @@ bool sort_by_radiusKD(SKDCluster const& hit1, SKDCluster const& hit2) {
 }
 
 // Sort kd hits from smaller to larger radius
-bool sort_by_lower_radiusKD(const SKDCluster hit1, SKDCluster const& hit2) {
+bool sort_by_lower_radiusKD(SKDCluster const& hit1, SKDCluster const& hit2) {
   double radius1 = hit1->getR();
   double radius2 = hit2->getR();
   return (radius1 < radius2);
@@ -226,15 +226,17 @@ bool sort_by_layer(SKDCluster const& hit1, SKDCluster const& hit2) {
 }
 
 // Sort cells from higher to lower weight
-bool sort_by_cellWeight(Cell::SCell cell1, Cell::SCell cell2) {
+bool sort_by_cellWeight(Cell::SCell const& cell1, Cell::SCell const& cell2) {
   int weight1 = cell1->getWeight();
   int weight2 = cell2->getWeight();
   return (weight1 > weight2);
 }
 
 // Sort kdtracks from longest to shortest
-bool sort_by_length(UKDTrack& track1, UKDTrack& track2) { return (track1->m_clusters.size() > track2->m_clusters.size()); }
+bool sort_by_length(UKDTrack const& track1, UKDTrack const& track2) {
+  return (track1->m_clusters.size() > track2->m_clusters.size());
+}
 
 // Sort kdtracks from lowest to highest pt
-bool sort_by_pt(UKDTrack& track1, UKDTrack& track2) { return (track1->pt() > track2->pt()); }
+bool sort_by_pt(UKDTrack const& track1, UKDTrack const& track2) { return (track1->pt() > track2->pt()); }
 #endif

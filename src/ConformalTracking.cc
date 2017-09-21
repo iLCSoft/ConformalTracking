@@ -937,8 +937,8 @@ void ConformalTracking::end() {
 
 // Combine collections
 void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, KDTree*& nearestNeighbours,
-                                           std::vector<int> combination,
-                                           std::map<int, SharedKDClusters> collectionClusters) {
+                                           std::vector<int> const& combination,
+                                           std::map<int, SharedKDClusters> const& collectionClusters) {
   // Clear the input objects
   kdClusters.clear();
   if (nearestNeighbours != NULL)
@@ -947,7 +947,7 @@ void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, KDTree*
   // Loop over all given collections
   for (unsigned int i = 0; i < combination.size(); i++) {
     // Copy the clusters to the output vector
-    const SharedKDClusters& clusters = collectionClusters[combination[i]];
+    const SharedKDClusters& clusters = collectionClusters.at(combination[i]);
     int                     nhits    = clusters.size();
     for (int hit = 0; hit < nhits; hit++) {
       kdClusters.push_back(clusters[hit]);
@@ -1659,7 +1659,7 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
 
 // New test at creating cellular tracks. In this variant, don't worry about clones etc, give all possible routes back to the seed cell. Then cut
 // on number of clusters on each track, and pass back (good tracks to then be decided based on best chi2
-void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTracks, Cell::SCell seedCell,
+void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTracks, Cell::SCell& seedCell,
                                         std::map<Cell::SCell, bool>& /*usedCells*/) {
   // Final container to be returned
   UniqueCellularTracks cellularTracks;
@@ -1864,7 +1864,7 @@ void ConformalTracking::updateCell(Cell::SCell cell) {
 
 // Function to extrapolate along a cell in conformal space, producing a fake hit
 // a given distance away from the cell endpoint
-SKDCluster ConformalTracking::extrapolateCell(Cell::SCell cell, double distance) {
+SKDCluster ConformalTracking::extrapolateCell(Cell::SCell const& cell, double distance) {
   // Fake cluster to be returned
   SKDCluster extrapolatedCluster = std::make_shared<KDCluster>();
 
