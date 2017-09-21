@@ -419,9 +419,9 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         KDCluster* cluster2 = trackHits[itHit + 2];
 
         // Make the two cells connecting these three hits
-        Cell* cell = new Cell(cluster0, cluster1);
+        auto cell = std::make_shared<Cell>(cluster0, cluster1);
         cell->setWeight(itHit);
-        Cell* cell1 = new Cell(cluster1, cluster2);
+        auto cell1 = std::make_shared<Cell>(cluster1, cluster2);
         cell1->setWeight(itHit + 1);
 
         if (itHit == 0)
@@ -458,8 +458,6 @@ void ConformalTracking::processEvent(LCEvent* evt) {
             drawline(cluster1, cluster2, itHit + 2);
           }
         }
-        delete cell;
-        delete cell1;
       }
     }
   }
@@ -1013,7 +1011,7 @@ void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, s
     std::sort(results.begin(), results.end(), sort_by_radiusKD);
 
     // Objects to hold cells
-    std::vector<Cell*> cells;
+    SharedCells cells;
 
     // Make seed cells pointing inwards (conformal space)
     for (unsigned int neighbour = 0; neighbour < results.size(); neighbour++) {
@@ -1037,10 +1035,9 @@ void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, s
         continue;
 
       // Create the new seed cell
-      Cell* cell = new Cell(kdhit, nhit);
+      auto cell = std::make_shared<Cell>(kdhit, nhit);
 
       if (cell->doca() > 0.01) {
-        delete cell;
         continue;
       }
 
@@ -1096,7 +1093,7 @@ void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, s
       // Check if this cell has already been used
       if (debugSeed && kdhit == debugSeed)
         streamlog_out(DEBUG7) << "-- looking at cell " << itCell << std::endl;
-      if (usedCells.count(cells[itCell]))
+      if (usedCells.count(cells[itCell].get()))
         continue;
 
       // Check if this cell could produce a track (is on a long enough chain)
@@ -1149,9 +1146,6 @@ void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, s
     if (debugSeed && kdhit == debugSeed)
       streamlog_out(DEBUG7) << "== final number of candidate tracks to this seed hit: " << cellTracks.size() << std::endl;
     if (cellTracks.size() == 0) {
-      // Clean up
-      for (unsigned int itCell = 0; itCell < cells.size(); itCell++)
-        delete cells[itCell];
       continue;
     }
 
@@ -1262,10 +1256,6 @@ void ConformalTracking::buildNewTracks(std::vector<KDTrack*>& conformalTracks, s
       }
 
     }  // end for besttracks
-
-    // Clean up
-    for (unsigned int itCell = 0; itCell < cells.size(); itCell++)
-      delete cells[itCell];
   }
 }
 
@@ -1325,9 +1315,9 @@ void ConformalTracking::extendTracks(std::vector<KDTrack*>& conformalTracks, std
     }
 
     // Create a seed cell (connecting the first two hits in the track vector - those at smallest conformal radius)
-    int   nclusters = conformalTracks[currentTrack]->m_clusters.size();
-    Cell* seedCell  = new Cell(conformalTracks[currentTrack]->m_clusters[nclusters - 2],
-                              conformalTracks[currentTrack]->m_clusters[nclusters - 1]);
+    int  nclusters = conformalTracks[currentTrack]->m_clusters.size();
+    auto seedCell  = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[nclusters - 2],
+                                           conformalTracks[currentTrack]->m_clusters[nclusters - 1]);
 
     // Extrapolate along the cell and then make a 2D nearest neighbour search at this extrapolated point
     //double searchDistance = m_maxDistance;
@@ -1376,10 +1366,9 @@ void ConformalTracking::extendTracks(std::vector<KDTrack*>& conformalTracks, std
 
       // First check that the hit is not wildly away from the track (make cell and check angle)
       //        Cell* extensionCell = new Cell(conformalTracks[currentTrack]->m_clusters[0],results2[newHit]);
-      Cell*  extensionCell = new Cell(conformalTracks[currentTrack]->m_clusters[nclusters - 1], kdhit);
+      auto   extensionCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[nclusters - 1], kdhit);
       double cellAngle     = seedCell->getAngle(extensionCell);
       double cellAngleRZ   = seedCell->getAngleRZ(extensionCell);
-      delete extensionCell;
       if (cellAngle > 3. * m_maxCellAngle || cellAngleRZ > 3. * m_maxCellAngleRZ) {
         if (associated)
           streamlog_out(DEBUG7) << "-- killed by cell angle cut" << std::endl;
@@ -1429,20 +1418,18 @@ void ConformalTracking::extendTracks(std::vector<KDTrack*>& conformalTracks, std
       bestCluster = NULL;
     }
 
-    delete seedCell;
-
   }  // End of loop over tracks
 }
 
 // Extend seed cells
-void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, KDTree* nearestNeighbours, bool extendingTrack,
+void ConformalTracking::extendSeedCells(SharedCells& cells, KDTree* nearestNeighbours, bool extendingTrack,
                                         const std::vector<KDCluster*>& /*debugHits*/) {
   unsigned int nCells   = 0;
   int          depth    = 0;
   int          startPos = 0;
 
   // Keep track of existing cells in case there are branches in the track
-  std::map<KDCluster*, std::vector<Cell*>> existingCells;
+  std::map<KDCluster*, SharedCells> existingCells;
 
   // Try to create all "downstream" cells until no more can be added
   while (cells.size() != nCells) {
@@ -1511,7 +1498,7 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, KDTree* neare
         }
 
         // Make the new cell
-        Cell* cell = new Cell(hit, nhit);
+        auto cell = std::make_shared<Cell>(hit, nhit);
 
         // Check if the new cell is compatible with the previous cell (angle between the two is acceptable)
         //        if( cells[itCell]->getAngle(cell) > (m_maxCellAngle*exp(-0.001/nhit->getR())) ){
@@ -1522,7 +1509,6 @@ void ConformalTracking::extendSeedCells(std::vector<Cell*>& cells, KDTree* neare
           //            drawline(hit,nhit,cells[itCell]->getWeight()+2,3);
           //          }
 
-          delete cell;
           continue;
         }
 
@@ -1575,8 +1561,8 @@ void ConformalTracking::extendHighPT(std::vector<KDTrack*>& conformalTracks, std
     std::sort(track->m_clusters.begin(), track->m_clusters.end(), sort_by_radiusKD);
 
     // Make seed cell from first two hits
-    int   nclusters = track->m_clusters.size();
-    Cell* seedCell  = new Cell(track->m_clusters[nclusters - 2], track->m_clusters[nclusters - 1]);
+    int  nclusters = track->m_clusters.size();
+    auto seedCell  = std::make_shared<Cell>(track->m_clusters[nclusters - 2], track->m_clusters[nclusters - 1]);
 
     std::vector<KDCluster*> trackHits = track->m_clusters;
     for (size_t th = 0; th < trackHits.size(); th++) {
@@ -1586,7 +1572,7 @@ void ConformalTracking::extendHighPT(std::vector<KDTrack*>& conformalTracks, std
     }
 
     // Extend downstream
-    std::vector<Cell*> cells;
+    SharedCells cells;
     cells.push_back(seedCell);
     std::vector<KDCluster*> debugHits;
     extendSeedCells(cells, nearestNeighbours, false, debugHits);
@@ -1606,7 +1592,7 @@ void ConformalTracking::extendHighPT(std::vector<KDTrack*>& conformalTracks, std
     int nCells = cells.size();
     for (int itCell = 0; itCell < nCells; itCell++) {
       // Check if this cell has already been used
-      if (usedCells.count(cells[itCell]))
+      if (usedCells.count(cells[itCell].get()))
         continue;
 
       // Produce all tracks leading back to the seed hit from this cell
@@ -1691,14 +1677,14 @@ void ConformalTracking::extendHighPT(std::vector<KDTrack*>& conformalTracks, std
 
 // New test at creating cellular tracks. In this variant, don't worry about clones etc, give all possible routes back to the seed cell. Then cut
 // on number of clusters on each track, and pass back (good tracks to then be decided based on best chi2
-void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTracks, Cell* seedCell,
+void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTracks, Cell::SCell seedCell,
                                         std::map<Cell*, bool>& /*usedCells*/) {
   // Final container to be returned
   UniqueCellularTracks cellularTracks;
 
   // Make the first cellular track using the seed cell
   auto seedTrack = std::unique_ptr<cellularTrack>(new cellularTrack());
-  seedTrack->push_back(seedCell);
+  seedTrack->push_back(seedCell.get());
   cellularTracks.push_back(std::move(seedTrack));
 
   // Now start to follow all paths back from this seed cell
@@ -1722,10 +1708,10 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
       while ((*(cell->getFrom())).size() == 1) {
         //       streamlog_out(DEBUG7)<<"- simple extension"<<std::endl;
         // Get the cell that it attaches to
-        Cell* parentCell = (*(cell->getFrom()))[0];
+        auto parentCell = Cell::SCell((*(cell->getFrom()))[0]);
         // Attach it to the track and continue
-        cellularTracks[itTrack]->push_back(parentCell);
-        cell = parentCell;
+        cellularTracks[itTrack]->push_back(parentCell.get());
+        cell = parentCell.get();
       }
 
       // If the track is finished, do nothing
@@ -1741,12 +1727,12 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
       // For each additional branch make a new track
       for (int itBranch = 1; itBranch < nBranches; itBranch++) {
         auto branchedTrack = std::unique_ptr<cellularTrack>(new cellularTrack(*(cellularTracks[itTrack].get())));
-        branchedTrack->push_back((*(cell->getFrom()))[itBranch]);
+        branchedTrack->push_back((Cell::SCell((*(cell->getFrom()))[itBranch])).get());
         cellularTracks.push_back(std::move(branchedTrack));
       }
 
       // Keep the existing track for the first branch
-      cellularTracks[itTrack]->push_back((*(cell->getFrom()))[0]);
+      cellularTracks[itTrack]->push_back((Cell::SCell((*(cell->getFrom()))[0])).get());
     }
   }
 
@@ -1886,18 +1872,18 @@ void ConformalTracking::getLowestChi2(std::vector<KDTrack*>& finalTracks, std::v
   return;
 }
 
-void ConformalTracking::updateCell(Cell* cell) {
+void ConformalTracking::updateCell(Cell::SCell cell) {
   if ((*(cell->getTo())).size() != 0) {
     for (unsigned int i = 0; i < (*(cell->getTo())).size(); i++) {
-      (*(cell->getTo()))[i]->update(cell);
-      updateCell((*(cell->getTo()))[i]);
+      Cell::SCell((*(cell->getTo()))[i])->update(cell);
+      updateCell(Cell::SCell((*(cell->getTo()))[i]));
     }
   }
 }
 
 // Function to extrapolate along a cell in conformal space, producing a fake hit
 // a given distance away from the cell endpoint
-KDCluster* ConformalTracking::extrapolateCell(Cell* cell, double distance) {
+KDCluster* ConformalTracking::extrapolateCell(Cell::SCell cell, double distance) {
   // Fake cluster to be returned
   KDCluster* extrapolatedCluster = new KDCluster();
 
@@ -2273,8 +2259,8 @@ void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
   }
 
   // Make the seed cell and extrapolate until all hits found
-  Cell*              seedCell = new Cell(trackHits[0], trackHits[1]);
-  std::vector<Cell*> cells;
+  auto        seedCell = std::make_shared<Cell>(trackHits[0], trackHits[1]);
+  SharedCells cells;
   cells.push_back(seedCell);
   streamlog_out(DEBUG7) << "have seed cell" << std::endl;
   // CHECK CELL LENGTH!! TO DO
@@ -2310,7 +2296,7 @@ void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
     }
 
     // Make the cell for extrapolation in the next round
-    Cell* cell = new Cell(trackHits[hitNumber], trackHits[hitNumber + 1]);
+    auto cell = std::make_shared<Cell>(trackHits[hitNumber], trackHits[hitNumber + 1]);
     streamlog_out(DEBUG7) << "have new cell" << std::endl;
 
     // Check if the cell would be killed by cuts
@@ -2326,8 +2312,8 @@ void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
     }
 
     // Set the information about which cell this new cell is attached to and store it
-    cell->setFrom(cells.back());
-    cells.back()->setTo(cell);
+    cell->setFrom(Cell::SCell(cells.back()));
+    cells.back()->setTo(Cell::SCell(cell));
     //    cell->setWeight(hitNumber);
     cells.push_back(cell);
 
@@ -2344,8 +2330,6 @@ void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
   if (cellularTracks.size() != 1) {
     streamlog_out(DEBUG7) << "- cellular track not produced from cells. Returned " << cellularTracks.size() << " candidates"
                           << std::endl;
-    for (size_t c = 0; c < cells.size(); c++)
-      delete cells[c];
     return;
   }
 
@@ -2365,8 +2349,6 @@ void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
   if (finalTracks.size() != 1) {
     streamlog_out(DEBUG7) << "- kd track not produced from cellular track. Returned " << finalTracks.size() << " candidates"
                           << std::endl;
-    for (size_t c = 0; c < cells.size(); c++)
-      delete cells[c];
     for (size_t t = 0; t < finalTracks.size(); t++)
       delete finalTracks[t];
     return;
@@ -2389,16 +2371,12 @@ void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
     if (mcTrack->chi2ndofZS() > m_chi2cut)
       streamlog_out(DEBUG7) << "- track killed by ZS chi2/ndof cut. Track chi2/ndof in ZS is " << mcTrack->chi2ndofZS()
                             << std::endl;
-    for (size_t c = 0; c < cells.size(); c++)
-      delete cells[c];
     for (size_t t = 0; t < finalTracks.size(); t++)
       delete finalTracks[t];
     return;
   }
 
   streamlog_out(DEBUG7) << "== Should have produced this track" << std::endl;
-  for (size_t c = 0; c < cells.size(); c++)
-    delete cells[c];
   for (size_t t = 0; t < finalTracks.size(); t++)
     delete finalTracks[t];
   return;
