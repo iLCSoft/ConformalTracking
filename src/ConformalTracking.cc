@@ -1100,11 +1100,9 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
       createTracksNew(candidateTracksTemp, cells[itCell],
                       usedCells2);  // Move back to using used cells here? With low chi2/ndof?
 
-      // for (size_t itTrack = 0; itTrack < candidateTracksTemp.size(); itTrack++) {
-      for (UniqueCellularTracks::iterator it = candidateTracksTemp.begin(); it != candidateTracksTemp.end(); ++it) {
-        if (int((*it)->size()) >= (m_minClustersOnTrack - 1))
-          candidateTracks.push_back(std::move(*it));
-      }
+      copy_if(std::make_move_iterator(candidateTracksTemp.begin()), std::make_move_iterator(candidateTracksTemp.end()),
+              std::back_inserter(candidateTracks),
+              [this](UcellularTrack const& track) { return (int(track->size()) >= (m_minClustersOnTrack - 1)); });
 
       // Debug plotting
       if (m_debugPlots && m_eventNumber == 2) {
@@ -1589,9 +1587,8 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
       createTracksNew(extensionsTemp, cells[itCell], usedCells2);  // Move back to using used cells here? With low chi2/ndof?
 
       // Save them
-      for (UniqueCellularTracks::iterator it = extensionsTemp.begin(); it != extensionsTemp.end(); ++it) {
-        extensions.push_back(std::move(*it));
-      }
+      extensions.insert(extensions.end(), std::make_move_iterator(extensionsTemp.begin()),
+                        std::make_move_iterator(extensionsTemp.end()));
     }
 
     // Now have all possible extensions. Get the lowest chi2
@@ -1718,10 +1715,8 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
     }
   }
 
-  for (UniqueCellularTracks::iterator it = cellularTracks.begin(); it != cellularTracks.end(); ++it) {
-    //    if((*it)->size() >= (m_minClustersOnTrack-1) )
-    finalcellularTracks.push_back(std::move(*it));
-  }
+  finalcellularTracks.insert(finalcellularTracks.end(), std::make_move_iterator(cellularTracks.begin()),
+                             std::make_move_iterator(cellularTracks.end()));
 
   return;
 }
@@ -1838,17 +1833,11 @@ void ConformalTracking::getLowestChi2(UniqueKDTracks& finalTracks, UniqueKDTrack
   //return;
 
   // Loop over all other tracks and decide whether or not to save them
-  for (unsigned int itTrack = 0; itTrack < trackContainer.size(); itTrack++) {
-    // Look at the difference in chi2/ndof - we want to keep tracks with similar chi2/ndof. If they
-    // are clones then take the longest
-    if ((trackContainer[itTrack]->chi2ndof() - lowestChi2ndof) < 10.) {
-      // Store this track
-      finalTracks.push_back(std::move(trackContainer[itTrack]));
-
-    } else {
-      trackContainer[itTrack] = nullptr;
-    }
-  }
+  // Look at the difference in chi2/ndof - we want to keep tracks with similar chi2/ndof. If they
+  // are clones then take the longest
+  copy_if(std::make_move_iterator(trackContainer.begin()), std::make_move_iterator(trackContainer.end()),
+          std::back_inserter(finalTracks),
+          [lowestChi2ndof](UKDTrack const& track) { return ((track->chi2ndof() - lowestChi2ndof) < 10.); });
 
   return;
 }
