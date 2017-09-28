@@ -100,9 +100,9 @@ private:
   WeakCells        m_to{};
 };
 
-// Vector of cells
-typedef std::vector<Cell::SCell>                    cellularTrack;
-typedef std::vector<std::shared_ptr<Cell>>          SharedCells;
-typedef std::unique_ptr<cellularTrack>              UcellularTrack;
-typedef std::vector<std::unique_ptr<cellularTrack>> UniqueCellularTracks;
+using SCell                = Cell::SCell;
+using cellularTrack        = std::vector<SCell>;
+using SharedCells          = std::vector<std::shared_ptr<Cell>>;
+using UcellularTrack       = std::unique_ptr<cellularTrack>;
+using UniqueCellularTracks = std::vector<std::unique_ptr<cellularTrack>>;
 #endif

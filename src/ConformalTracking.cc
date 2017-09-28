@@ -1074,8 +1074,8 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
     // We create all acceptable tracks by looping over all cells with high enough weight to create
     // a track and trace their route back to the seed hit. We then have to choose the best candidate
     // at the end (by minimum chi2 of a linear fit)
-    std::map<Cell::SCell, bool> usedCells;
-    std::map<Cell::SCell, bool> usedCells2;
+    std::map<SCell, bool> usedCells;
+    std::map<SCell, bool> usedCells2;
     UniqueKDTracks cellTracks;
 
     // Sort Cells from highest to lowest weight
@@ -1353,7 +1353,7 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
         continue;
 
       // First check that the hit is not wildly away from the track (make cell and check angle)
-      // Cell::SCell extensionCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[0],results2[newHit]);
+      // SCell extensionCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[0],results2[newHit]);
       auto   extensionCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[nclusters - 1], kdhit);
       double cellAngle     = seedCell->getAngle(extensionCell);
       double cellAngleRZ   = seedCell->getAngleRZ(extensionCell);
@@ -1565,8 +1565,8 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
     extendSeedCells(cells, nearestNeighbours, false, debugHits);
 
     // Now make all possible track extensions
-    std::map<Cell::SCell, bool> usedCells;
-    std::map<Cell::SCell, bool> usedCells2;
+    std::map<SCell, bool> usedCells;
+    std::map<SCell, bool> usedCells2;
     UniqueCellularTracks extensions;
 
     if (cells.size() == 1)
@@ -1656,8 +1656,8 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
 
 // New test at creating cellular tracks. In this variant, don't worry about clones etc, give all possible routes back to the seed cell. Then cut
 // on number of clusters on each track, and pass back (good tracks to then be decided based on best chi2
-void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTracks, Cell::SCell& seedCell,
-                                        std::map<Cell::SCell, bool>& /*usedCells*/) {
+void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTracks, SCell& seedCell,
+                                        std::map<SCell, bool>& /*usedCells*/) {
   // Final container to be returned
   UniqueCellularTracks cellularTracks;
 
@@ -1681,13 +1681,13 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
       }
 
       // While there is only one path leading from this cell, follow that path
-      Cell::SCell cell = cellularTracks[itTrack]->back();
+      SCell cell = cellularTracks[itTrack]->back();
       //     streamlog_out(DEBUG7)<<"-- Track "<<itTrack<<" has "<<(*(cell->getFrom())).size()<<" cells attached to the end of it"<<std::endl;
       //      while(cell->getWeight() > 0 && (*(cell->getFrom())).size() == 1){
       while (cell->getFrom().size() == 1) {
         //       streamlog_out(DEBUG7)<<"- simple extension"<<std::endl;
         // Get the cell that it attaches to
-        auto parentCell = Cell::SCell(cell->getFrom()[0]);
+        auto parentCell = SCell(cell->getFrom()[0]);
         // Attach it to the track and continue
         cellularTracks[itTrack]->push_back(parentCell);
         cell = parentCell;
@@ -1706,12 +1706,12 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
       // For each additional branch make a new track
       for (int itBranch = 1; itBranch < nBranches; itBranch++) {
         auto branchedTrack = std::unique_ptr<cellularTrack>(new cellularTrack(*(cellularTracks[itTrack].get())));
-        branchedTrack->push_back(Cell::SCell(cell->getFrom()[itBranch]));
+        branchedTrack->push_back(SCell(cell->getFrom()[itBranch]));
         cellularTracks.push_back(std::move(branchedTrack));
       }
 
       // Keep the existing track for the first branch
-      cellularTracks[itTrack]->push_back(Cell::SCell(cell->getFrom()[0]));
+      cellularTracks[itTrack]->push_back(SCell(cell->getFrom()[0]));
     }
   }
 
@@ -1736,7 +1736,7 @@ bool ConformalTracking::toBeUpdated(UniqueCellularTracks const& cellularTracks) 
 // return all of them. Given that there is no material scattering taken into account this helps retain low pt tracks, which
 // may have worse chi2/ndof than ghosts/real tracks with an additional unrelated hit from the low pt track.
 void ConformalTracking::getFittedTracks(UniqueKDTracks& finalTracks, UniqueCellularTracks& candidateTracks,
-                                        std::map<Cell::SCell, bool>& /*usedCells*/) {
+                                        std::map<SCell, bool>& /*usedCells*/) {
   // Make a container for all tracks being considered, initialise variables
   UniqueKDTracks trackContainer;
   //  std::vector<double> trackChi2ndofs;
@@ -1842,18 +1842,18 @@ void ConformalTracking::getLowestChi2(UniqueKDTracks& finalTracks, UniqueKDTrack
   return;
 }
 
-void ConformalTracking::updateCell(Cell::SCell cell) {
+void ConformalTracking::updateCell(SCell cell) {
   if (cell->getTo().size() != 0) {
     for (unsigned int i = 0; i < cell->getTo().size(); i++) {
-      Cell::SCell(cell->getTo()[i])->update(cell);
-      updateCell(Cell::SCell(cell->getTo()[i]));
+      SCell(cell->getTo()[i])->update(cell);
+      updateCell(SCell(cell->getTo()[i]));
     }
   }
 }
 
 // Function to extrapolate along a cell in conformal space, producing a fake hit
 // a given distance away from the cell endpoint
-SKDCluster ConformalTracking::extrapolateCell(Cell::SCell const& cell, double distance) {
+SKDCluster ConformalTracking::extrapolateCell(SCell const& cell, double distance) {
   // Fake cluster to be returned
   SKDCluster extrapolatedCluster = std::make_shared<KDCluster>();
 
@@ -1875,7 +1875,7 @@ SKDCluster ConformalTracking::extrapolateCell(Cell::SCell const& cell, double di
 
 // NOT CURRENTLY USED - DEPRECATE?
 void ConformalTracking::extendTrack(UKDTrack& track, UniqueCellularTracks trackSegments,
-                                    std::map<SKDCluster, bool>& /*used*/, std::map<Cell::SCell, bool>& /*usedCells*/) {
+                                    std::map<SKDCluster, bool>& /*used*/, std::map<SCell, bool>& /*usedCells*/) {
   //  cout<<"== extending track, have "<<trackSegments.size()<<" candidates"<<endl;
   // For each track segment, perform a kalman filter on the addition points and chose the track extension with the
   // best delta chi2.
@@ -2281,8 +2281,8 @@ void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
     }
 
     // Set the information about which cell this new cell is attached to and store it
-    cell->setFrom(Cell::SCell(cells.back()));
-    cells.back()->setTo(Cell::SCell(cell));
+    cell->setFrom(SCell(cells.back()));
+    cells.back()->setTo(SCell(cell));
     //    cell->setWeight(hitNumber);
     cells.push_back(cell);
 
@@ -2293,7 +2293,7 @@ void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
 
   // Now test the built-in functions to make CellularTracks from cells
   UniqueCellularTracks cellularTracks;
-  std::map<Cell::SCell, bool> usedCells;
+  std::map<SCell, bool> usedCells;
   createTracksNew(cellularTracks, cells.back(), usedCells);
 
   if (cellularTracks.size() != 1) {
