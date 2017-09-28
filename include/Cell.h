@@ -78,8 +78,8 @@ public:
       m_weight = cell2->getWeight() + 1;
   }
   void setTo(SCell const& cell2) { m_to.push_back(WCell(cell2)); }
-  WeakCells*              getFrom() { return &m_from; }
-  WeakCells*              getTo() { return &m_to; }
+  WeakCells&              getFrom() { return m_from; }
+  WeakCells&              getTo() { return m_to; }
 
   double doca() const {
     double intercept = m_start->getV() - m_start->getU() * m_gradient;
