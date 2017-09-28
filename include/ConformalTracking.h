@@ -70,14 +70,14 @@ public:
 
   // Cell creation
   SKDCluster extrapolateCell(Cell::SCell const&, double);
-  void       extendSeedCells(SharedCells&, KDTree*, bool, const SharedKDClusters&);
+  void       extendSeedCells(SharedCells&, UKDTree&, bool, const SharedKDClusters&);
 
   // Track finding
-  void buildNewTracks(UniqueKDTracks&, SharedKDClusters&, KDTree*, bool radialSearch = false);
-  void extendTracks(UniqueKDTracks&, SharedKDClusters&, KDTree*);
-  void combineCollections(SharedKDClusters&, KDTree*&, std::vector<int> const&, std::map<int, SharedKDClusters> const&);
+  void buildNewTracks(UniqueKDTracks&, SharedKDClusters&, UKDTree&, bool radialSearch = false);
+  void extendTracks(UniqueKDTracks&, SharedKDClusters&, UKDTree&);
+  void combineCollections(SharedKDClusters&, UKDTree&, std::vector<int> const&, std::map<int, SharedKDClusters> const&);
 
-  void extendHighPT(UniqueKDTracks&, SharedKDClusters&, KDTree*, bool radialSearch = false);
+  void extendHighPT(UniqueKDTracks&, SharedKDClusters&, UKDTree&, bool radialSearch = false);
 
   void createTracksNew(UniqueCellularTracks&, Cell::SCell&, std::map<Cell::SCell, bool>&);
   bool toBeUpdated(UniqueCellularTracks const&);
@@ -100,7 +100,7 @@ public:
   double checkReal(UKDTrack&, std::map<SKDCluster, MCParticle*>, std::map<MCParticle*, bool>&,
                    std::map<MCParticle*, SharedKDClusters>);
   int  getUniqueHits(SharedKDClusters);
-  void checkReconstructionFailure(MCParticle*, std::map<MCParticle*, SharedKDClusters>, KDTree*);
+  void checkReconstructionFailure(MCParticle*, std::map<MCParticle*, SharedKDClusters>, UKDTree&);
   void checkUnallowedTracks(UniqueCellularTracks);
 
 protected:
