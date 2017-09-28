@@ -52,12 +52,10 @@ public:
   double                  getGradientRZ() const { return m_gradientRZ; }
 
   // Angle between two cells. This is assumed to be less than 90 degrees
-  double getAngle(SCell cell2) const { return getAngle(cell2.get()); }
-  double getAngle(Cell* cell2) const {
+  double getAngle(SCell cell2) const {
     return fabs(std::atan((cell2->getGradient() - m_gradient) / (1 + m_gradient * cell2->getGradient())));
   }
-  double getAngleRZ(SCell cell2) const { return getAngleRZ(cell2.get()); }
-  double getAngleRZ(Cell* cell2) const {
+  double getAngleRZ(SCell cell2) const {
     return fabs(std::atan((cell2->getGradientRZ() - m_gradientRZ) / (1 + m_gradientRZ * cell2->getGradientRZ())));
   }
 
