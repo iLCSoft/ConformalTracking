@@ -1675,7 +1675,7 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
     for (int itTrack = 0; itTrack < nTracks; itTrack++) {
       // If the track is finished, do nothing
       //      if(cellularTracks[itTrack].back()->getWeight() == 0) continue;
-      if (cellularTracks[itTrack]->back()->getFrom()->size() == 0) {
+      if (cellularTracks[itTrack]->back()->getFrom().size() == 0) {
         //       streamlog_out(DEBUG7)<<"-- Track "<<itTrack<<" is finished"<<std::endl;
         continue;
       }
@@ -1684,10 +1684,10 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
       Cell::SCell cell = cellularTracks[itTrack]->back();
       //     streamlog_out(DEBUG7)<<"-- Track "<<itTrack<<" has "<<(*(cell->getFrom())).size()<<" cells attached to the end of it"<<std::endl;
       //      while(cell->getWeight() > 0 && (*(cell->getFrom())).size() == 1){
-      while ((*(cell->getFrom())).size() == 1) {
+      while (cell->getFrom().size() == 1) {
         //       streamlog_out(DEBUG7)<<"- simple extension"<<std::endl;
         // Get the cell that it attaches to
-        auto parentCell = Cell::SCell((*(cell->getFrom()))[0]);
+        auto parentCell = Cell::SCell(cell->getFrom()[0]);
         // Attach it to the track and continue
         cellularTracks[itTrack]->push_back(parentCell);
         cell = parentCell;
@@ -1695,23 +1695,23 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
 
       // If the track is finished, do nothing
       //      if(cellularTracks[itTrack].back()->getWeight() == 0) continue;
-      if (cellularTracks[itTrack]->back()->getFrom()->size() == 0)
+      if (cellularTracks[itTrack]->back()->getFrom().size() == 0)
         continue;
 
       // If the weight is != 0 and there is more than one path to follow, branch the track (create a new one for each path)
-      int nBranches = (*(cell->getFrom())).size();
+      int nBranches = cell->getFrom().size();
 
       //     streamlog_out(DEBUG7)<<"- making "<<nBranches<<" branches"<<std::endl;
 
       // For each additional branch make a new track
       for (int itBranch = 1; itBranch < nBranches; itBranch++) {
         auto branchedTrack = std::unique_ptr<cellularTrack>(new cellularTrack(*(cellularTracks[itTrack].get())));
-        branchedTrack->push_back((Cell::SCell((*(cell->getFrom()))[itBranch])));
+        branchedTrack->push_back(Cell::SCell(cell->getFrom()[itBranch]));
         cellularTracks.push_back(std::move(branchedTrack));
       }
 
       // Keep the existing track for the first branch
-      cellularTracks[itTrack]->push_back((Cell::SCell((*(cell->getFrom()))[0])));
+      cellularTracks[itTrack]->push_back(Cell::SCell(cell->getFrom()[0]));
     }
   }
 
@@ -1724,7 +1724,7 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
 // Check if any of the tracks in a collection still have to be updated
 bool ConformalTracking::toBeUpdated(UniqueCellularTracks const& cellularTracks) {
   for (unsigned int iTrack = 0; iTrack < cellularTracks.size(); iTrack++)
-    if (cellularTracks[iTrack]->back()->getFrom()->size() > 0) {
+    if (cellularTracks[iTrack]->back()->getFrom().size() > 0) {
       return true;
     }
   return false;
@@ -1843,10 +1843,10 @@ void ConformalTracking::getLowestChi2(UniqueKDTracks& finalTracks, UniqueKDTrack
 }
 
 void ConformalTracking::updateCell(Cell::SCell cell) {
-  if ((*(cell->getTo())).size() != 0) {
-    for (unsigned int i = 0; i < (*(cell->getTo())).size(); i++) {
-      Cell::SCell((*(cell->getTo()))[i])->update(cell);
-      updateCell(Cell::SCell((*(cell->getTo()))[i]));
+  if (cell->getTo().size() != 0) {
+    for (unsigned int i = 0; i < cell->getTo().size(); i++) {
+      Cell::SCell(cell->getTo()[i])->update(cell);
+      updateCell(Cell::SCell(cell->getTo()[i]));
     }
   }
 }
