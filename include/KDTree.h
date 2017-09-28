@@ -64,4 +64,6 @@ private:
 
 bool distComparator(const kdtree2::KDTreeResult& a, const kdtree2::KDTreeResult& b);
 
+using UKDTree = std::unique_ptr<KDTree>;
+
 #endif

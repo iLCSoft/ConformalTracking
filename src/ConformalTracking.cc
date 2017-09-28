@@ -489,7 +489,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   // The final vector of conformal tracks
   UniqueKDTracks   conformalTracks;
   SharedKDClusters kdClusters;
-  KDTree*          nearestNeighbours = NULL;
+  UKDTree          nearestNeighbours = nullptr;
   auto             stopwatch         = std::unique_ptr<TStopwatch>(new TStopwatch());
 
   // Build tracks in the vertex barrel
@@ -677,7 +677,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   m_maxDistance = 0.02;
 
   // Clean up
-  delete nearestNeighbours;
+  nearestNeighbours.reset(nullptr);
 
   // Now in principle have all conformal tracks, but due to how the check for clones is performed (ish) there is a possibility
   // that clones/fakes are still present. Try to remove them by looking at overlapping hits. Turned off at the moment
@@ -858,7 +858,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     SharedKDClusters kdClusters_debug;
     for (size_t i = 0; i < trackerHitCollections.size(); i++)
       kdClusters_debug.insert(kdClusters_debug.begin(), collectionClusters[i].begin(), collectionClusters[i].end());
-    KDTree* nearestNeighbours_debug = new KDTree(kdClusters_debug, m_thetaRange);
+    auto nearestNeighbours_debug = UKDTree(new KDTree(kdClusters_debug, m_thetaRange));
 
     for (int itP = 0; itP < nParticles; itP++) {
       // Get the particle
@@ -899,7 +899,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     streamlog_out(DEBUG7) << "Reconstructed " << nReconstructed << " particles out of " << nReconstructed + nUnreconstructed
                           << ". Gives efficiency "
                           << 100. * (double)nReconstructed / (double)(nReconstructed + nUnreconstructed) << "%" << std::endl;
-    delete nearestNeighbours_debug;
+    nearestNeighbours_debug.reset(nullptr);
   }
 
   // Save the output track collection
@@ -936,13 +936,12 @@ void ConformalTracking::end() {
 //===================================
 
 // Combine collections
-void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, KDTree*& nearestNeighbours,
+void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, UKDTree& nearestNeighbours,
                                            std::vector<int> const& combination,
                                            std::map<int, SharedKDClusters> const& collectionClusters) {
   // Clear the input objects
   kdClusters.clear();
-  if (nearestNeighbours != NULL)
-    delete nearestNeighbours;
+  nearestNeighbours.reset(nullptr);
 
   // Loop over all given collections
   for (unsigned int i = 0; i < combination.size(); i++) {
@@ -958,12 +957,12 @@ void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, KDTree*
   std::sort(kdClusters.begin(), kdClusters.end(), sort_by_radiusKD);
 
   // Make the binary search tree. This tree class contains two binary trees - one sorted by u-v and the other by theta
-  nearestNeighbours = new KDTree(kdClusters, m_thetaRange);
+  nearestNeighbours = UKDTree(new KDTree(kdClusters, m_thetaRange));
 }
 
 // Take a collection of hits and try to produce tracks out of them
 void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKDClusters& collection,
-                                       KDTree* nearestNeighbours, bool radialSearch) {
+                                       UKDTree& nearestNeighbours, bool radialSearch) {
   streamlog_out(DEBUG7) << "BUILDING new tracks" << std::endl;
 
   // Sort the input collection by radius
@@ -1249,7 +1248,7 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
 
 // Take a collection of tracks and try to extend them into the collection of clusters passed.
 void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDClusters& collection,
-                                     KDTree* nearestNeighbours) {
+                                     UKDTree& nearestNeighbours) {
   // Loop over all current tracks. At the moment this is a "stupid" algorithm: it will simply try to add every
   // hit in the collection to every track, and keep the ones thta have a good chi2. In fact, it will extrapolate
   // the track and do a nearest neighbours search, but this seemed to fail for some reason, TODO!
@@ -1410,7 +1409,7 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
 }
 
 // Extend seed cells
-void ConformalTracking::extendSeedCells(SharedCells& cells, KDTree* nearestNeighbours, bool extendingTrack,
+void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeighbours, bool extendingTrack,
                                         const SharedKDClusters& /*debugHits*/) {
   unsigned int nCells   = 0;
   int          depth    = 0;
@@ -1524,7 +1523,7 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, KDTree* nearestNeigh
 }
 
 void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDClusters& /*collection*/,
-                                     KDTree*         nearestNeighbours, bool /*radialSearch*/) {
+                                     UKDTree&        nearestNeighbours, bool /*radialSearch*/) {
   // Set the cell angle criteria for high pt tracks
   double oldCellAngle   = m_maxCellAngle;
   double oldCellAngleRZ = m_maxCellAngleRZ;
@@ -2181,7 +2180,7 @@ int ConformalTracking::getUniqueHits(SharedKDClusters hits) {
 // without the inclusion of unassociated hits. See which criteria fail
 void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
                                                    std::map<MCParticle*, SharedKDClusters> particleHits,
-                                                   KDTree* nearestNeighbours) {
+                                                   UKDTree& nearestNeighbours) {
   // Get the hits for this MC particle
   SharedKDClusters trackHits = particleHits[particle];
 
