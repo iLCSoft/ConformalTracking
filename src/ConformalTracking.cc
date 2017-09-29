@@ -1102,6 +1102,7 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
       copy_if(std::make_move_iterator(candidateTracksTemp.begin()), std::make_move_iterator(candidateTracksTemp.end()),
               std::back_inserter(candidateTracks),
               [this](UcellularTrack const& track) { return (int(track->size()) >= (m_minClustersOnTrack - 1)); });
+      candidateTracksTemp.clear();
 
       // Debug plotting
       if (m_debugPlots && m_eventNumber == 2) {
@@ -1837,6 +1838,7 @@ void ConformalTracking::getLowestChi2(UniqueKDTracks& finalTracks, UniqueKDTrack
   copy_if(std::make_move_iterator(trackContainer.begin()), std::make_move_iterator(trackContainer.end()),
           std::back_inserter(finalTracks),
           [lowestChi2ndof](UKDTrack const& track) { return ((track->chi2ndof() - lowestChi2ndof) < 10.); });
+  trackContainer.clear();
 
   return;
 }
