@@ -1108,7 +1108,7 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
       if (m_debugPlots && m_eventNumber == 2) {
         m_canvConformalEventDisplayAcceptedCells->cd();
         for (size_t iTr = 0; iTr < candidateTracks.size(); iTr++) {
-          cellularTrack* track = candidateTracks[iTr].get();
+          auto& track = candidateTracks[iTr];
           for (unsigned int trackCell = 0; trackCell < track->size(); trackCell++) {
             drawline((*track)[trackCell]->getStart(), (*track)[trackCell]->getEnd(), track->size() - trackCell);
           }
@@ -1596,7 +1596,7 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
     UKDTrack lowestChi2Track;
     for (size_t itTrack = 0; itTrack < extensions.size(); itTrack++) {
       // Get the extension, add it to the original hit
-      cellularTrack*   extension = extensions[itTrack].get();
+      auto&            extension = extensions[itTrack];
       SharedKDClusters hits      = track->clusters();
 
       if (extension->size() < 2)
