@@ -1,5 +1,4 @@
 #include "ConformalTracking.h"
-#include "DDRec/API/IDDecoder.h"
 
 #include "MarlinTrk/Factory.h"
 #include "MarlinTrk/HelixFit.h"
