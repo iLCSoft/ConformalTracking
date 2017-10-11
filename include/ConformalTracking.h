@@ -69,11 +69,11 @@ public:
   // Pattern recognition algorithms:
 
   // Cell creation
-  SKDCluster extrapolateCell(Cell::SCell const&, double);
-  void       extendSeedCells(SharedCells&, UKDTree&, bool, const SharedKDClusters&);
+  SKDCluster extrapolateCell(Cell::SCell const&, double, bool vertexToTracker = true);
+  void extendSeedCells(SharedCells&, UKDTree&, bool, const SharedKDClusters&, bool vertexToTracker = true);
 
   // Track finding
-  void buildNewTracks(UniqueKDTracks&, SharedKDClusters&, UKDTree&, bool radialSearch = false);
+  void buildNewTracks(UniqueKDTracks&, SharedKDClusters&, UKDTree&, bool radialSearch = false, bool vertexToTracker = true);
   void extendTracks(UniqueKDTracks&, SharedKDClusters&, UKDTree&);
   void combineCollections(SharedKDClusters&, UKDTree&, std::vector<int> const&, std::map<int, SharedKDClusters> const&);
 
@@ -183,7 +183,8 @@ protected:
   double            m_purity             = 0.0;
   SKDCluster        debugSeed            = nullptr;
   ConformalDebugger m_debugger{};
-  bool              m_highPTfit = false;
+  bool              m_highPTfit     = false;
+  bool              m_onlyZSchi2cut = false;
 };
 
 // ---------------------------
