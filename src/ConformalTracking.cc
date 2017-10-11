@@ -492,7 +492,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   auto             stopwatch         = std::unique_ptr<TStopwatch>(new TStopwatch());
 
   // Build tracks in the vertex barrel
-  m_highPTfit = true;
+  m_highPTfit = false;
 
   stopwatch->Start(false);
   std::vector<int> vertexHits = {0};
@@ -601,7 +601,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   // Sort by pt (low to hight)
   std::sort(conformalTracks.begin(), conformalTracks.end(), sort_by_pt);
 
-  m_highPTfit = true;
+  m_highPTfit = false;
 
   // Extend them through the inner and outer trackers
   std::vector<int> trackerHits = {2, 3, 4, 5};
@@ -622,11 +622,13 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
   // Finally reconstruct displaced tracks
 
-  m_maxDistance    = 0.0015;
-  m_maxCellAngle   = maxCellAngle;
-  m_maxCellAngleRZ = maxCellAngleRZ;
+  m_maxDistance    = 0.015;
+  m_maxCellAngle   = maxCellAngle * 5.;
+  m_maxCellAngleRZ = maxCellAngleRZ * 5.;
+  m_chi2cut = chi2cut * 10.;
+  m_minClustersOnTrack = 4;
 
-  m_highPTfit = false;
+  m_highPTfit = true;
 
   std::vector<int> allHits = {0, 1, 2, 4};
   stopwatch->Start(false);
@@ -654,7 +656,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   allHits = {0, 1, 2, 3, 4, 5};
   stopwatch->Start(false);
   combineCollections(kdClusters, nearestNeighbours, allHits, collectionClusters);
-  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, false);
+  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, true);
 
   // Mark hits from "good" tracks as being used
   for (unsigned int itTrack = 0; itTrack < conformalTracks.size(); itTrack++) {
@@ -1029,9 +1031,9 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
       // Create the new seed cell
       auto cell = std::make_shared<Cell>(kdhit, nhit);
 
-      if (cell->doca() > 0.01) {
-        continue;
-      }
+//      if (cell->doca() > 0.01) {
+//        continue;
+//      }
 
       cells.push_back(cell);
       if (debugSeed && kdhit == debugSeed)
@@ -1229,13 +1231,14 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
 
       // If not a clone, save the new track
       if (!clone) {
-        conformalTracks.push_back(std::move(bestTracks[itTrack]));
         bestTrackUsed = true;
         if (debugSeed && kdhit == debugSeed) {
           streamlog_out(DEBUG7) << "== Pushing back best track with chi2/ndof " << bestTracks[itTrack]->chi2ndof()
                                 << std::endl;
-        } else
+        } else{
           streamlog_out(DEBUG7) << "Pushing back best track with chi2/ndof " << bestTracks[itTrack]->chi2ndof() << std::endl;
+        }
+        conformalTracks.push_back(std::move(bestTracks[itTrack]));
       }
 
       if (not bestTrackUsed) {
@@ -1426,7 +1429,7 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
       // Get the end point of the cell (to search for neighbouring hits to form new cells connected to this one)
       SKDCluster hit            = cells[itCell]->getEnd();
       double     searchDistance = m_maxDistance;  //hit->getR();
-                                                  //      if(searchDistance > hit->getR()) searchDistance = 1.2*hit->getR();
+      if(searchDistance > hit->getR()) searchDistance = 1.2*hit->getR();
 
       // Extrapolate along the cell and then make a 2D nearest neighbour search at this extrapolated point
       SKDCluster fakeHit =
@@ -1817,12 +1820,12 @@ void ConformalTracking::getLowestChi2(UniqueKDTracks& finalTracks, UniqueKDTrack
   // Get the lowest chi2/ndof value from the given tracks
   //  double lowestChi2ndof = *std::min_element(trackChi2ndofs.begin(),trackChi2ndofs.end());
   UKDTrack& lowestChi2ndofTrack = trackContainer[0];
-  double    lowestChi2ndof      = lowestChi2ndofTrack->chi2ndof() * lowestChi2ndofTrack->chi2ndof() +
-                          lowestChi2ndofTrack->chi2ndofZS() * lowestChi2ndofTrack->chi2ndofZS();
+  double    lowestChi2ndof      = sqrt(lowestChi2ndofTrack->chi2ndof() * lowestChi2ndofTrack->chi2ndof() +
+                          lowestChi2ndofTrack->chi2ndofZS() * lowestChi2ndofTrack->chi2ndofZS());
 
   for (unsigned int itTrack = 0; itTrack < trackContainer.size(); itTrack++) {
-    if ((trackContainer[itTrack]->chi2ndof() * trackContainer[itTrack]->chi2ndof() +
-         trackContainer[itTrack]->chi2ndofZS() * trackContainer[itTrack]->chi2ndofZS()) < lowestChi2ndof) {
+    double chi2ndof = sqrt(trackContainer[itTrack]->chi2ndof() * trackContainer[itTrack]->chi2ndof() + trackContainer[itTrack]->chi2ndofZS() * trackContainer[itTrack]->chi2ndofZS());
+    if (chi2ndof < lowestChi2ndof) {
       lowestChi2ndof = trackContainer[itTrack]->chi2ndof();
       // lowestChi2ndofTrack = trackContainer[itTrack];
     }
@@ -1836,7 +1839,7 @@ void ConformalTracking::getLowestChi2(UniqueKDTracks& finalTracks, UniqueKDTrack
   // are clones then take the longest
   copy_if(std::make_move_iterator(trackContainer.begin()), std::make_move_iterator(trackContainer.end()),
           std::back_inserter(finalTracks),
-          [lowestChi2ndof](UKDTrack const& track) { return ((track->chi2ndof() - lowestChi2ndof) < 10.); });
+          [lowestChi2ndof](UKDTrack const& track) { return ((sqrt((track->chi2ndof()*track->chi2ndof() + track->chi2ndofZS()*track->chi2ndofZS())) - lowestChi2ndof) < 10.); });
   trackContainer.clear();
 
   return;
@@ -2323,6 +2326,7 @@ void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
 
   // Test the chi2 criteria
   UKDTrack& mcTrack = finalTracks[0];
+  mcTrack->linearRegression(false);
   mcTrack->linearRegressionConformal(true);
 
   streamlog_out(DEBUG7) << "== Track chi2/ndof is " << mcTrack->chi2ndof() << ", ZS chi2/ndof is " << mcTrack->chi2ndofZS()
