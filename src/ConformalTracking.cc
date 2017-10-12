@@ -622,10 +622,10 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
   // Finally reconstruct displaced tracks
 
-  m_maxDistance    = 0.015;
-  m_maxCellAngle   = maxCellAngle * 5.;
-  m_maxCellAngleRZ = maxCellAngleRZ * 5.;
-  m_chi2cut = chi2cut * 10.;
+  m_maxDistance        = 0.015;
+  m_maxCellAngle       = maxCellAngle * 5.;
+  m_maxCellAngleRZ     = maxCellAngleRZ * 5.;
+  m_chi2cut            = chi2cut * 10.;
   m_minClustersOnTrack = 4;
 
   m_highPTfit = true;
@@ -1031,9 +1031,9 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
       // Create the new seed cell
       auto cell = std::make_shared<Cell>(kdhit, nhit);
 
-//      if (cell->doca() > 0.01) {
-//        continue;
-//      }
+      //      if (cell->doca() > 0.01) {
+      //        continue;
+      //      }
 
       cells.push_back(cell);
       if (debugSeed && kdhit == debugSeed)
@@ -1235,7 +1235,7 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
         if (debugSeed && kdhit == debugSeed) {
           streamlog_out(DEBUG7) << "== Pushing back best track with chi2/ndof " << bestTracks[itTrack]->chi2ndof()
                                 << std::endl;
-        } else{
+        } else {
           streamlog_out(DEBUG7) << "Pushing back best track with chi2/ndof " << bestTracks[itTrack]->chi2ndof() << std::endl;
         }
         conformalTracks.push_back(std::move(bestTracks[itTrack]));
@@ -1429,7 +1429,8 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
       // Get the end point of the cell (to search for neighbouring hits to form new cells connected to this one)
       SKDCluster hit            = cells[itCell]->getEnd();
       double     searchDistance = m_maxDistance;  //hit->getR();
-      if(searchDistance > hit->getR()) searchDistance = 1.2*hit->getR();
+      if (searchDistance > hit->getR())
+        searchDistance = 1.2 * hit->getR();
 
       // Extrapolate along the cell and then make a 2D nearest neighbour search at this extrapolated point
       SKDCluster fakeHit =
@@ -1821,10 +1822,11 @@ void ConformalTracking::getLowestChi2(UniqueKDTracks& finalTracks, UniqueKDTrack
   //  double lowestChi2ndof = *std::min_element(trackChi2ndofs.begin(),trackChi2ndofs.end());
   UKDTrack& lowestChi2ndofTrack = trackContainer[0];
   double    lowestChi2ndof      = sqrt(lowestChi2ndofTrack->chi2ndof() * lowestChi2ndofTrack->chi2ndof() +
-                          lowestChi2ndofTrack->chi2ndofZS() * lowestChi2ndofTrack->chi2ndofZS());
+                               lowestChi2ndofTrack->chi2ndofZS() * lowestChi2ndofTrack->chi2ndofZS());
 
   for (unsigned int itTrack = 0; itTrack < trackContainer.size(); itTrack++) {
-    double chi2ndof = sqrt(trackContainer[itTrack]->chi2ndof() * trackContainer[itTrack]->chi2ndof() + trackContainer[itTrack]->chi2ndofZS() * trackContainer[itTrack]->chi2ndofZS());
+    double chi2ndof = sqrt(trackContainer[itTrack]->chi2ndof() * trackContainer[itTrack]->chi2ndof() +
+                           trackContainer[itTrack]->chi2ndofZS() * trackContainer[itTrack]->chi2ndofZS());
     if (chi2ndof < lowestChi2ndof) {
       lowestChi2ndof = trackContainer[itTrack]->chi2ndof();
       // lowestChi2ndofTrack = trackContainer[itTrack];
@@ -1838,8 +1840,10 @@ void ConformalTracking::getLowestChi2(UniqueKDTracks& finalTracks, UniqueKDTrack
   // Look at the difference in chi2/ndof - we want to keep tracks with similar chi2/ndof. If they
   // are clones then take the longest
   copy_if(std::make_move_iterator(trackContainer.begin()), std::make_move_iterator(trackContainer.end()),
-          std::back_inserter(finalTracks),
-          [lowestChi2ndof](UKDTrack const& track) { return ((sqrt((track->chi2ndof()*track->chi2ndof() + track->chi2ndofZS()*track->chi2ndofZS())) - lowestChi2ndof) < 10.); });
+          std::back_inserter(finalTracks), [lowestChi2ndof](UKDTrack const& track) {
+            return ((sqrt((track->chi2ndof() * track->chi2ndof() + track->chi2ndofZS() * track->chi2ndofZS())) -
+                     lowestChi2ndof) < 10.);
+          });
   trackContainer.clear();
 
   return;
