@@ -957,6 +957,8 @@ void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, UKDTree
     }
   }
 
+  streamlog_out(DEBUG7) << "Combined collection has " << kdClusters.size() << " hits" << std::endl;
+
   // Sort the KDClusters from larger to smaller radius
   std::sort(kdClusters.begin(), kdClusters.end(), sort_by_radiusKD);
 
