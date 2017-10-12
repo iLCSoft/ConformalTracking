@@ -1366,13 +1366,19 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
       }
 
       // Don't reuse hits
-      if (kdhit->used())
+      if (kdhit->used()) {
+        if (associated)
+          streamlog_out(DEBUG7) << "used" << std::endl;
         continue;
+      }
 
       // Don't pick up hits in the opposite side of the detector
       if ((conformalTracks[currentTrack]->m_clusters[nclusters - 1]->getZ() > 0. && kdhit->getZ() < 0.) ||
-          (conformalTracks[currentTrack]->m_clusters[nclusters - 1]->getZ() < 0. && kdhit->getZ() > 0.))
+          (conformalTracks[currentTrack]->m_clusters[nclusters - 1]->getZ() < 0. && kdhit->getZ() > 0.)) {
+        if (associated)
+          streamlog_out(DEBUG7) << "opposite side of detector" << std::endl;
         continue;
+      }
 
       // First check that the hit is not wildly away from the track (make cell and check angle)
       // SCell extensionCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[0],results2[newHit]);
