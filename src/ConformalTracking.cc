@@ -148,6 +148,7 @@ void ConformalTracking::init() {
   m_initialTrackError_tanL  = 1.e2;
   m_maxChi2perHit           = 1.e2;
   m_highPTfit               = true;
+  m_onlyZSchi2cut           = false;
 
   // Get the magnetic field
   m_magneticField = MarlinUtil::getBzAtOrigin();  // z component at (0,0,0)
@@ -492,7 +493,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   auto             stopwatch         = std::unique_ptr<TStopwatch>(new TStopwatch());
 
   // Build tracks in the vertex barrel
-  m_highPTfit = false;
+  m_highPTfit = true;
 
   stopwatch->Start(false);
   std::vector<int> vertexHits = {0};
@@ -542,7 +543,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   double minClustersOnTrack = m_minClustersOnTrack;
 
   // Lower cell angle criteria
-  m_highPTfit = false;
+  //m_highPTfit = false;
 
   m_maxCellAngle *= 5.;
   m_maxCellAngleRZ *= 5.;
@@ -601,7 +602,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   // Sort by pt (low to hight)
   std::sort(conformalTracks.begin(), conformalTracks.end(), sort_by_pt);
 
-  m_highPTfit = false;
+  //m_highPTfit = false;
 
   // Extend them through the inner and outer trackers
   std::vector<int> trackerHits = {2, 3, 4, 5};
@@ -623,14 +624,16 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   // Finally reconstruct displaced tracks
 
   m_maxDistance        = 0.015;
-  m_maxCellAngle       = maxCellAngle * 5.;
-  m_maxCellAngleRZ     = maxCellAngleRZ * 5.;
+  m_maxCellAngle       = maxCellAngle * 10.;
+  m_maxCellAngleRZ     = maxCellAngleRZ * 10.;
   m_chi2cut            = chi2cut * 10.;
   m_minClustersOnTrack = 4;
 
-  m_highPTfit = true;
+  m_highPTfit     = false;
+  m_onlyZSchi2cut = true;
 
   std::vector<int> allHits = {0, 1, 2, 4};
+  /*
   stopwatch->Start(false);
   combineCollections(kdClusters, nearestNeighbours, allHits, collectionClusters);
   buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, true);
@@ -652,11 +655,11 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   stopwatch->Stop();
   streamlog_out(DEBUG7) << "Extending through trackers took " << stopwatch->RealTime() << " seconds" << std::endl;
   stopwatch->Reset();
-
+  //*/
   allHits = {0, 1, 2, 3, 4, 5};
   stopwatch->Start(false);
   combineCollections(kdClusters, nearestNeighbours, allHits, collectionClusters);
-  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, true);
+  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, true, false);
 
   // Mark hits from "good" tracks as being used
   for (unsigned int itTrack = 0; itTrack < conformalTracks.size(); itTrack++) {
@@ -674,8 +677,8 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   m_maxCellAngleRZ     = maxCellAngleRZ;
   m_chi2cut            = chi2cut;
   m_minClustersOnTrack = minClustersOnTrack;
-
-  m_maxDistance = 0.02;
+  m_onlyZSchi2cut      = false;
+  m_maxDistance        = 0.02;
 
   // Clean up
   nearestNeighbours.reset(nullptr);
