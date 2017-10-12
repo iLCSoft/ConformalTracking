@@ -1459,19 +1459,26 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
         searchDistance = 1.2 * hit->getR();
 
       // Extrapolate along the cell and then make a 2D nearest neighbour search at this extrapolated point
-      SKDCluster fakeHit =
-          extrapolateCell(cells[itCell], searchDistance / 2.);  // TODO: make this search a function of radius
+      SKDCluster fakeHit = extrapolateCell(cells[itCell], searchDistance / 2.,
+                                           vertexToTracker);  // TODO: make this search a function of radius
       SharedKDClusters results;
       nearestNeighbours->allNeighboursInRadius(fakeHit, 1.25 * searchDistance / 2., results);
 
-      if (extendingTrack)
+      if (extendingTrack) {
+        streamlog_out(DEBUG7) << "Extrapolating cell " << itCell << " from u,v: " << hit->getU() << "," << hit->getV()
+                              << std::endl;
+        streamlog_out(DEBUG7) << "Extrapolated hit at u,v: " << fakeHit->getU() << "," << fakeHit->getV() << std::endl;
         streamlog_out(DEBUG7) << "Found " << results.size() << " neighbours from cell extrapolation" << std::endl;
+      }
+
       // Make new cells pointing inwards
       for (unsigned int neighbour = 0; neighbour < results.size(); neighbour++) {
-        if (extendingTrack)
-          streamlog_out(DEBUG7) << "looking at neighbour " << neighbour << std::endl;
         // Get the neighbouring hit
         SKDCluster nhit = results[neighbour];
+
+        if (extendingTrack)
+          streamlog_out(DEBUG7) << "looking at neighbour " << neighbour << " at u,v: " << nhit->getU() << "," << nhit->getV()
+                                << std::endl;
 
         // Check that it is not used, is not on the same detector layer, points inwards and has real z pointing away from IP
         //        if(used.count(nhit)){if(extendingTrack)streamlog_out(DEBUG7)<<"- used"<<std::endl; continue;}
@@ -1484,9 +1491,9 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
         }
         if (nhit->forward() != hit->forward())
           continue;
-        if (nhit->getR() >= hit->getR()) {
+        if ((vertexToTracker && nhit->getR() >= hit->getR()) || (!vertexToTracker && nhit->getR() <= hit->getR())) {
           if (extendingTrack)
-            streamlog_out(DEBUG7) << "- higher radius" << std::endl;
+            streamlog_out(DEBUG7) << "- " << (vertexToTracker ? "higher radius" : "lower radius") << std::endl;
           continue;
         }
 
@@ -1515,6 +1522,8 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
 
         // Make the new cell
         auto cell = std::make_shared<Cell>(hit, nhit);
+        if (extendingTrack)
+          streamlog_out(DEBUG7) << "- make new cell" << std::endl;
 
         // Check if the new cell is compatible with the previous cell (angle between the two is acceptable)
         //        if( cells[itCell]->getAngle(cell) > (m_maxCellAngle*exp(-0.001/nhit->getR())) ){
@@ -1524,6 +1533,8 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
           //            m_canvConformalEventDisplayAllCells->cd();
           //            drawline(hit,nhit,cells[itCell]->getWeight()+2,3);
           //          }
+          if (extendingTrack)
+            streamlog_out(DEBUG7) << "-- discarded!" << std::endl;
 
           continue;
         }
