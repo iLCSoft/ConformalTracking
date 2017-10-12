@@ -963,7 +963,7 @@ void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, UKDTree
 
 // Take a collection of hits and try to produce tracks out of them
 void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKDClusters& collection,
-                                       UKDTree& nearestNeighbours, bool radialSearch) {
+                                       UKDTree& nearestNeighbours, bool radialSearch, bool vertexToTracker) {
   streamlog_out(DEBUG7) << "BUILDING new tracks" << std::endl;
 
   // Sort the input collection by radius
@@ -1413,7 +1413,7 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
 
 // Extend seed cells
 void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeighbours, bool extendingTrack,
-                                        const SharedKDClusters& /*debugHits*/) {
+                                        const SharedKDClusters& /*debugHits*/, bool vertexToTracker) {
   unsigned int nCells   = 0;
   int          depth    = 0;
   int          startPos = 0;
@@ -1860,7 +1860,7 @@ void ConformalTracking::updateCell(SCell cell) {
 
 // Function to extrapolate along a cell in conformal space, producing a fake hit
 // a given distance away from the cell endpoint
-SKDCluster ConformalTracking::extrapolateCell(SCell const& cell, double distance) {
+SKDCluster ConformalTracking::extrapolateCell(SCell const& cell, double distance, bool vertexToTracker) {
   // Fake cluster to be returned
   SKDCluster extrapolatedCluster = std::make_shared<KDCluster>();
 
