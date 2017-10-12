@@ -1,3 +1,30 @@
+# v01-04
+
+* 2017-09-20 Daniel Hynds ([PR#20](https://github.com/iLCSoft/ConformalTracking/pull/20))
+  - Distance Of Closest Approach to the origin added, used as a cut on new seed cells in order to reduce combinatorics
+
+* 2017-07-11 Daniel Hynds ([PR#15](https://github.com/iLCSoft/ConformalTracking/pull/15))
+  - Rewrote track fit in SZ, proper phi treatment 
+  - Updated track strategy including extension of hits throughout the detector
+  - Utility tool added for debugging
+
+* 2017-09-21 Andre Sailer ([PR#21](https://github.com/iLCSoft/ConformalTracking/pull/21))
+  - Fix gcc compiler warnings
+
+* 2017-08-18 Andre Sailer ([PR#19](https://github.com/iLCSoft/ConformalTracking/pull/19))
+  - errors for endcaps updated and forward flag added
+  - high pt track extension now uses CA (over 10 GeV/c pt)
+  - strategy slightly changed for displaced tracks to stop overloading in case of high occupancy events, fixes #16
+
+* 2017-10-02 Andre Sailer ([PR#22](https://github.com/iLCSoft/ConformalTracking/pull/22))
+  - Use smart pointers to wrap objects and simplify memory management.
+
+* 2017-07-27 Andre Sailer ([PR#17](https://github.com/iLCSoft/ConformalTracking/pull/17))
+  - Added temporary workaround when a way too large number of tracks would be created. Add skipEvent flag to allow for proper cleanup before exception is thrown.
+
+* 2017-10-06 Andre Sailer ([PR#23](https://github.com/iLCSoft/ConformalTracking/pull/23))
+  - Drop unused and no longer existing header includes AidaSoft/DD4hep#241
+
 # v01-03
 
 * 2017-06-13 Daniel Hynds ([PR#11](https://github.com/iLCSoft/ConformalTracking/pull/11))
