@@ -971,8 +971,8 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
                                        UKDTree& nearestNeighbours, bool radialSearch, bool vertexToTracker) {
   streamlog_out(DEBUG7) << "BUILDING new tracks" << std::endl;
 
-  // Sort the input collection by radius
-  std::sort(collection.begin(), collection.end(), sort_by_radiusKD);
+  // Sort the input collection by radius - higher to lower if starting with the vertex detector (high R in conformal space)
+  std::sort(collection.begin(), collection.end(), (vertexToTracker ? sort_by_radiusKD : sort_by_lower_radiusKD));
 
   // Loop over all hits, using each as a seed to produce a new track
   unsigned int nKDHits = collection.size();
@@ -1002,30 +1002,44 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
     else
       nearestNeighbours->allNeighboursInTheta(theta, m_thetaRange, results);
 
-    // Sort the neighbours from outer to inner radius
+    // Sort the neighbours by radius
     if (debugSeed && kdhit == debugSeed)
-      streamlog_out(DEBUG7) << "- picked up " << results.size() << " neighbours from theta search" << std::endl;
+      streamlog_out(DEBUG7) << "- picked up " << results.size() << " neighbours from " << (radialSearch ? "radial" : "theta")
+                            << " search" << std::endl;
     if (results.size() == 0)
       continue;
-    std::sort(results.begin(), results.end(), sort_by_radiusKD);
+    std::sort(results.begin(), results.end(), (vertexToTracker ? sort_by_radiusKD : sort_by_lower_radiusKD));
 
     // Objects to hold cells
     SharedCells cells;
 
-    // Make seed cells pointing inwards (conformal space)
+    // Make seed cells pointing inwards/outwards (conformal space)
     for (unsigned int neighbour = 0; neighbour < results.size(); neighbour++) {
       // Get the neighbouring hit
       SKDCluster nhit = results[neighbour];
 
       // Check that it is not used, is not on the same detector layer, is not in the opposite side of the detector and points inwards
-      if (nhit->used())
+      if (nhit->used()) {
+        if (debugSeed && kdhit == debugSeed)
+          streamlog_out(DEBUG7) << "- used" << std::endl;
         continue;
-      if (kdhit->sameLayer(nhit))
+      }
+      if (kdhit->sameLayer(nhit)) {
+        if (debugSeed && kdhit == debugSeed)
+          streamlog_out(DEBUG7) << "- same layer" << std::endl;
         continue;
-      if (nhit->forward() != kdhit->forward())
+      }
+      // TODO: check if this cut is stopping barrel to endcap connections
+      if (nhit->forward() != kdhit->forward()) {
+        if (debugSeed && kdhit == debugSeed)
+          streamlog_out(DEBUG7) << "- not pointing in the same direction" << std::endl;
         continue;
-      if (nhit->getR() >= kdhit->getR())
+      }
+      if ((vertexToTracker && nhit->getR() >= kdhit->getR()) || (!vertexToTracker && nhit->getR() <= kdhit->getR())) {
+        if (debugSeed && kdhit == debugSeed)
+          streamlog_out(DEBUG7) << "- radial conditions not met" << std::endl;
         continue;
+      }
 
       // Check if the cell would be too long (hit very far away)
       double length = sqrt((kdhit->getU() - nhit->getU()) * (kdhit->getU() - nhit->getU()) +
@@ -1065,9 +1079,9 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
     // All seed cells have been created, now try create all "downstream" cells until no more can be added
     SharedKDClusters debugHits;
     if (debugSeed && kdhit == debugSeed) {
-      extendSeedCells(cells, nearestNeighbours, true, debugHits);
+      extendSeedCells(cells, nearestNeighbours, true, debugHits, vertexToTracker);
     } else {
-      extendSeedCells(cells, nearestNeighbours, false, debugHits);
+      extendSeedCells(cells, nearestNeighbours, false, debugHits, vertexToTracker);
     }
 
     if (debugSeed && kdhit == debugSeed)
@@ -1170,7 +1184,8 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
       //if (bestTracks[itTrack]->pt() < 5.)
       //  chi2cut = 1000.;
 
-      if (bestTracks[itTrack]->chi2ndof() > chi2cut || bestTracks[itTrack]->chi2ndofZS() > chi2cut) {
+      if ((m_onlyZSchi2cut && bestTracks[itTrack]->chi2ndofZS() > chi2cut) ||
+          (!m_onlyZSchi2cut && (bestTracks[itTrack]->chi2ndof() > chi2cut || bestTracks[itTrack]->chi2ndofZS() > chi2cut))) {
         bestTracks[itTrack].reset();
         continue;
       }
