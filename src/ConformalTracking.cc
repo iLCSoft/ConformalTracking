@@ -798,8 +798,8 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       streamlog_out(DEBUG7) << "Fit fail error " << fitError << std::endl;
       continue;
     }  //*/
-
-    /*for (unsigned int p = 0; p < trackHits.size(); p++) {
+    /*
+    for (unsigned int p = 0; p < trackHits.size(); p++) {
       track->addHit(trackHits[p]);
     }  //*/
 
@@ -1029,8 +1029,7 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
           streamlog_out(DEBUG7) << "- same layer" << std::endl;
         continue;
       }
-      // TODO: check if this cut is stopping barrel to endcap connections
-      if (nhit->forward() != kdhit->forward()) {
+      if (nhit->endcap() && kdhit->endcap() && (nhit->forward() != kdhit->forward())) {
         if (debugSeed && kdhit == debugSeed)
           streamlog_out(DEBUG7) << "- not pointing in the same direction" << std::endl;
         continue;
@@ -1489,7 +1488,7 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
             streamlog_out(DEBUG7) << "- same layer" << std::endl;
           continue;
         }
-        if (nhit->forward() != hit->forward())
+        if (nhit->endcap() && hit->endcap() && (nhit->forward() != hit->forward()))
           continue;
         if ((vertexToTracker && nhit->getR() >= hit->getR()) || (!vertexToTracker && nhit->getR() <= hit->getR())) {
           if (extendingTrack)
@@ -1647,13 +1646,13 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
         hits.push_back((*extension)[cell]->getEnd());
       }
 
-      if (itTrack == 0) {
+      /*if (itTrack == 0) {
         for (size_t th = 0; th < hits.size(); th++) {
           streamlog_out(DEBUG7) << "Extension 0. Hit " << th << " u = " << hits[th]->getU() << " v = " << hits[th]->getV()
                                 << " x = " << hits[th]->getX() << " y = " << hits[th]->getY() << " z = " << hits[th]->getZ()
                                 << std::endl;
         }
-      }
+      }*/
 
       UKDTrack extendedTrack = std::unique_ptr<KDTrack>(new KDTrack());
       for (unsigned int i = 0; i < hits.size(); i++)
@@ -1672,8 +1671,9 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
     if (lowestChi2Track == nullptr)
       continue;
 
-    std::cout << "Track chi2 is " << track->chi2ndof() << ", zs is " << track->chi2ndofZS() << std::endl;
-    std::cout << "Best chi2 is " << lowestChi2Track->chi2ndof() << ", zs is " << lowestChi2Track->chi2ndofZS() << std::endl;
+    streamlog_out(DEBUG7) << "Track chi2 is " << track->chi2ndof() << ", zs is " << track->chi2ndofZS() << std::endl;
+    streamlog_out(DEBUG7) << "Best chi2 is " << lowestChi2Track->chi2ndof() << ", zs is " << lowestChi2Track->chi2ndofZS()
+                          << std::endl;
 
     double existingChi2 = sqrt(track->chi2ndof() * track->chi2ndof() + track->chi2ndofZS() * track->chi2ndofZS());
     if (lowestChi2ndof < (existingChi2 + 10.)) {
