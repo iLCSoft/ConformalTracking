@@ -166,6 +166,7 @@ public:
   int  getSide() const { return m_side; }
   int  getLayer() const { return m_layer; }
   bool forward() const { return m_forward; }
+  bool endcap() const { return m_endcap; }
 
   // Check if another hit is on the same detecting layer
   bool sameLayer(std::shared_ptr<KDCluster> const& kdhit) const {
