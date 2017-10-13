@@ -1458,8 +1458,8 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
         searchDistance = 1.2 * hit->getR();
 
       // Extrapolate along the cell and then make a 2D nearest neighbour search at this extrapolated point
-      SKDCluster fakeHit = extrapolateCell(cells[itCell], searchDistance / 2.,
-                                           vertexToTracker);  // TODO: make this search a function of radius
+      SKDCluster fakeHit =
+          extrapolateCell(cells[itCell], searchDistance / 2.);  // TODO: make this search a function of radius
       SharedKDClusters results;
       nearestNeighbours->allNeighboursInRadius(fakeHit, 1.25 * searchDistance / 2., results);
 
@@ -1897,7 +1897,7 @@ void ConformalTracking::updateCell(SCell cell) {
 
 // Function to extrapolate along a cell in conformal space, producing a fake hit
 // a given distance away from the cell endpoint
-SKDCluster ConformalTracking::extrapolateCell(SCell const& cell, double distance, bool vertexToTracker) {
+SKDCluster ConformalTracking::extrapolateCell(SCell const& cell, double distance) {
   // Fake cluster to be returned
   SKDCluster extrapolatedCluster = std::make_shared<KDCluster>();
 

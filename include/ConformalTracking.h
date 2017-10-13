@@ -69,7 +69,7 @@ public:
   // Pattern recognition algorithms:
 
   // Cell creation
-  SKDCluster extrapolateCell(Cell::SCell const&, double, bool vertexToTracker = true);
+  SKDCluster extrapolateCell(Cell::SCell const&, double);
   void extendSeedCells(SharedCells&, UKDTree&, bool, const SharedKDClusters&, bool vertexToTracker = true);
 
   // Track finding
