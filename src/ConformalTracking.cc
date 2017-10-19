@@ -627,36 +627,12 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   m_maxCellAngle       = maxCellAngle * 10.;
   m_maxCellAngleRZ     = maxCellAngleRZ * 10.;
   m_chi2cut            = chi2cut * 10.;
-  m_minClustersOnTrack = 4;
+  m_minClustersOnTrack = 5;
 
   m_highPTfit     = false;
   m_onlyZSchi2cut = true;
 
-  std::vector<int> allHits = {0, 1, 2, 4};
-  /*
-  stopwatch->Start(false);
-  combineCollections(kdClusters, nearestNeighbours, allHits, collectionClusters);
-  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, true);
-
-  // Mark hits from "good" tracks as being used
-  for (unsigned int itTrack = 0; itTrack < conformalTracks.size(); itTrack++) {
-    for (unsigned int itHit = 0; itHit < conformalTracks[itTrack]->m_clusters.size(); itHit++)
-      conformalTracks[itTrack]->m_clusters[itHit]->used(true);
-  }
-  stopwatch->Stop();
-  streamlog_out(DEBUG7) << "Building displaced tracks using vertex + inner tracker " << stopwatch->RealTime() << " seconds"
-                        << std::endl;
-  stopwatch->Reset();
-
-  trackerHits = {3, 5};
-  stopwatch->Start(false);
-  combineCollections(kdClusters, nearestNeighbours, trackerHits, collectionClusters);
-  extendTracks(conformalTracks, kdClusters, nearestNeighbours);
-  stopwatch->Stop();
-  streamlog_out(DEBUG7) << "Extending through trackers took " << stopwatch->RealTime() << " seconds" << std::endl;
-  stopwatch->Reset();
-  //*/
-  allHits = {0, 1, 2, 3, 4, 5};
+  std::vector<int> allHits = {0, 1, 2, 3, 4, 5};
   stopwatch->Start(false);
   combineCollections(kdClusters, nearestNeighbours, allHits, collectionClusters);
   buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, true, false);
@@ -798,8 +774,8 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       streamlog_out(DEBUG7) << "Fit fail error " << fitError << std::endl;
       continue;
     }  //*/
-    /*
-    for (unsigned int p = 0; p < trackHits.size(); p++) {
+
+    /*for (unsigned int p = 0; p < trackHits.size(); p++) {
       track->addHit(trackHits[p]);
     }  //*/
 
@@ -807,27 +783,24 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     track->subdetectorHitNumbers().resize(2 * lcio::ILDDetID::ETD);
     track->subdetectorHitNumbers()[2 * lcio::ILDDetID::VXD - 2] = trackHits.size();
 
+    // calculate purities and check if track has been reconstructed
+    if (m_debugPlots) {
+      m_conformalChi2->Fill(conformalTrack->chi2ndof());
+      streamlog_out(DEBUG7) << "-------------------- New TRACK --------------------" << std::endl;
+      //streamlog_out(DEBUG7) << " LCIO track fit chi2 is "<<track->getChi2()<<std::endl;
+      double purity = checkReal(conformalTrack, kdParticles, reconstructed, particleHits);
+      if (purity >= m_purity) {
+        m_conformalChi2real->Fill(conformalTrack->chi2ndof());
+      }
+      if (purity < m_purity) {
+        m_conformalChi2fake->Fill(conformalTrack->chi2ndof());
+      }
+      m_conformalChi2Purity->Fill(purity, conformalTrack->chi2ndof());
+    }
+
     // Push back to the output container
     trackCollection->addElement(track.release());
   }
-
-  // calculate purities and check if tracks have been reconstructed
-  if (m_debugPlots) {
-    for (size_t itrack = 0; itrack < conformalTracksFinal.size(); itrack++) {
-      UKDTrack& debugTrack = conformalTracksFinal[itrack];
-
-      m_conformalChi2->Fill(debugTrack->chi2ndof());
-      streamlog_out(DEBUG7) << "-------------------- New TRACK --------------------" << std::endl;
-      double purity = checkReal(debugTrack, kdParticles, reconstructed, particleHits);
-      if (purity >= m_purity) {
-        m_conformalChi2real->Fill(debugTrack->chi2ndof());
-      }
-      if (purity < m_purity) {
-        m_conformalChi2fake->Fill(debugTrack->chi2ndof());
-      }
-      m_conformalChi2Purity->Fill(purity, debugTrack->chi2ndof());
-    }
-  }  //*/
 
   // Draw the cells for all produced tracks
   if (m_debugPlots && m_eventNumber == 0) {
@@ -1188,6 +1161,12 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
         bestTracks[itTrack].reset();
         continue;
       }
+
+      // temp cut to attack fake tracks
+      //if( m_onlyZSchi2cut && bestTracks[itTrack]->clusters().size() == 4 && bestTracks[itTrack]->chi2ndof() > 100. ){
+      //  bestTracks[itTrack].reset();
+      //  continue;
+      //}
 
       // Check if the new track is a clone
       bool clone = false;
@@ -2142,8 +2121,8 @@ double ConformalTracking::checkReal(UKDTrack& track, std::map<SKDCluster, MCPart
   streamlog_out(DEBUG7) << "Number of hits on track: " << nHits << ". Good hits: " << bestHits << ". Purity: " << purity
                         << ". Pt: " << sqrt(bestParticle->getMomentum()[0] * bestParticle->getMomentum()[0] +
                                             bestParticle->getMomentum()[1] * bestParticle->getMomentum()[1])
-                        << ". Track chi2/ndof: " << track->chi2ndof() << ". Chi2/ndof in SZ fit: " << track->chi2ndofZS()
-                        << std::endl;
+                        << ". Pt estimate: " << track->pt() << ". Track chi2/ndof: " << track->chi2ndof()
+                        << ". Chi2/ndof in SZ fit: " << track->chi2ndofZS() << std::endl;
 
   // Check the track pt estimate
   TLorentzVector mc_helper;
