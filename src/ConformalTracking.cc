@@ -74,6 +74,11 @@ ConformalTracking aConformalTracking;
  
  */
 
+class TooManyTracksException : public marlin::SkipEventException {
+public:
+  TooManyTracksException(Processor* proc) : marlin::SkipEventException(proc) {}
+};
+
 ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
   // Processor description
   _description = "ConformalTracking constructs tracks using a combined conformal mapping and cellular automaton approach.";
@@ -622,12 +627,28 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
   // Finally reconstruct displaced tracks
 
-  Parameters displacedParameters(m_maxCellAngle * 10., m_maxCellAngleRZ * 10., m_chi2cut * 10., 5, 0.015, false, true);
-
   std::vector<int> allHits = {0, 1, 2, 3, 4, 5};
   stopwatch->Start(false);
   combineCollections(kdClusters, nearestNeighbours, allHits, collectionClusters);
-  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, displacedParameters, true, false);
+  double factor          = 10;
+  bool   caughtException = false;
+  do {
+    caughtException = false;
+    try {
+      Parameters displacedParameters(m_maxCellAngle * factor, m_maxCellAngleRZ * factor, m_chi2cut * factor, 5, 0.015, false,
+                                     true);
+      streamlog_out(DEBUG8) << "Building new tracks displaced: " << factor << std::endl;
+      buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, displacedParameters, true, false);
+    } catch (TooManyTracksException& e) {
+      streamlog_out(MESSAGE) << "caught too many tracks, tightening parameters" << std::endl;
+      caughtException = true;
+      factor -= 1;
+      if (factor <= 0) {
+        streamlog_out(ERROR) << "Skipping event" << std::endl;
+        throw;
+      }
+    }
+  } while (caughtException);
 
   // Mark hits from "good" tracks as being used
   for (unsigned int itTrack = 0; itTrack < conformalTracks.size(); itTrack++) {
@@ -1678,7 +1699,7 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
     if (nTracks > 5e5) {
       streamlog_out(ERROR) << "Too many tracks (" << nTracks << " > 1e6) are going to be created, skipping this event"
                            << std::endl;
-      throw marlin::SkipEventException(this);
+      throw TooManyTracksException(this);
     }
     for (int itTrack = 0; itTrack < nTracks; itTrack++) {
       // If the track is finished, do nothing
