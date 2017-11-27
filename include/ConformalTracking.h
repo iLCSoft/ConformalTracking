@@ -38,6 +38,27 @@ using namespace marlin;
 using namespace AIDA;
 
 class ConformalTracking : public Processor {
+  struct Parameters {
+  public:
+    double _maxCellAngle;
+    double _maxCellAngleRZ;
+    double _chi2cut;
+    int    _minClustersOnTrack;
+    double _maxDistance;
+    bool   _highPTfit;
+    bool   _onlyZSchi2cut;
+    Parameters(double maxCellAngle, double maxCellAngleRZ, double chi2cut, int minClustersOnTrack, double maxDistance,
+               bool highPTfit, bool onlyZSchi2cut)
+        : _maxCellAngle(maxCellAngle),
+          _maxCellAngleRZ(maxCellAngleRZ),
+          _chi2cut(chi2cut),
+          _minClustersOnTrack(minClustersOnTrack),
+          _maxDistance(maxDistance),
+          _highPTfit(highPTfit),
+          _onlyZSchi2cut(onlyZSchi2cut) {}
+    Parameters(Parameters const& rhs) = default;
+  };
+
 public:
   virtual Processor* newProcessor() { return new ConformalTracking; }
 
@@ -70,21 +91,23 @@ public:
 
   // Cell creation
   SKDCluster extrapolateCell(Cell::SCell const&, double);
-  void extendSeedCells(SharedCells&, UKDTree&, bool, const SharedKDClusters&, bool vertexToTracker = true);
+  void       extendSeedCells(SharedCells&, UKDTree&, bool, const SharedKDClusters&, Parameters const&,
+                       bool vertexToTracker = true);
 
   // Track finding
-  void buildNewTracks(UniqueKDTracks&, SharedKDClusters&, UKDTree&, bool radialSearch = false, bool vertexToTracker = true);
-  void extendTracks(UniqueKDTracks&, SharedKDClusters&, UKDTree&);
+  void buildNewTracks(UniqueKDTracks&, SharedKDClusters&, UKDTree&, Parameters const&, bool radialSearch = false,
+                      bool vertexToTracker = true);
+  void extendTracks(UniqueKDTracks&, SharedKDClusters&, UKDTree&, Parameters const&);
   void combineCollections(SharedKDClusters&, UKDTree&, std::vector<int> const&, std::map<int, SharedKDClusters> const&);
 
-  void extendHighPT(UniqueKDTracks&, SharedKDClusters&, UKDTree&, bool radialSearch = false);
+  void extendHighPT(UniqueKDTracks&, SharedKDClusters&, UKDTree&, Parameters const&, bool radialSearch = false);
 
   void createTracksNew(UniqueCellularTracks&, Cell::SCell&, std::map<Cell::SCell, bool>&);
   bool toBeUpdated(UniqueCellularTracks const&);
   void updateCell(Cell::SCell);
 
   // Track fitting
-  void getFittedTracks(UniqueKDTracks&, UniqueCellularTracks&, std::map<Cell::SCell, bool>&);
+  void getFittedTracks(UniqueKDTracks&, UniqueCellularTracks&, std::map<Cell::SCell, bool>&, Parameters const&);
   void getLowestChi2(UniqueKDTracks&, UniqueKDTracks&);
 
   double fitWithoutPoint(KDTrack, int);
@@ -100,8 +123,8 @@ public:
   double checkReal(UKDTrack&, std::map<SKDCluster, MCParticle*>, std::map<MCParticle*, bool>&,
                    std::map<MCParticle*, SharedKDClusters>);
   int  getUniqueHits(SharedKDClusters);
-  void checkReconstructionFailure(MCParticle*, std::map<MCParticle*, SharedKDClusters>, UKDTree&);
-  void checkUnallowedTracks(UniqueCellularTracks);
+  void checkReconstructionFailure(MCParticle*, std::map<MCParticle*, SharedKDClusters>, UKDTree&, Parameters const&);
+  void checkUnallowedTracks(UniqueCellularTracks, Parameters const&);
 
 protected:
   // Collection names for (in/out)put
@@ -183,8 +206,6 @@ protected:
   double            m_purity             = 0.0;
   SKDCluster        debugSeed            = nullptr;
   ConformalDebugger m_debugger{};
-  bool              m_highPTfit     = false;
-  bool              m_onlyZSchi2cut = false;
 };
 
 // ---------------------------
