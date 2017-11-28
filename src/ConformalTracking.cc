@@ -1483,21 +1483,20 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
 
         // Check if this cell already exists (rejoining branch) FIXME - allows rejoining a branch without checking cell angles
         if (existingCells.count(hit) != 0) {
-          bool alreadyExists  = false;
-          int  nExistingCells = existingCells[hit].size();
-          for (int iterExisting = 0; iterExisting < nExistingCells; iterExisting++) {
-            if (existingCells[hit][iterExisting]->getEnd() == nhit) {
+          bool alreadyExists = false;
+          for (auto const& existingCell : existingCells[hit]) {
+            if (existingCell->getEnd() == nhit) {
               alreadyExists = true;
 
               // Check if cell angle is too large to rejoin
-              if (cells[itCell]->getAngle(existingCells[hit][iterExisting]) > parameters._maxCellAngle ||
-                  cells[itCell]->getAngleRZ(existingCells[hit][iterExisting]) > parameters._maxCellAngleRZ)
+              if (cells[itCell]->getAngle(existingCell) > parameters._maxCellAngle ||
+                  cells[itCell]->getAngleRZ(existingCell) > parameters._maxCellAngleRZ)
                 continue;
 
               // Otherwise add the path
-              cells[itCell]->setTo(existingCells[hit][iterExisting]);
-              existingCells[hit][iterExisting]->setFrom(cells[itCell]);
-              updateCell(existingCells[hit][iterExisting]);
+              cells[itCell]->setTo(existingCell);
+              existingCell->setFrom(cells[itCell]);
+              updateCell(existingCell);
             }
           }
           if (alreadyExists)
