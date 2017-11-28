@@ -1016,9 +1016,9 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
       }
 
       // Check if the cell would be too long (hit very far away)
-      double length = sqrt((kdhit->getU() - nhit->getU()) * (kdhit->getU() - nhit->getU()) +
-                           (kdhit->getV() - nhit->getV()) * (kdhit->getV() - nhit->getV()));
-      if (length > parameters._maxDistance) {
+      double length2 = ((kdhit->getU() - nhit->getU()) * (kdhit->getU() - nhit->getU()) +
+                        (kdhit->getV() - nhit->getV()) * (kdhit->getV() - nhit->getV()));
+      if (length2 > parameters._maxDistance * parameters._maxDistance) {
         continue;
       }
       // Create the new seed cell
