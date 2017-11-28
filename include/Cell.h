@@ -60,8 +60,8 @@ public:
   }
 
   // Start and end points of the cell
-  SKDCluster getStart() const { return m_start; }
-  SKDCluster getEnd() const { return m_end; }
+  SKDCluster const& getStart() const { return m_start; }
+  SKDCluster const& getEnd() const { return m_end; }
 
   // Increment the cell weight (usually if the chain length is extended upstream of this cell)
   void update(SCell const& cell2) {
