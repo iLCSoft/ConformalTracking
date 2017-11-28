@@ -1534,9 +1534,9 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
 void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDClusters& /*collection*/,
                                      UKDTree& nearestNeighbours, Parameters const& parameters, bool /*radialSearch*/) {
   // Set the cell angle criteria for high pt tracks
-  m_maxCellAngle   = 0.005;
-  m_maxCellAngleRZ = 0.005;
   Parameters highPTParameters(parameters);
+  highPTParameters._maxCellAngle   = 0.005;
+  highPTParameters._maxCellAngleRZ = 0.005;
 
   // Loop over all tracks
   int nTracks = conformalTracks.size();
