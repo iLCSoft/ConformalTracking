@@ -124,8 +124,6 @@ void KDTree::transformResults(KDTreeResultVector& vec, SharedKDClusters& result)
   const KDTreeResultVector::const_iterator end  = vec.end();
   //const SharedKDClusters::const_iterator         end2 = det.end();
 
-  SKDCluster res;
-
   // Assign back the z value to the NN cluster
   for (; iter != end; ++iter) {
     int idx = iter->idx;
@@ -146,8 +144,7 @@ void KDTree::transformResults(KDTreeResultVector& vec, SharedKDClusters& result)
 
 		}
 		//*/
-    res = det[idx];
-    result.push_back(res);
+    result.push_back(det[idx]);
   }
 }
 
