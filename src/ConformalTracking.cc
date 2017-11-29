@@ -1588,7 +1588,6 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
     extendSeedCells(cells, nearestNeighbours, false, debugHits, highPTParameters);
 
     // Now make all possible track extensions
-    std::map<SCell, bool> usedCells;
     std::map<SCell, bool> usedCells2;
     UniqueCellularTracks extensions;
 
@@ -1601,10 +1600,6 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
     // Create tracks by following a path along cells
     int nCells = cells.size();
     for (int itCell = 0; itCell < nCells; itCell++) {
-      // Check if this cell has already been used
-      if (usedCells.count(cells[itCell]))
-        continue;
-
       // Produce all tracks leading back to the seed hit from this cell
       UniqueCellularTracks extensionsTemp;
       createTracksNew(extensionsTemp, cells[itCell], usedCells2);  // Move back to using used cells here? With low chi2/ndof?
