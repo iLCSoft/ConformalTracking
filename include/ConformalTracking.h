@@ -82,7 +82,7 @@ public:
   virtual void end();
 
   // Call to get collections
-  void getCollection(LCCollection*&, std::string, LCEvent*);
+  void getCollection(LCCollection*&, std::string const&, LCEvent*);
 
   // Plotting function for displaying cells
   void drawline(SKDCluster const&, SKDCluster const&, int, int style = 1);
