@@ -1527,7 +1527,7 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
         cell->setFrom(cells[itCell]);
         cells[itCell]->setTo(cell);
         cells.push_back(cell);
-        existingCells[hit].push_back(cell);
+        existingCells[hit].push_back(std::move(cell));
 
         // Debug plotting
         //        if(m_debugPlots && m_eventNumber == 0){
