@@ -2040,7 +2040,7 @@ double ConformalTracking::fitWithoutPoint(KDTrack track, int point) {
 //===================================
 
 // Get a collection from the event object
-void ConformalTracking::getCollection(LCCollection*& collection, std::string collectionName, LCEvent* evt) {
+void ConformalTracking::getCollection(LCCollection*& collection, std::string const& collectionName, LCEvent* evt) {
   try {
     collection = evt->getCollection(collectionName);
   } catch (DataNotAvailableException& e) {
