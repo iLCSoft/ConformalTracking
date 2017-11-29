@@ -1574,7 +1574,7 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
     int  nclusters = track->m_clusters.size();
     auto seedCell  = std::make_shared<Cell>(track->m_clusters[nclusters - 2], track->m_clusters[nclusters - 1]);
 
-    SharedKDClusters trackHits = track->m_clusters;
+    SharedKDClusters const& trackHits = track->m_clusters;
     for (size_t th = 0; th < trackHits.size(); th++) {
       streamlog_out(DEBUG7) << "Hit " << th << " u = " << trackHits[th]->getU() << " v = " << trackHits[th]->getV()
                             << " x = " << trackHits[th]->getX() << " y = " << trackHits[th]->getY()
