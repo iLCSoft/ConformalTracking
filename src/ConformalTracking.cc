@@ -991,7 +991,7 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
     // Make seed cells pointing inwards/outwards (conformal space)
     for (unsigned int neighbour = 0; neighbour < results.size(); neighbour++) {
       // Get the neighbouring hit
-      SKDCluster nhit = results[neighbour];
+      SKDCluster const& nhit = results[neighbour];
 
       // Check that it is not used, is not on the same detector layer, is not in the opposite side of the detector and points inwards
       if (nhit->used()) {
@@ -1443,7 +1443,7 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
         searchDistance = 1.2 * hit->getR();
 
       // Extrapolate along the cell and then make a 2D nearest neighbour search at this extrapolated point
-      SKDCluster fakeHit =
+      SKDCluster const& fakeHit =
           extrapolateCell(cells[itCell], searchDistance / 2.);  // TODO: make this search a function of radius
       SharedKDClusters results;
       nearestNeighbours->allNeighboursInRadius(fakeHit, 1.25 * searchDistance / 2., results);
@@ -1458,7 +1458,7 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
       // Make new cells pointing inwards
       for (unsigned int neighbour = 0; neighbour < results.size(); neighbour++) {
         // Get the neighbouring hit
-        SKDCluster nhit = results[neighbour];
+        SKDCluster const& nhit = results[neighbour];
 
         if (extendingTrack)
           streamlog_out(DEBUG7) << "looking at neighbour " << neighbour << " at u,v: " << nhit->getU() << "," << nhit->getV()
