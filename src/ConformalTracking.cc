@@ -1449,7 +1449,16 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
       SKDCluster const& fakeHit =
           extrapolateCell(cells[itCell], searchDistance / 2.);  // TODO: make this search a function of radius
       SharedKDClusters results;
-      nearestNeighbours->allNeighboursInRadius(fakeHit, 1.25 * searchDistance / 2., results);
+      nearestNeighbours->allNeighboursInRadius(
+          fakeHit, 0.625 * searchDistance, results, [&hit, vertexToTracker](SKDCluster const& nhit) {
+            if (hit->sameLayer(nhit))
+              return true;
+            if (nhit->endcap() && hit->endcap() && (nhit->forward() != hit->forward()))
+              return true;
+            if ((vertexToTracker && nhit->getR() >= hit->getR()) || (!vertexToTracker && nhit->getR() <= hit->getR()))
+              return true;
+            return false;
+          });
 
       if (extendingTrack) {
         streamlog_out(DEBUG7) << "Extrapolating cell " << itCell << " from u,v: " << hit->getU() << "," << hit->getV()
@@ -1471,18 +1480,18 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
         //        if(used.count(nhit)){if(extendingTrack)streamlog_out(DEBUG7)<<"- used"<<std::endl; continue;}
         if (nhit->used())
           continue;
-        if (hit->sameLayer(nhit)) {
-          if (extendingTrack)
-            streamlog_out(DEBUG7) << "- same layer" << std::endl;
-          continue;
-        }
-        if (nhit->endcap() && hit->endcap() && (nhit->forward() != hit->forward()))
-          continue;
-        if ((vertexToTracker && nhit->getR() >= hit->getR()) || (!vertexToTracker && nhit->getR() <= hit->getR())) {
-          if (extendingTrack)
-            streamlog_out(DEBUG7) << "- " << (vertexToTracker ? "higher radius" : "lower radius") << std::endl;
-          continue;
-        }
+        // if (hit->sameLayer(nhit)) {
+        //   if (extendingTrack)
+        //     streamlog_out(DEBUG7) << "- same layer" << std::endl;
+        //   continue;
+        // }
+        // if (nhit->endcap() && hit->endcap() && (nhit->forward() != hit->forward()))
+        //   continue;
+        // if ((vertexToTracker && nhit->getR() >= hit->getR()) || (!vertexToTracker && nhit->getR() <= hit->getR())) {
+        //   if (extendingTrack)
+        //     streamlog_out(DEBUG7) << "- " << (vertexToTracker ? "higher radius" : "lower radius") << std::endl;
+        //   continue;
+        // }
 
         // Check if this cell already exists (rejoining branch) FIXME - allows rejoining a branch without checking cell angles
         auto const& existingCellsForHit = existingCells.find(hit);

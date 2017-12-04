@@ -4,6 +4,7 @@
 #include <boost/array.hpp>
 #include <boost/multi_array.hpp>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <iosfwd>
 #include <iostream>
@@ -44,14 +45,20 @@ public:
   KDTree(const KDTree&) = delete;
   KDTree& operator=(const KDTree&) = delete;
 
-  void nearestNeighbours(SKDCluster pt, int N, SharedKDClusters& result);
-  void allNeighboursInRadius(SKDCluster pt, const double radius, SharedKDClusters& result);
-  void allNeighboursInTheta(SKDCluster pt, const double thetaRange, SharedKDClusters& result);
-  void allNeighboursInTheta(double theta, const double thetaRange, SharedKDClusters& result);
+  void nearestNeighbours(SKDCluster pt, int N, SharedKDClusters& result,
+                         std::function<bool(SKDCluster const&)> filter = [](SKDCluster const&) { return false; });
+  void allNeighboursInRadius(SKDCluster pt, const double radius, SharedKDClusters& result,
+                             std::function<bool(SKDCluster const&)> filter = [](SKDCluster const&) { return false; });
+  void allNeighboursInTheta(SKDCluster pt, const double thetaRange, SharedKDClusters& result,
+                            std::function<bool(SKDCluster const&)> filter = [](SKDCluster const&) { return false; });
+  void allNeighboursInTheta(double theta, const double thetaRange, SharedKDClusters& result,
+                            std::function<bool(SKDCluster const&)> filter = [](SKDCluster const&) { return false; });
 
 private:
-  void transformResults(KDTreeResultVector& vec, SharedKDClusters& result);
-  void transformThetaResults(KDTreeResultVector& vec, SharedKDClusters& result);
+  void transformResults(KDTreeResultVector& vec, SharedKDClusters& result,
+                        std::function<bool(SKDCluster const&)> filter = [](SKDCluster const&) { return false; });
+  void transformThetaResults(KDTreeResultVector& vec, SharedKDClusters& result,
+                             std::function<bool(SKDCluster const&)> filter = [](SKDCluster const&) { return false; });
 
   static const int k;
   boost::multi_array<double, 2> array{};

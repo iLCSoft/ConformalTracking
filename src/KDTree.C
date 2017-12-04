@@ -61,7 +61,8 @@ KDTree::~KDTree() {
 
 bool distComparator(const kdtree2::KDTreeResult& a, const kdtree2::KDTreeResult& b) { return (a.dis < b.dis); }
 
-void KDTree::nearestNeighbours(SKDCluster pt, int N, SharedKDClusters& result) {
+void KDTree::nearestNeighbours(SKDCluster pt, int N, SharedKDClusters& result,
+                               std::function<bool(SKDCluster const&)> filter) {
   // Search kdtree for N points around query pt
   KDTreeResultVector  vec;
   std::vector<double> qv(2);
@@ -70,10 +71,11 @@ void KDTree::nearestNeighbours(SKDCluster pt, int N, SharedKDClusters& result) {
   tree->n_nearest(qv, N, vec);
 
   // Sort and transform results
-  this->transformResults(vec, result);
+  this->transformResults(vec, result, filter);
 }
 
-void KDTree::allNeighboursInRadius(SKDCluster pt, const double radius, SharedKDClusters& result) {
+void KDTree::allNeighboursInRadius(SKDCluster pt, const double radius, SharedKDClusters& result,
+                                   std::function<bool(SKDCluster const&)> filter) {
   // Search kdtree for all points in radius
   KDTreeResultVector  vec;
   std::vector<double> qv{float(pt->getU()), float(pt->getV())};  // should be 2 if using (x,y)-plane
@@ -81,10 +83,11 @@ void KDTree::allNeighboursInRadius(SKDCluster pt, const double radius, SharedKDC
   tree->r_nearest(qv, radius * radius, vec);
 
   // Sort and transform results
-  this->transformResults(vec, result);
+  this->transformResults(vec, result, filter);
 }
 
-void KDTree::allNeighboursInTheta(SKDCluster pt, const double thetaRange, SharedKDClusters& result) {
+void KDTree::allNeighboursInTheta(SKDCluster pt, const double thetaRange, SharedKDClusters& result,
+                                  std::function<bool(SKDCluster const&)> filter) {
   // Search kdtree for all points in radius
   KDTreeResultVector  vec;
   std::vector<double> qv(2);  // should be 2 if using (x,y)-plane
@@ -94,10 +97,11 @@ void KDTree::allNeighboursInTheta(SKDCluster pt, const double thetaRange, Shared
   treeTheta->r_nearest(qv, thetaRange * thetaRange, vec);
 
   // Sort and transform results
-  this->transformThetaResults(vec, result);
+  this->transformThetaResults(vec, result, filter);
 }
 
-void KDTree::allNeighboursInTheta(double theta, const double thetaRange, SharedKDClusters& result) {
+void KDTree::allNeighboursInTheta(double theta, const double thetaRange, SharedKDClusters& result,
+                                  std::function<bool(SKDCluster const&)> filter) {
   // Search kdtree for all points in radius
   KDTreeResultVector  vec;
   std::vector<double> qv(2);  // should be 2 if using (x,y)-plane
@@ -107,68 +111,57 @@ void KDTree::allNeighboursInTheta(double theta, const double thetaRange, SharedK
   treeTheta->r_nearest(qv, thetaRange * thetaRange, vec);
 
   // Sort and transform results
-  this->transformThetaResults(vec, result);
+  this->transformThetaResults(vec, result, filter);
 }
 
-void KDTree::transformResults(KDTreeResultVector& vec, SharedKDClusters& result) {
+void KDTree::transformResults(KDTreeResultVector& vec, SharedKDClusters& result,
+                              std::function<bool(SKDCluster const&)> filter) {
+  KDTreeResultVector filtered;
+  filtered.reserve(vec.size());
+  for (auto const& entry : vec) {
+    if (filter(det[entry.idx])) {
+      continue;
+    }
+    filtered.push_back(entry);
+  }
+
   // Transform results to our SharedKDClusters format
-  if (vec.size() > 1 && sortTreeResults) {
-    std::sort(vec.begin(), vec.end(), distComparator);
+  if (filtered.size() > 1 && sortTreeResults) {
+    std::sort(filtered.begin(), filtered.end(), distComparator);
+  }
+  result.clear();
+  result.reserve(filtered.size());
+
+  for (auto const& entry : filtered) {
+    result.push_back(det[entry.idx]);
+  }
+}
+
+void KDTree::transformThetaResults(KDTreeResultVector& vec, SharedKDClusters& result,
+                                   std::function<bool(SKDCluster const&)> filter) {
+  KDTreeResultVector filtered;
+  filtered.reserve(vec.size());
+  for (auto const& entry : vec) {
+    if (filter(det[entry.idx])) {
+      continue;
+    }
+    filtered.push_back(entry);
+  }
+
+  if (filtered.size() > 1 && sortTreeResults) {
+    std::sort(filtered.begin(), filtered.end(), distComparator);
   }
 
   result.clear();
-  result.reserve(vec.size());
-
-  KDTreeResultVector::const_iterator       iter = vec.begin();
-  const KDTreeResultVector::const_iterator end  = vec.end();
-  //const SharedKDClusters::const_iterator         end2 = det.end();
+  result.reserve(filtered.size());
 
   // Assign back the z value to the NN cluster
-  for (; iter != end; ++iter) {
-    int idx = iter->idx;
+  for (auto const& entry : filtered) {
+    int idx = entry.idx;
     //res.first->globalX(array[idx][0]);
     //res.first->globalY(array[idx][1]);
 
     //int check(0);
-    /*
-		for(SharedKDClusters::const_iterator it = det.begin(); it != end2; ++it)
-		{
-			if (array[idx][0] == (*it)->getU() && array[idx][1] == (*it)->getV() )
-			{
-				//double z = it->globalZ();
-				res = (*it);
-				// once assigned no need to continue looping fo 1NN
-				if(k==1)break;
-			}
-
-		}
-		//*/
-    result.push_back(det[idx]);
-  }
-}
-
-void KDTree::transformThetaResults(KDTreeResultVector& vec, SharedKDClusters& result) {
-  // Transform results to our SharedKDClusters format
-  if (vec.size() > 1)
-    std::sort(vec.begin(), vec.end(), distComparator);
-  result.clear();
-  result.reserve(vec.size());
-
-  KDTreeResultVector::const_iterator       iter = vec.begin();
-  const KDTreeResultVector::const_iterator end  = vec.end();
-  //const SharedKDClusters::const_iterator         end2 = det.end();
-
-  SKDCluster res;
-
-  // Assign back the z value to the NN cluster
-  for (; iter != end; ++iter) {
-    int idx = iter->idx;
-    //res.first->globalX(array[idx][0]);
-    //res.first->globalY(array[idx][1]);
-
-    //int check(0);
-    res = thetaLookup[arrayTheta[idx][0]];
-
     //    for(SharedKDClusters::const_iterator it = det.begin(); it != end2; ++it)
     //    {
     //      if (arrayTheta[idx][0] == (*it)->getTheta())
@@ -181,6 +174,6 @@ void KDTree::transformThetaResults(KDTreeResultVector& vec, SharedKDClusters& re
     //
     //    }
 
-    result.push_back(res);
+    result.push_back(thetaLookup[arrayTheta[idx][0]]);
   }
 }
