@@ -1439,8 +1439,8 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
     nCells = cells.size();
     for (unsigned int itCell = startPos; itCell < nCells; itCell++) {
       // Get the end point of the cell (to search for neighbouring hits to form new cells connected to this one)
-      SKDCluster hit            = cells[itCell]->getEnd();
-      double     searchDistance = parameters._maxDistance;  //hit->getR();
+      SKDCluster const& hit            = cells[itCell]->getEnd();
+      double            searchDistance = parameters._maxDistance;  //hit->getR();
       if (searchDistance > hit->getR())
         searchDistance = 1.2 * hit->getR();
 
@@ -1484,9 +1484,10 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
         }
 
         // Check if this cell already exists (rejoining branch) FIXME - allows rejoining a branch without checking cell angles
-        if (existingCells.count(hit) != 0) {
+        auto const& existingCellsForHit = existingCells.find(hit);
+        if (existingCellsForHit != existingCells.end()) {
           bool alreadyExists = false;
-          for (auto const& existingCell : existingCells[hit]) {
+          for (auto const& existingCell : existingCellsForHit->second) {
             if (existingCell->getEnd() == nhit) {
               alreadyExists = true;
 
@@ -2273,7 +2274,8 @@ void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
     //    if(searchDistance > trackHits[hitNumber]->getR()) searchDistance = trackHits[hitNumber]->getR();
 
     // Extrapolate along the cell and then make a 2D nearest neighbour search at this extrapolated point
-    SKDCluster fakeHit = extrapolateCell(cells.back(), searchDistance / 2.);  // TODO: make this search a function of radius
+    SKDCluster const& fakeHit =
+        extrapolateCell(cells.back(), searchDistance / 2.);  // TODO: make this search a function of radius
     SharedKDClusters results2;
     nearestNeighbours->allNeighboursInRadius(fakeHit, 1.25 * searchDistance / 2., results2);
 
