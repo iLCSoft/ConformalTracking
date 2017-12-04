@@ -377,14 +377,11 @@ namespace kdtree2 {
     result.clear();
 
     for (int i = 0; i < N; ++i) {
-      double       dis = 0.0;
-      KDTreeResult e;
+      double dis = 0.0;
       for (int j = 0; j < dim; ++j) {
         dis += squared(the_data[i][j] - qv[j]);
       }
-      e.dis = dis;
-      e.idx = i;
-      result.push_back(e);
+      result.emplace_back(dis, i);
     }
     sort(result.begin(), result.end());
   }
@@ -679,9 +676,7 @@ namespace kdtree2 {
       // undersized, or it is not.
       //
       if (sr.result.size() < nn) {
-        KDTreeResult e;
-        e.idx = indexofi;
-        e.dis = dis;
+        KDTreeResult e(dis, indexofi);
         sr.result.push_element_and_heapify(e);
         if (debug)
           streamlog_out(DEBUG) << "unilaterally pushed dis=" << dis;
@@ -698,9 +693,7 @@ namespace kdtree2 {
         // distance smaller
         // than the last on the list, and belongs on the list.
         //
-        KDTreeResult e;
-        e.idx    = indexofi;
-        e.dis    = dis;
+        KDTreeResult e(dis, indexofi);
         ballsize = sr.result.replace_maxpri_elt_return_new_maxpri(e);
         if (debug) {
           streamlog_out(DEBUG) << "Replaced maximum dis with dis=" << dis << " new ballsize =" << ballsize << '\n';
@@ -768,10 +761,10 @@ namespace kdtree2 {
       }
 
       {
-        KDTreeResult e;
-        e.idx = indexofi;
-        e.dis = dis;
-        sr.result.push_back(e);
+        // KDTreeResult e;
+        // e.idx = indexofi;
+        // e.dis = dis;
+        sr.result.emplace_back(dis, indexofi);
       }
     }
   }
