@@ -85,13 +85,15 @@ public:
         m_endcap(endcap),
         m_forward(forward) {
     // Calculate conformal position in cartesian co-ordinates
-    const double radius2 = (m_x * m_x + m_y * m_y);
-    m_u                  = m_x / radius2;
-    m_v                  = m_y / radius2;
+    const double radius2    = (m_x * m_x + m_y * m_y);
+    const double radius2Inv = 1. / radius2;
+    const double radius     = sqrt(radius2);
+    m_u                     = m_x * radius2Inv;
+    m_v                     = m_y * radius2Inv;
     // Note the position in polar co-ordinates
-    m_r      = 1. / (sqrt(radius2));
+    m_r      = 1. / radius;
     m_theta  = atan2(m_v, m_u) + M_PI;
-    m_radius = sqrt(radius2);
+    m_radius = radius;
     // Get the error in the conformal (uv) plane
     // This is the xy error projected. Unfortunately, the
     // dU is not always aligned with the xy plane, it might
@@ -103,20 +105,22 @@ public:
       m_errorZ = hit->getdU();
     }
 
+    const double sinTheta = sin(m_theta);
+    const double cosTheta = cos(m_theta);
     if (endcap) {
-      m_errorU = (m_error * fabs(sin(m_theta)) + m_errorZ * fabs(cos(m_theta))) * (m_r * m_r);
-      m_errorV = (m_error * fabs(cos(m_theta)) + m_errorZ * fabs(sin(m_theta))) * (m_r * m_r);
-      m_errorX = m_error * sin(m_theta);
-      m_errorY = m_error * cos(m_theta);
+      m_errorU = (m_error * fabs(sinTheta) + m_errorZ * fabs(cosTheta)) * (m_r * m_r);
+      m_errorV = (m_error * fabs(cosTheta) + m_errorZ * fabs(sinTheta)) * (m_r * m_r);
+      m_errorX = m_error * sinTheta;
+      m_errorY = m_error * cosTheta;
 
       // Need to set endcap error in z!
       m_errorZ = 0.25;
 
     } else {
-      m_errorU = m_error * m_r * m_r * sin(m_theta);
-      m_errorV = m_error * m_r * m_r * cos(m_theta);
-      m_errorX = m_error * sin(m_theta);
-      m_errorY = m_error * cos(m_theta);
+      m_errorU = m_error * m_r * m_r * sinTheta;
+      m_errorV = m_error * m_r * m_r * cosTheta;
+      m_errorX = m_error * sinTheta;
+      m_errorY = m_error * cosTheta;
     }
   }
 
