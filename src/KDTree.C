@@ -12,8 +12,8 @@
 // will leave option in for now in nearestNeighbours(..., N,...);
 const int KDTree::k(1);
 
-KDTree::KDTree(const SharedKDClusters& pts, double overlapTheta)
-    : array(boost::extents[pts.size()][2]), arrayTheta(boost::extents[pts.size()][2]), det(pts) {
+KDTree::KDTree(const SharedKDClusters& pts, double overlapTheta, bool sort)
+    : array(boost::extents[pts.size()][2]), arrayTheta(boost::extents[pts.size()][2]), det(pts), sortTreeResults(sort) {
   // Fill multi_array
   SharedKDClusters::const_iterator       iter = det.begin();
   const SharedKDClusters::const_iterator end  = det.end();
@@ -112,8 +112,10 @@ void KDTree::allNeighboursInTheta(double theta, const double thetaRange, SharedK
 
 void KDTree::transformResults(KDTreeResultVector& vec, SharedKDClusters& result) {
   // Transform results to our SharedKDClusters format
-  if (vec.size() > 1)
+  if (vec.size() > 1 && sortTreeResults) {
     std::sort(vec.begin(), vec.end(), distComparator);
+  }
+
   result.clear();
   result.reserve(vec.size());
 

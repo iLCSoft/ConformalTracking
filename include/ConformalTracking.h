@@ -204,6 +204,7 @@ protected:
   int               m_minClustersOnTrack = 0;
   bool              m_debugPlots         = false;
   bool              m_retryTooManyTracks = true;
+  bool              m_sortTreeResults    = true;
   double            m_purity             = 0.0;
   SKDCluster        debugSeed            = nullptr;
   ConformalDebugger m_debugger{};

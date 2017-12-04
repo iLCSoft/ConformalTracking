@@ -38,7 +38,7 @@ class KDTree {
 public:
   typedef kdtree2::KDTreeResultVector KDTreeResultVector;
 
-  explicit KDTree(const SharedKDClusters& pts, double overlapTheta);
+  explicit KDTree(const SharedKDClusters& pts, double overlapTheta, bool sort);
   ~KDTree();
 
   KDTree(const KDTree&) = delete;
@@ -60,6 +60,7 @@ private:
   kdtree2::KDTree* treeTheta = nullptr;
   SharedKDClusters det{};
   std::map<double, SKDCluster> thetaLookup{};
+  bool sortTreeResults = true;
 };
 
 bool distComparator(const kdtree2::KDTreeResult& a, const kdtree2::KDTreeResult& b);
