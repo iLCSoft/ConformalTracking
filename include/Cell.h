@@ -40,7 +40,7 @@ public:
         m_end(hit2) {}
 
   // Destructor
-  virtual ~Cell() {}
+  ~Cell() {}
 
   // Weight of the cell (first cell in a chain has weight 0, and each subsequent link has weight +1)
   int  getWeight() const { return m_weight; }
