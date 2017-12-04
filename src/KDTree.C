@@ -13,11 +13,10 @@
 const int KDTree::k(1);
 
 KDTree::KDTree(const SharedKDClusters& pts, double overlapTheta)
-    : array(boost::extents[pts.size()][2]), arrayTheta(boost::extents[pts.size()][2]) {
+    : array(boost::extents[pts.size()][2]), arrayTheta(boost::extents[pts.size()][2]), det(pts) {
   // Fill multi_array
-  det                                         = pts;
-  SharedKDClusters::const_iterator       iter = pts.begin();
-  const SharedKDClusters::const_iterator end  = pts.end();
+  SharedKDClusters::const_iterator       iter = det.begin();
+  const SharedKDClusters::const_iterator end  = det.end();
   unsigned long                          idx(0);
   unsigned long                          idtheta(0);
 
