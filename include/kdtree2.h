@@ -42,6 +42,7 @@ namespace kdtree2 {
   public:
     double dis;  // its square Euclidean distance
     int    idx;  // which neighbor was found
+    KDTreeResult(double d, int i) : dis(d), idx(i) {}
   };
 
   class KDTreeResultVector : public std::vector<KDTreeResult> {
