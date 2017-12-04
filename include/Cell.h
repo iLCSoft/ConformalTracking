@@ -30,6 +30,7 @@ public:
   // Constructors, main initialisation is with two kd hits
   Cell() { m_weight = 0; }
   Cell(const Cell&) = delete;
+  Cell(Cell&&)      = default;
   Cell& operator=(const Cell&) = delete;
 
   Cell(SKDCluster const& hit1, SKDCluster const& hit2)
@@ -57,6 +58,13 @@ public:
   }
   double getAngleRZ(SCell const& cell2) const {
     return fabs(std::atan((cell2->getGradientRZ() - m_gradientRZ) / (1 + m_gradientRZ * cell2->getGradientRZ())));
+  }
+
+  double getAngle(Cell const& cell2) const {
+    return fabs(std::atan((cell2.getGradient() - m_gradient) / (1 + m_gradient * cell2.getGradient())));
+  }
+  double getAngleRZ(Cell const& cell2) const {
+    return fabs(std::atan((cell2.getGradientRZ() - m_gradientRZ) / (1 + m_gradientRZ * cell2.getGradientRZ())));
   }
 
   // Start and end points of the cell

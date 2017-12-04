@@ -1368,9 +1368,9 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
 
       // First check that the hit is not wildly away from the track (make cell and check angle)
       // SCell extensionCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[0],results2[newHit]);
-      auto   extensionCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[nclusters - 1], kdhit);
-      double cellAngle     = seedCell->getAngle(extensionCell);
-      double cellAngleRZ   = seedCell->getAngleRZ(extensionCell);
+      Cell   extensionCell(conformalTracks[currentTrack]->m_clusters[nclusters - 1], kdhit);
+      double cellAngle   = seedCell->getAngle(extensionCell);
+      double cellAngleRZ = seedCell->getAngleRZ(extensionCell);
       if (cellAngle > 3. * parameters._maxCellAngle || cellAngleRZ > 3. * parameters._maxCellAngleRZ) {
         if (associated)
           streamlog_out(DEBUG7) << "-- killed by cell angle cut" << std::endl;
@@ -1517,7 +1517,7 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
         }
 
         // Make the new cell
-        auto cell = std::make_shared<Cell>(hit, nhit);
+        Cell cell(hit, nhit);
         if (extendingTrack)
           streamlog_out(DEBUG7) << "- make new cell" << std::endl;
 
@@ -1536,11 +1536,12 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
           continue;
         }
 
+        auto scell = std::make_shared<Cell>(std::move(cell));
         // Set the information about which cell this new cell is attached to and store it
-        cell->setFrom(cells[itCell]);
-        cells[itCell]->setTo(cell);
-        cells.push_back(cell);
-        existingCells[hit].push_back(std::move(cell));
+        scell->setFrom(cells[itCell]);
+        cells[itCell]->setTo(scell);
+        cells.push_back(scell);
+        existingCells[hit].push_back(std::move(scell));
 
         // Debug plotting
         //        if(m_debugPlots && m_eventNumber == 0){
@@ -2325,7 +2326,7 @@ void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
 
     // Set the information about which cell this new cell is attached to and store it
     cell->setFrom(SCell(cells.back()));
-    cells.back()->setTo(SCell(cell));
+    cells.back()->setTo(cell);
     //    cell->setWeight(hitNumber);
     cells.push_back(cell);
 
