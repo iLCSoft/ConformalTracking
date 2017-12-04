@@ -24,8 +24,6 @@ FIND_PACKAGE( ILCUTIL REQUIRED COMPONENTS ILCSOFT_CMAKE_MODULES )
 # load default settings from ILCSOFT_CMAKE_MODULES
 INCLUDE( ilcsoft_default_settings )
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-
 FIND_PACKAGE( ROOT 5.27 REQUIRED COMPONENTS MathMore Minuit Minuit2)
 LINK_LIBRARIES( ${ROOT_COMPONENT_LIBRARIES} ${ROOT_LIBRARIES} )
 
@@ -96,6 +94,9 @@ ENDIF()
 # include directories
 INCLUDE_DIRECTORIES( ./include )
 #INSTALL_DIRECTORY( ./include DESTINATION . FILES_MATCHING PATTERN "*.h" )
+
+# Prevent O3 flag from being overwritten by something exporting O2 or worse
+ADD_DEFINITIONS(" -O3 ")
 
 # add library
 AUX_SOURCE_DIRECTORY( ./src library_sources )
