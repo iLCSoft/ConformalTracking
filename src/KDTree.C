@@ -76,9 +76,7 @@ void KDTree::nearestNeighbours(SKDCluster pt, int N, SharedKDClusters& result) {
 void KDTree::allNeighboursInRadius(SKDCluster pt, const double radius, SharedKDClusters& result) {
   // Search kdtree for all points in radius
   KDTreeResultVector  vec;
-  std::vector<double> qv(2);  // should be 2 if using (x,y)-plane
-  qv[0] = pt->getU();
-  qv[1] = pt->getV();
+  std::vector<double> qv{float(pt->getU()), float(pt->getV())};  // should be 2 if using (x,y)-plane
   //qv[2] = pt.z; // again remove if (x,y) plane only
   tree->r_nearest(qv, radius * radius, vec);
 
