@@ -1025,13 +1025,12 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
         continue;
       }
       // Create the new seed cell
-      auto cell = std::make_shared<Cell>(kdhit, nhit);
+      cells.emplace_back(std::make_shared<Cell>(kdhit, nhit));
+      auto const& cell = cells.back();
 
       //      if (cell->doca() > 0.01) {
       //        continue;
       //      }
-
-      cells.push_back(cell);
 
       if (debugSeed && kdhit == debugSeed)
         streamlog_out(DEBUG7) << "- made cell with neighbour " << neighbour << " at " << nhit->getU() << "," << nhit->getV()
