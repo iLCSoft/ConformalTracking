@@ -385,8 +385,8 @@ namespace kdtree2 {
   }
 
   void KDTree::n_nearest(std::vector<double>& qv, int nn, KDTreeResultVector& result) {
-    SearchRecord        sr(qv, *this, result);
-    std::vector<double> vdiff(dim, 0.0);
+    SearchRecord sr(qv, *this, result);
+    //std::vector<double> vdiff(dim, 0.0);
 
     result.clear();
 
@@ -426,8 +426,8 @@ namespace kdtree2 {
 
   void KDTree::r_nearest(std::vector<double>& qv, double r2, KDTreeResultVector& result) {
     // search for all within a ball of a certain radius
-    SearchRecord        sr(qv, *this, result);
-    std::vector<double> vdiff(dim, 0.0);
+    SearchRecord sr(qv, *this, result);
+    //std::vector<double> vdiff(dim, 0.0);
 
     result.clear();
 
