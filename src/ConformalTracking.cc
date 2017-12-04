@@ -1535,12 +1535,12 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
           continue;
         }
 
-        auto scell = std::make_shared<Cell>(std::move(cell));
         // Set the information about which cell this new cell is attached to and store it
+        cells.emplace_back(std::make_shared<Cell>(std::move(cell)));
+        auto const& scell = cells.back();
+        existingCells[hit].push_back(scell);
         scell->setFrom(cells[itCell]);
         cells[itCell]->setTo(scell);
-        cells.push_back(scell);
-        existingCells[hit].push_back(std::move(scell));
 
         // Debug plotting
         //        if(m_debugPlots && m_eventNumber == 0){
