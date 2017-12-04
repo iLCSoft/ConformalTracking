@@ -203,6 +203,7 @@ protected:
   double            m_maxDistance        = 0.0;
   int               m_minClustersOnTrack = 0;
   bool              m_debugPlots         = false;
+  bool              m_retryTooManyTracks = true;
   double            m_purity             = 0.0;
   SKDCluster        debugSeed            = nullptr;
   ConformalDebugger m_debugger{};

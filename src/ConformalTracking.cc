@@ -114,6 +114,8 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
 
   // Parameters for tracking
   registerProcessorParameter("DebugPlots", "Plots for debugging the tracking", m_debugPlots, bool(false));
+  registerProcessorParameter("RetryTooManyTracks", "retry with tightened parameters, when too many tracks are being created",
+                             m_retryTooManyTracks, m_retryTooManyTracks);
   registerProcessorParameter("ThetaRange", "Angular range for initial cell seeding", m_thetaRange, double(0.1));
   registerProcessorParameter("MaxCellAngle", "Cut on angle between two cells for cell to be valid", m_maxCellAngle,
                              double(0.035));
@@ -643,7 +645,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       streamlog_out(MESSAGE) << "caught too many tracks, tightening parameters" << std::endl;
       caughtException = true;
       factor -= 1;
-      if (factor <= 0) {
+      if (not m_retryTooManyTracks && factor <= 0) {
         streamlog_out(ERROR) << "Skipping event" << std::endl;
         throw;
       }
@@ -1691,7 +1693,7 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
       streamlog_out(WARNING) << "Going to create " << nTracks << std::endl;
     }
     if (nTracks > 5e5) {
-      streamlog_out(ERROR) << "Too many tracks (" << nTracks << " > 1e6) are going to be created, skipping this event"
+      streamlog_out(ERROR) << "Too many tracks (" << nTracks << " > 1e6) are going to be created, tightening parameters"
                            << std::endl;
       throw TooManyTracksException(this);
     }
