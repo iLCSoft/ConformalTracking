@@ -116,6 +116,7 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
   registerProcessorParameter("DebugPlots", "Plots for debugging the tracking", m_debugPlots, bool(false));
   registerProcessorParameter("RetryTooManyTracks", "retry with tightened parameters, when too many tracks are being created",
                              m_retryTooManyTracks, m_retryTooManyTracks);
+  registerProcessorParameter("SortTreeResults", "sort results from kdtree search", m_sortTreeResults, m_sortTreeResults);
   registerProcessorParameter("ThetaRange", "Angular range for initial cell seeding", m_thetaRange, double(0.1));
   registerProcessorParameter("MaxCellAngle", "Cut on angle between two cells for cell to be valid", m_maxCellAngle,
                              double(0.035));
@@ -843,7 +844,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     SharedKDClusters kdClusters_debug;
     for (size_t i = 0; i < trackerHitCollections.size(); i++)
       kdClusters_debug.insert(kdClusters_debug.begin(), collectionClusters[i].begin(), collectionClusters[i].end());
-    auto nearestNeighbours_debug = UKDTree(new KDTree(kdClusters_debug, m_thetaRange));
+    auto nearestNeighbours_debug = UKDTree(new KDTree(kdClusters_debug, m_thetaRange, m_sortTreeResults));
 
     for (int itP = 0; itP < nParticles; itP++) {
       // Get the particle
@@ -939,7 +940,7 @@ void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, UKDTree
   std::sort(kdClusters.begin(), kdClusters.end(), sort_by_radiusKD);
 
   // Make the binary search tree. This tree class contains two binary trees - one sorted by u-v and the other by theta
-  nearestNeighbours = UKDTree(new KDTree(kdClusters, m_thetaRange));
+  nearestNeighbours = UKDTree(new KDTree(kdClusters, m_thetaRange, m_sortTreeResults));
 }
 
 // Take a collection of hits and try to produce tracks out of them
