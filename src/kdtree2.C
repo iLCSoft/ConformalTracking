@@ -13,20 +13,18 @@
 namespace kdtree2 {
   // utility
 
-  inline double squared(const double x) { return (x * x); }
+  template <typename T> inline T squared(const T x) { return x * x; }
 
   inline void swap(int& a, int& b) {
-    int tmp;
-    tmp = a;
-    a   = b;
-    b   = tmp;
+    const int tmp(a);
+    a = b;
+    b = tmp;
   }
 
   inline void swap(double& a, double& b) {
-    double tmp;
-    tmp = a;
-    a   = b;
-    b   = tmp;
+    const double tmp(a);
+    a = b;
+    b = tmp;
   }
 
   //
