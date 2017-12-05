@@ -57,10 +57,10 @@ public:
   double                  getGradientRZ() const { return m_gradientRZ; }
 
   // Angle between two cells. This is assumed to be less than 90 degrees
-  double getAngle(SCell const& cell2) const { return getAngle(*(cell2.get())); }
-  double getAngleRZ(SCell const& cell2) const { return getAngleRZ(*(cell2.get())); }
+  inline double getAngle(SCell const& cell2) const { return getAngle(*(cell2.get())); }
+  inline double getAngleRZ(SCell const& cell2) const { return getAngleRZ(*(cell2.get())); }
 
-  double getAngle(Cell const& cell2) const {
+  inline double getAngle(Cell const& cell2) const {
 #ifdef CF_USE_VDT
     return fabs(vdt::fast_atan((cell2.m_gradient - m_gradient) / (1 + m_gradient * cell2.m_gradient)));
 #else
@@ -68,7 +68,7 @@ public:
 #endif
   }
 
-  double getAngleRZ(Cell const& cell2) const {
+  inline double getAngleRZ(Cell const& cell2) const {
 #ifdef CF_USE_VDT
     return fabs(vdt::fast_atan((cell2.m_gradientRZ - m_gradientRZ) / (1 + m_gradientRZ * cell2.m_gradientRZ)));
 #else
