@@ -340,7 +340,7 @@ namespace kdtree2 {
   // this holds useful information  to be used
   // during the search
 
-  static const double infinity = 1.0e38;
+  constexpr double infinity = 1.0e38;
 
   class SearchRecord {
   private:
@@ -711,18 +711,28 @@ namespace kdtree2 {
     const KDTreeArray& data      = *sr.data;
 
     for (int i = l; i <= u; i++) {
-      int    indexofi = sr.ind[i];
+      int    indexofi(0);  // = sr.ind[i];
       double dis;
-      bool   early_exit;
+      bool   early_exit = false;
 
       if (rearrange) {
-        early_exit = false;
-        dis        = 0.0;
-        for (int k = 0; k < dim; k++) {
-          dis += squared(data[i][k] - sr.qv[k]);
+        dis = squared(data[i][0] - sr.qv[0]);
+        if (dis > ballsize) {
+          continue;
+        }
+        if (dim == 2) {
+          dis += squared(data[i][1] - sr.qv[1]);
           if (dis > ballsize) {
-            early_exit = true;
-            break;
+            continue;
+          }
+        } else if (dim > 1) {
+          early_exit = false;
+          for (int k = 1; k < dim; k++) {
+            dis += squared(data[i][k] - sr.qv[k]);
+            if (dis > ballsize) {
+              early_exit = true;
+              break;
+            }
           }
         }
         if (early_exit)
