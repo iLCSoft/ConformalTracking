@@ -12,6 +12,10 @@
 #include <vector>
 #include "KDCluster.h"
 
+#ifdef CF_USE_VDT
+#include <vdt/atan.h>
+#endif
+
 // ------------------------------------------------------------------------------------
 // The Cell class is a simple object which connects two points in 2D space. It is
 // used in Cellular Automaton tracking to create tracks, by connecting all plausable
@@ -53,18 +57,23 @@ public:
   double                  getGradientRZ() const { return m_gradientRZ; }
 
   // Angle between two cells. This is assumed to be less than 90 degrees
-  double getAngle(SCell const& cell2) const {
-    return fabs(std::atan((cell2->getGradient() - m_gradient) / (1 + m_gradient * cell2->getGradient())));
-  }
-  double getAngleRZ(SCell const& cell2) const {
-    return fabs(std::atan((cell2->getGradientRZ() - m_gradientRZ) / (1 + m_gradientRZ * cell2->getGradientRZ())));
-  }
+  double getAngle(SCell const& cell2) const { return getAngle(*(cell2.get())); }
+  double getAngleRZ(SCell const& cell2) const { return getAngleRZ(*(cell2.get())); }
 
   double getAngle(Cell const& cell2) const {
-    return fabs(std::atan((cell2.getGradient() - m_gradient) / (1 + m_gradient * cell2.getGradient())));
+#ifdef CF_USE_VDT
+    return fabs(vdt::fast_atan((cell2.m_gradient - m_gradient) / (1 + m_gradient * cell2.m_gradient)));
+#else
+    return fabs(std::atan((cell2.m_gradient - m_gradient) / (1 + m_gradient * cell2.m_gradient)));
+#endif
   }
+
   double getAngleRZ(Cell const& cell2) const {
-    return fabs(std::atan((cell2.getGradientRZ() - m_gradientRZ) / (1 + m_gradientRZ * cell2.getGradientRZ())));
+#ifdef CF_USE_VDT
+    return fabs(vdt::fast_atan((cell2.m_gradientRZ - m_gradientRZ) / (1 + m_gradientRZ * cell2.m_gradientRZ)));
+#else
+    return fabs(std::atan((cell2.m_gradientRZ - m_gradientRZ) / (1 + m_gradientRZ * cell2.m_gradientRZ)));
+#endif
   }
 
   // Start and end points of the cell
