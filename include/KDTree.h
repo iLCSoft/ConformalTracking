@@ -45,20 +45,20 @@ public:
   KDTree(const KDTree&) = delete;
   KDTree& operator=(const KDTree&) = delete;
 
-  void nearestNeighbours(SKDCluster pt, int N, SharedKDClusters& result,
-                         std::function<bool(SKDCluster const&)> filter = [](SKDCluster const&) { return false; });
-  void allNeighboursInRadius(SKDCluster pt, const double radius, SharedKDClusters& result,
-                             std::function<bool(SKDCluster const&)> filter = [](SKDCluster const&) { return false; });
-  void allNeighboursInTheta(SKDCluster pt, const double thetaRange, SharedKDClusters& result,
-                            std::function<bool(SKDCluster const&)> filter = [](SKDCluster const&) { return false; });
+  void nearestNeighbours(SKDCluster const& pt, int N, SharedKDClusters& result,
+                         std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
+  void allNeighboursInRadius(SKDCluster const& pt, const double radius, SharedKDClusters& result,
+                             std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
+  void allNeighboursInTheta(SKDCluster const& pt, const double thetaRange, SharedKDClusters& result,
+                            std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
   void allNeighboursInTheta(double theta, const double thetaRange, SharedKDClusters& result,
-                            std::function<bool(SKDCluster const&)> filter = [](SKDCluster const&) { return false; });
+                            std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
 
 private:
   void transformResults(KDTreeResultVector& vec, SharedKDClusters& result,
-                        std::function<bool(SKDCluster const&)> filter = [](SKDCluster const&) { return false; });
+                        std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
   void transformThetaResults(KDTreeResultVector& vec, SharedKDClusters& result,
-                             std::function<bool(SKDCluster const&)> filter = [](SKDCluster const&) { return false; });
+                             std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
 
   static const int k;
   boost::multi_array<double, 2> array{};

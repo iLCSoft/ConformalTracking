@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <utility>
 #include "KDTree.h"
 
 //-----------------------------------------------------------------------------
@@ -61,8 +62,8 @@ KDTree::~KDTree() {
 
 bool distComparator(const kdtree2::KDTreeResult& a, const kdtree2::KDTreeResult& b) { return (a.dis < b.dis); }
 
-void KDTree::nearestNeighbours(SKDCluster pt, int N, SharedKDClusters& result,
-                               std::function<bool(SKDCluster const&)> filter) {
+void KDTree::nearestNeighbours(SKDCluster const& pt, int N, SharedKDClusters& result,
+                               std::function<bool(SKDCluster const&)> const& filter) {
   // Search kdtree for N points around query pt
   KDTreeResultVector  vec;
   std::vector<double> qv(2);
@@ -74,8 +75,8 @@ void KDTree::nearestNeighbours(SKDCluster pt, int N, SharedKDClusters& result,
   this->transformResults(vec, result, filter);
 }
 
-void KDTree::allNeighboursInRadius(SKDCluster pt, const double radius, SharedKDClusters& result,
-                                   std::function<bool(SKDCluster const&)> filter) {
+void KDTree::allNeighboursInRadius(SKDCluster const& pt, const double radius, SharedKDClusters& result,
+                                   std::function<bool(SKDCluster const&)> const& filter) {
   // Search kdtree for all points in radius
   KDTreeResultVector  vec;
   std::vector<double> qv{float(pt->getU()), float(pt->getV())};  // should be 2 if using (x,y)-plane
@@ -86,8 +87,8 @@ void KDTree::allNeighboursInRadius(SKDCluster pt, const double radius, SharedKDC
   this->transformResults(vec, result, filter);
 }
 
-void KDTree::allNeighboursInTheta(SKDCluster pt, const double thetaRange, SharedKDClusters& result,
-                                  std::function<bool(SKDCluster const&)> filter) {
+void KDTree::allNeighboursInTheta(SKDCluster const& pt, const double thetaRange, SharedKDClusters& result,
+                                  std::function<bool(SKDCluster const&)> const& filter) {
   // Search kdtree for all points in radius
   KDTreeResultVector  vec;
   std::vector<double> qv(2);  // should be 2 if using (x,y)-plane
@@ -101,7 +102,7 @@ void KDTree::allNeighboursInTheta(SKDCluster pt, const double thetaRange, Shared
 }
 
 void KDTree::allNeighboursInTheta(double theta, const double thetaRange, SharedKDClusters& result,
-                                  std::function<bool(SKDCluster const&)> filter) {
+                                  std::function<bool(SKDCluster const&)> const& filter) {
   // Search kdtree for all points in radius
   KDTreeResultVector  vec;
   std::vector<double> qv(2);  // should be 2 if using (x,y)-plane
@@ -115,7 +116,7 @@ void KDTree::allNeighboursInTheta(double theta, const double thetaRange, SharedK
 }
 
 void KDTree::transformResults(KDTreeResultVector& vec, SharedKDClusters& result,
-                              std::function<bool(SKDCluster const&)> filter) {
+                              std::function<bool(SKDCluster const&)> const& filter) {
   KDTreeResultVector filtered;
   filtered.reserve(vec.size());
   for (auto const& entry : vec) {
@@ -138,7 +139,7 @@ void KDTree::transformResults(KDTreeResultVector& vec, SharedKDClusters& result,
 }
 
 void KDTree::transformThetaResults(KDTreeResultVector& vec, SharedKDClusters& result,
-                                   std::function<bool(SKDCluster const&)> filter) {
+                                   std::function<bool(SKDCluster const&)> const& filter) {
   KDTreeResultVector filtered;
   filtered.reserve(vec.size());
   for (auto const& entry : vec) {
