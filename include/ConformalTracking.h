@@ -104,7 +104,7 @@ public:
 
   void createTracksNew(UniqueCellularTracks&, Cell::SCell&, std::map<Cell::SCell, bool>&);
   bool toBeUpdated(UniqueCellularTracks const&);
-  void updateCell(Cell::SCell);
+  void updateCell(Cell::SCell const&);
 
   // Track fitting
   void getFittedTracks(UniqueKDTracks&, UniqueCellularTracks&, std::map<Cell::SCell, bool>&, Parameters const&);
