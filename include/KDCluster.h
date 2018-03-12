@@ -59,7 +59,7 @@ public:
         m_removed(false),
         m_used(false),
         m_endcap(false) {}
-  KDCluster(TrackerHitPlane* hit, bool endcap, bool forward = false)
+  KDCluster(EVENT::TrackerHitPlane* hit, bool endcap, bool forward = false)
       : m_x(hit->getPosition()[0]),
         m_y(hit->getPosition()[1]),
         m_u(0.0),
