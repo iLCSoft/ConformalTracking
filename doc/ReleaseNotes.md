@@ -1,3 +1,29 @@
+# v01-05
+
+* 2017-10-20 Daniel Hynds ([PR#25](https://github.com/iLCSoft/ConformalTracking/pull/25))
+  - Require 5 hits/track for displaced track finding, to reduce fake rate
+
+* 2017-10-13 Daniel Hynds ([PR#24](https://github.com/iLCSoft/ConformalTracking/pull/24))
+  - Functions updated to allow tracker to vertex tracking, to allow displaced track reconstruction
+
+* 2017-12-04 Andre Sailer ([PR#28](https://github.com/iLCSoft/ConformalTracking/pull/28))
+  - Performance optimisations: avoiding temporaries, divisions, sqrts
+  - protect against too many tracks
+
+* 2017-12-12 Andre Sailer ([PR#29](https://github.com/iLCSoft/ConformalTracking/pull/29))
+  - Performance optimisations: 
+     - avoiding copies of `shared_ptrs`, avoiding temporary objects (use `emplace_back`, direct construction etc.)
+     - move filtering of kdtree search results to before sorting
+     - use `vdt::fast_atan` in `Cell:getAngle[RZ]` (enabled if ROOT provides `vdt`)
+     - add option to turn off sorting of `kdtree` search results, this changes the outcome of the reconstruction, thus sorting is enabled by default
+
+* 2017-11-27 Emilia Leogrande ([PR#26](https://github.com/iLCSoft/ConformalTracking/pull/26))
+  - Parameter struct to set pattern recognition parameters
+    - `_maxCellAngle`, `_maxCellAngleRZ`, `_chi2cut`, `_minClustersOnTrack`, `_maxDistance`, `_highPTfit`, `_onlyZSchi2cut`
+
+* 2018-03-13 Marko Petric ([PR#30](https://github.com/iLCSoft/ConformalTracking/pull/30))
+  -  Fix for iLCSoft/LCIO#35
+
 # v01-04
 
 * 2017-09-20 Daniel Hynds ([PR#20](https://github.com/iLCSoft/ConformalTracking/pull/20))
