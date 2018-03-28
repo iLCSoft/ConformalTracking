@@ -1,3 +1,13 @@
+# v01-06
+
+* 2018-03-28 Frank Gaede ([PR#31](https://github.com/iLCSoft/ConformalTracking/pull/31))
+  - make compatible for other detectors, e.g. ILD
+       - introduce new parameters with indices of tracker hit collections:
+            - AllHitCollectionIndices
+            - TrackerHitCollectionIndices
+        - default values as used for CLIC
+        - protect against empty collections
+
 # v01-05
 
 * 2017-10-20 Daniel Hynds ([PR#25](https://github.com/iLCSoft/ConformalTracking/pull/25))
