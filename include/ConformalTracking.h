@@ -133,8 +133,8 @@ protected:
   std::string              m_inputParticleCollection{};
   std::vector<std::string> m_inputRelationCollections{};
   std::string              m_outputDebugHits{};
-  std::vector<int>         m_allHits ;
-  std::vector<int>         m_trackerHits ;
+  std::vector<int>         m_allHits{};
+  std::vector<int>         m_trackerHits{};
 
   // Run and event counters
   int m_eventNumber = 0;
