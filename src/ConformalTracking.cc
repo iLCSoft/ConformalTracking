@@ -122,6 +122,15 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
                              double(0.75));
   registerProcessorParameter("MaxChi2Increase", "Chi2 increase when adding new hits to a track", m_chi2increase,
                              double(10.));
+
+  std::vector<int> allHits = {0, 1, 2, 3, 4, 5};
+  registerProcessorParameter("AllCollectionIndices", "Indices of all hit collections as given in 'TrackerHitCollectionNames' ", m_allHits,
+                             allHits );
+
+  std::vector<int> trackerHits = {2, 3, 4, 5};
+  registerProcessorParameter("TrackerHitCollectionIndices", "Indices of outer tracker hit collections as given in 'TrackerHitCollectionNames' ", m_trackerHits,
+                             trackerHits );
+
 }
 
 void ConformalTracking::init() {
@@ -601,9 +610,8 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   lowNumberHitsParameters._chi2cut = m_chi2cut;
 
   // Extend them through the inner and outer trackers
-  std::vector<int> trackerHits = {2, 3, 4, 5};
   stopwatch->Start(false);
-  combineCollections(kdClusters, nearestNeighbours, trackerHits, collectionClusters);
+  combineCollections(kdClusters, nearestNeighbours, m_trackerHits, collectionClusters);
   extendTracks(conformalTracks, kdClusters, nearestNeighbours, lowNumberHitsParameters);
   stopwatch->Stop();
 
@@ -620,9 +628,8 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
   // Finally reconstruct displaced tracks
 
-  std::vector<int> allHits = {0, 1, 2, 3, 4, 5};
   stopwatch->Start(false);
-  combineCollections(kdClusters, nearestNeighbours, allHits, collectionClusters);
+  combineCollections(kdClusters, nearestNeighbours, m_allHits, collectionClusters);
   double factor          = 10;
   bool   caughtException = false;
   do {
@@ -913,7 +920,10 @@ void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, UKDTree
 
   // Loop over all given collections
   for (unsigned int i = 0; i < combination.size(); i++) {
+
     // Copy the clusters to the output vector
+    if( collectionClusters.size() <= unsigned( combination[i] )  ) continue; // protect against empty subdetectors
+
     const SharedKDClusters& clusters = collectionClusters.at(combination[i]);
     int                     nhits    = clusters.size();
     for (int hit = 0; hit < nhits; hit++) {
