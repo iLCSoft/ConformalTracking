@@ -124,13 +124,13 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
                              double(10.));
 
   std::vector<int> allHits = {0, 1, 2, 3, 4, 5};
-  registerProcessorParameter("AllCollectionIndices", "Indices of all hit collections as given in 'TrackerHitCollectionNames' ", m_allHits,
-                             allHits );
+  registerProcessorParameter("AllCollectionIndices",
+                             "Indices of all hit collections as given in 'TrackerHitCollectionNames' ", m_allHits, allHits);
 
   std::vector<int> trackerHits = {2, 3, 4, 5};
-  registerProcessorParameter("TrackerHitCollectionIndices", "Indices of outer tracker hit collections as given in 'TrackerHitCollectionNames' ", m_trackerHits,
-                             trackerHits );
-
+  registerProcessorParameter("TrackerHitCollectionIndices",
+                             "Indices of outer tracker hit collections as given in 'TrackerHitCollectionNames' ",
+                             m_trackerHits, trackerHits);
 }
 
 void ConformalTracking::init() {
@@ -920,9 +920,9 @@ void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, UKDTree
 
   // Loop over all given collections
   for (unsigned int i = 0; i < combination.size(); i++) {
-
     // Copy the clusters to the output vector
-    if( collectionClusters.size() <= unsigned( combination[i] )  ) continue; // protect against empty subdetectors
+    if (collectionClusters.size() <= unsigned(combination[i]))
+      continue;  // protect against empty subdetectors
 
     const SharedKDClusters& clusters = collectionClusters.at(combination[i]);
     int                     nhits    = clusters.size();
