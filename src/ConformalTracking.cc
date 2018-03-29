@@ -920,14 +920,13 @@ void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, UKDTree
 
   // Loop over all given collections
   for (unsigned int i = 0; i < combination.size(); i++) {
-    // Copy the clusters to the output vector
-    if (collectionClusters.size() <= unsigned(combination[i]))
-      continue;  // protect against empty subdetectors
-
-    const SharedKDClusters& clusters = collectionClusters.at(combination[i]);
-    int                     nhits    = clusters.size();
-    for (int hit = 0; hit < nhits; hit++) {
-      kdClusters.push_back(clusters[hit]);
+    try {
+      // Copy the clusters to the output vector
+      const SharedKDClusters& clusters = collectionClusters.at(combination[i]);
+      kdClusters.insert(kdClusters.end(), clusters.begin(), clusters.end());
+    } catch (std::out_of_range& e) {
+      // protect against empty subdetectors
+      continue;
     }
   }
 
