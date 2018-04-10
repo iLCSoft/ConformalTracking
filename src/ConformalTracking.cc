@@ -142,8 +142,7 @@ void ConformalTracking::init() {
   m_eventNumber = 0;
 
   // Set up the track fit factory
-  const gear::GearMgr* fakeGear = 0;
-  trackFactory                  = MarlinTrk::Factory::createMarlinTrkSystem("DDKalTest", fakeGear, "");
+  trackFactory = MarlinTrk::Factory::createMarlinTrkSystem("DDKalTest", nullptr, "");
   trackFactory->setOption(MarlinTrk::IMarlinTrkSystem::CFG::useQMS, true);
   trackFactory->setOption(MarlinTrk::IMarlinTrkSystem::CFG::usedEdx, true);
   trackFactory->setOption(MarlinTrk::IMarlinTrkSystem::CFG::useSmoothing, false);
