@@ -924,14 +924,9 @@ void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, UKDTree
 
   // Loop over all given collections
   for (unsigned int i = 0; i < combination.size(); i++) {
-    try {
-      // Copy the clusters to the output vector
-      const SharedKDClusters& clusters = collectionClusters.at(combination[i]);
-      kdClusters.insert(kdClusters.end(), clusters.begin(), clusters.end());
-    } catch (std::out_of_range& e) {
-      // protect against empty subdetectors
-      continue;
-    }
+    // Copy the clusters to the output vector
+    const SharedKDClusters& clusters = collectionClusters.at(combination[i]);
+    kdClusters.insert(kdClusters.end(), clusters.begin(), clusters.end());
   }
 
   streamlog_out(DEBUG7) << "Combined collection has " << kdClusters.size() << " hits" << std::endl;
