@@ -54,6 +54,8 @@
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <utility>
+
 #include "TStopwatch.h"
 
 #include "Cell.h"
@@ -89,6 +91,19 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
   registerInputCollections(LCIO::TRACKERHITPLANE, "TrackerHitCollectionNames", "Name of the TrackerHit input collections",
                            m_inputTrackerHitCollections, inputTrackerHitCollections);
 
+  registerInputCollections(LCIO::TRACKERHITPLANE, "MainTrackerHitCollectionNames",
+                           "Name of the TrackerHit input collections from the Main Tracker",
+                           m_inputMainTrackerHitCollections,
+                           {"ITrackerHits", "OTrackerHits", "ITrackerEndcapHits", "OTrackerEndcapHits"});
+
+  registerInputCollections(LCIO::TRACKERHITPLANE, "VertexBarrelHitCollectionNames",
+                           "Name of the TrackerHit input collections from the Vertex Barrel", m_inputVertexBarrelCollections,
+                           {"VXDTrackerHits"});
+
+  registerInputCollections(LCIO::TRACKERHITPLANE, "VertexEndcapHitCollectionNames",
+                           "Name of the TrackerHit input collections from the Vertex Endcap", m_inputVertexEndcapCollections,
+                           {"VXDEndcapTrackerHits"});
+
   // Debugging collections - MC particles and relation collections
   registerInputCollection(LCIO::MCPARTICLE, "MCParticleCollectionName", "Name of the MCParticle input collection",
                           m_inputParticleCollection, std::string("MCParticle"));
@@ -122,15 +137,6 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
                              double(0.75));
   registerProcessorParameter("MaxChi2Increase", "Chi2 increase when adding new hits to a track", m_chi2increase,
                              double(10.));
-
-  std::vector<int> allHits = {0, 1, 2, 3, 4, 5};
-  registerProcessorParameter("AllCollectionIndices",
-                             "Indices of all hit collections as given in 'TrackerHitCollectionNames' ", m_allHits, allHits);
-
-  std::vector<int> trackerHits = {2, 3, 4, 5};
-  registerProcessorParameter("TrackerHitCollectionIndices",
-                             "Indices of outer tracker hit collections as given in 'TrackerHitCollectionNames' ",
-                             m_trackerHits, trackerHits);
 }
 
 void ConformalTracking::init() {
@@ -216,6 +222,8 @@ void ConformalTracking::init() {
     m_canvConformalEventDisplayMCunreconstructed =
         new TCanvas("canvConformalEventDisplayMCunreconstructed", "canvConformalEventDisplayMCunreconstructed");
   }
+
+  fillCollectionIndexVectors();
 
   // Register this process
   Global::EVENTSEEDER->registerProcessor(this);
@@ -504,8 +512,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
                                false);
 
   stopwatch->Start(false);
-  std::vector<int> vertexHits = {0};
-  combineCollections(kdClusters, nearestNeighbours, vertexHits, collectionClusters);
+  combineCollections(kdClusters, nearestNeighbours, m_vertexBarrelHits, collectionClusters);
   buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, initialParameters);
 
   // Mark hits from "good" tracks as being used
@@ -521,8 +528,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
   // Extend through the endcap
   stopwatch->Start(false);
-  std::vector<int> vertexEndcapHits = {1};
-  combineCollections(kdClusters, nearestNeighbours, vertexEndcapHits, collectionClusters);
+  combineCollections(kdClusters, nearestNeighbours, m_vertexEndcapHits, collectionClusters);
   extendTracks(conformalTracks, kdClusters, nearestNeighbours, initialParameters);
   stopwatch->Stop();
 
@@ -531,8 +537,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
   // Make combined vertex tracks
   stopwatch->Start(false);
-  std::vector<int> vertexCombinedHits = {0, 1};
-  combineCollections(kdClusters, nearestNeighbours, vertexCombinedHits, collectionClusters);
+  combineCollections(kdClusters, nearestNeighbours, m_vertexCombinedHits, collectionClusters);
   buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, initialParameters);
 
   // Mark hits from "good" tracks as being used
@@ -2382,4 +2387,42 @@ void ConformalTracking::drawline(SKDCluster const& hitStart, SKDCluster const& h
   line->SetLineColor(colour);
   line->SetLineStyle(style);
   line->Draw();
+}
+
+void ConformalTracking::fillCollectionIndexVectors() {
+  std::vector<std::string> vertexCombinedHitCollections = m_inputVertexBarrelCollections;
+  vertexCombinedHitCollections.insert(vertexCombinedHitCollections.end(), m_inputVertexEndcapCollections.begin(),
+                                      m_inputVertexEndcapCollections.end());
+
+  std::vector<std::pair<std::vector<int>*, std::vector<std::string>*>> indexCollectionMap = {
+      std::make_pair(&m_allHits, &m_inputTrackerHitCollections),
+      std::make_pair(&m_trackerHits, &m_inputMainTrackerHitCollections),
+      std::make_pair(&m_vertexBarrelHits, &m_inputVertexBarrelCollections),
+      std::make_pair(&m_vertexEndcapHits, &m_inputVertexEndcapCollections),
+      std::make_pair(&m_vertexCombinedHits, &vertexCombinedHitCollections)};
+
+  for (auto& pairIndexCol : indexCollectionMap) {
+    auto* indices = pairIndexCol.first;
+    for (auto const& colName : *(pairIndexCol.second)) {
+      auto it = std::find(m_inputTrackerHitCollections.begin(), m_inputTrackerHitCollections.end(), colName);
+      if (it == m_inputTrackerHitCollections.end()) {
+        std::stringstream error;
+        error << this->name() << ": Collection name \"" << colName
+              << "\" not found in TrackerHitCollectionNames parameter! Check your config";
+        throw marlin::ParseException(error.str());
+      }
+      indices->push_back(it - m_inputTrackerHitCollections.begin());
+    }
+  }
+
+  for (auto& pairIndexCol : indexCollectionMap) {
+    auto*             indices  = pairIndexCol.first;
+    auto*             colNames = pairIndexCol.second;
+    std::stringstream indexList;
+    for (size_t i = 0; i < indices->size(); ++i) {
+      indexList << colNames->at(i) << "=" << indices->at(i) << "   ";
+    }
+    streamlog_out(MESSAGE) << "IndexList " << indexList.str() << std::endl;
+    ;
+  }
 }

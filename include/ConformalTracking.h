@@ -69,6 +69,9 @@ public:
   // Initialisation - run at the beginning to start histograms, etc.
   virtual void init();
 
+  /// fill the vectors mapping collections to index
+  void fillCollectionIndexVectors();
+
   // Called at the beginning of every run
   virtual void processRunHeader(LCRunHeader*) { m_runNumber++; }
 
@@ -129,12 +132,19 @@ public:
 protected:
   // Collection names for (in/out)put
   std::vector<std::string> m_inputTrackerHitCollections{};
+  std::vector<std::string> m_inputMainTrackerHitCollections{};
+  std::vector<std::string> m_inputVertexBarrelCollections{};
+  std::vector<std::string> m_inputVertexEndcapCollections{};
+
   std::string              m_outputTrackCollection{};
   std::string              m_inputParticleCollection{};
   std::vector<std::string> m_inputRelationCollections{};
   std::string              m_outputDebugHits{};
   std::vector<int>         m_allHits{};
   std::vector<int>         m_trackerHits{};
+  std::vector<int>         m_vertexBarrelHits{};
+  std::vector<int>         m_vertexEndcapHits{};
+  std::vector<int>         m_vertexCombinedHits{};
 
   // Run and event counters
   int m_eventNumber = 0;
