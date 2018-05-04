@@ -1386,6 +1386,18 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
       if (deltaChi2 > chi2cut || deltaChi2zs > chi2cut)
         continue;
 
+      bool onSameLayer = false;
+
+      for (unsigned int hitOnTrack = 0; hitOnTrack < conformalTracks[currentTrack]->m_clusters.size(); hitOnTrack++) {
+        SKDCluster clusterOnTrack = conformalTracks[currentTrack]->m_clusters.at(hitOnTrack);
+        if (kdhit->sameLayer(clusterOnTrack)) {
+          onSameLayer = true;
+          break;
+        }
+      }
+      if (onSameLayer)
+        continue;
+
       if (associated)
         streamlog_out(DEBUG7) << "-- valid candidate!" << std::endl;
 
