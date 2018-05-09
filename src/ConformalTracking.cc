@@ -1387,9 +1387,7 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
         continue;
 
       bool onSameLayer = false;
-
-      for (unsigned int hitOnTrack = 0; hitOnTrack < conformalTracks[currentTrack]->m_clusters.size(); hitOnTrack++) {
-        SKDCluster const& clusterOnTrack = conformalTracks[currentTrack]->m_clusters.at(hitOnTrack);
+      for (auto const& clusterOnTrack : conformalTracks[currentTrack]->m_clusters) {
         if (kdhit->sameLayer(clusterOnTrack)) {
           onSameLayer = true;
           break;
