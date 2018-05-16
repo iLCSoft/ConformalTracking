@@ -330,6 +330,8 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       int  subdet   = m_encoder[lcio::LCTrackerCellID::subdet()];
       int  side     = m_encoder[lcio::LCTrackerCellID::side()];
       int  layer    = m_encoder[lcio::LCTrackerCellID::layer()];
+      int  module   = m_encoder[lcio::LCTrackerCellID::module()];
+      int  sensor   = m_encoder[lcio::LCTrackerCellID::sensor()];
       bool isEndcap = false;
       bool forward  = false;
       if (side != ILDDetID::barrel) {
@@ -342,7 +344,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       auto kdhit = std::make_shared<KDCluster>(hit, isEndcap, forward);
 
       // Set the subdetector information
-      kdhit->setDetectorInfo(subdet, side, layer);
+      kdhit->setDetectorInfo(subdet, side, layer, module, sensor);
 
       // Store the link between the two
       kdClusterMap[kdhit] = hit;
@@ -1331,8 +1333,8 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
       }
       //streamlog_out(DEBUG7)<<"Detector "<<kdhit->getSubdetector()<<", layer "<<kdhit->getLayer()<<", side "<<kdhit->getSide()<<std::endl;
 
-      // If this hit is on a new layer, then add the hit from the previous layer and start anew
-      if (bestCluster != NULL && !(kdhit->sameLayer(bestCluster))) {
+      // If this hit is on a new sensor, then add the hit from the previous sensor and start anew
+      if (bestCluster != NULL && !(kdhit->sameSensor(bestCluster))) {
         bestCluster->used(true);
         conformalTracks[currentTrack]->add(bestCluster);
         conformalTracks[currentTrack]->linearRegression();
@@ -1379,21 +1381,20 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
 
       // We have an estimate of the pT here, could use it in the chi2 criteria
       double chi2cut = parameters._chi2cut;
-
       //if (conformalTracks[currentTrack]->pt() < 5.)
       //  chi2cut = 1000.;
 
       if (deltaChi2 > chi2cut || deltaChi2zs > chi2cut)
         continue;
 
-      bool onSameLayer = false;
+      bool onSameSensor = false;
       for (auto const& clusterOnTrack : conformalTracks[currentTrack]->m_clusters) {
-        if (kdhit->sameLayer(clusterOnTrack)) {
-          onSameLayer = true;
+        if (kdhit->sameSensor(clusterOnTrack)) {
+          onSameSensor = true;
           break;
         }
       }
-      if (onSameLayer)
+      if (onSameSensor)
         continue;
 
       if (associated)
