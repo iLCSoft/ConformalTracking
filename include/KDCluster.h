@@ -79,6 +79,8 @@ public:
         m_subdet(0),
         m_side(0),
         m_layer(0),
+        m_module(0),
+        m_sensor(0),
         m_deltaChi2(0),
         m_removed(false),
         m_used(false),
@@ -161,14 +163,18 @@ public:
   void used(bool used) { m_used = used; }
 
   // Subdetector information
-  void setDetectorInfo(int subdet, int side, int layer) {
+  void setDetectorInfo(int subdet, int side, int layer, int module, int sensor) {
     m_subdet = subdet;
     m_side   = side;
     m_layer  = layer;
+    m_module = module;
+    m_sensor = sensor;
   }
   int  getSubdetector() const { return m_subdet; }
   int  getSide() const { return m_side; }
   int  getLayer() const { return m_layer; }
+  int  getModule() const { return m_module; }
+  int  getSensor() const { return m_sensor; }
   bool forward() const { return m_forward; }
   bool endcap() const { return m_endcap; }
 
@@ -177,6 +183,12 @@ public:
     if (kdhit->getSubdetector() == m_subdet && kdhit->getSide() == m_side && kdhit->getLayer() == m_layer)
       return true;
     return false;
+  }
+
+  // Check if another hit is on the same sensor of the same detecting layer
+  bool sameSensor(std::shared_ptr<KDCluster> const& kdhit) const {
+    return kdhit->getLayer() == m_layer && kdhit->getSubdetector() == m_subdet && kdhit->getSide() == m_side &&
+           kdhit->getModule() == m_module && kdhit->getSensor() == m_sensor;
   }
 
 private:
@@ -201,6 +213,8 @@ private:
   int    m_subdet    = 0;
   int    m_side      = 0;
   int    m_layer     = 0;
+  int    m_module    = 0;
+  int    m_sensor    = 0;
   double m_deltaChi2 = 0.0;
   bool   m_removed   = false;
   bool   m_used      = false;
