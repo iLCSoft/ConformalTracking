@@ -214,6 +214,7 @@ protected:
   double            m_maxCellAngleRZ     = 0.0;
   double            m_maxDistance        = 0.0;
   int               m_minClustersOnTrack = 0;
+  bool              m_enableTCVC         = true;
   bool              m_debugPlots         = false;
   bool              m_retryTooManyTracks = true;
   bool              m_sortTreeResults    = true;
