@@ -137,6 +137,9 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
                              double(0.75));
   registerProcessorParameter("MaxChi2Increase", "Chi2 increase when adding new hits to a track", m_chi2increase,
                              double(10.));
+  registerProcessorParameter("EnableTightCutsVertexCombined",
+                             "Enabled tight cuts as first step of reconstruction in vertex b+e [TMP!!]", m_enableTCVC,
+                             bool(true));
 }
 
 void ConformalTracking::init() {
@@ -540,17 +543,18 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   // Make combined vertex tracks
   stopwatch->Start(false);
   combineCollections(kdClusters, nearestNeighbours, m_vertexCombinedHits, collectionClusters);
-  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, initialParameters);
+  if (m_enableTCVC) {
+    buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, initialParameters);
 
-  // Mark hits from "good" tracks as being used
-  for (auto& conformalTrack : conformalTracks) {
-    for (auto& thisCluster : conformalTrack->m_clusters)
-      thisCluster->used(true);
+    // Mark hits from "good" tracks as being used
+    for (auto& conformalTrack : conformalTracks) {
+      for (auto& thisCluster : conformalTrack->m_clusters)
+        thisCluster->used(true);
+    }
+    stopwatch->Stop();
+    streamlog_out(DEBUG7) << "Building vertex tracks took " << stopwatch->RealTime() << " seconds" << std::endl;
+    stopwatch->Reset();
   }
-  stopwatch->Stop();
-  streamlog_out(DEBUG7) << "Building vertex tracks took " << stopwatch->RealTime() << " seconds" << std::endl;
-  stopwatch->Reset();
-
   // Make leftover tracks in the vertex with lower requirements
 
   // Lower cell angle criteria
