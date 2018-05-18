@@ -580,6 +580,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
   lowerCellAngleParameters._maxCellAngle *= 2.;
   lowerCellAngleParameters._maxCellAngleRZ *= 2.;
+  lowerCellAngleParameters._chi2cut *= 20.;
 
   buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, lowerCellAngleParameters, true);
   // Mark hits from "good" tracks as being used
@@ -617,7 +618,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
   //m_highPTfit = false;
 
-  lowNumberHitsParameters._chi2cut = m_chi2cut;
+  //lowNumberHitsParameters._chi2cut = m_chi2cut;
 
   // Extend them through the inner and outer trackers
   stopwatch->Start(false);
@@ -1206,26 +1207,15 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
           else if (nOverlappingHits == bestTrack->m_clusters.size())
             break;
 
-          // Otherwise take the longest if the delta chi2 is not too much
+          // Otherwise take the longest
           else if (bestTrack->m_clusters.size() >= conformalTrack->m_clusters.size()) {  // New track longer/equal in length
 
-            // Increase in chi2 is too much (double)
-            if ((newchi2 - oldchi2) > oldchi2)
-              break;
-
-            // Otherwise take it
+            // Take it
             conformalTrack = std::move(bestTrack);
             bestTrackUsed  = true;
-          } else if (bestTrack->m_clusters.size() < conformalTrack->m_clusters.size()) {  // Old track longer
 
-            // Must improve chi2 by factor two
-            if ((newchi2 - 0.5 * oldchi2) > 0.)
-              break;
-
-            // Otherwise take it
-            conformalTrack = std::move(bestTrack);
-            bestTrackUsed  = true;
-          }
+          } else if (bestTrack->m_clusters.size() < conformalTrack->m_clusters.size())  // Old track longer
+            break;
 
           break;
         }
