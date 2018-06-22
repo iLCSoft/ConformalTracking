@@ -509,169 +509,67 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   SharedKDClusters kdClusters;
   UKDTree          nearestNeighbours = nullptr;
   auto             stopwatch         = std::unique_ptr<TStopwatch>(new TStopwatch());
+  int              step              = 0;
 
   // Build tracks in the vertex barrel
 
-  //Create ParameterStruct
-  Parameters initialParameters(m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack, m_maxDistance, true,
-                               false);
-
-  stopwatch->Start(false);
-  combineCollections(kdClusters, nearestNeighbours, m_vertexBarrelHits, collectionClusters);
-  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, initialParameters);
-
-  // Mark hits from "good" tracks as being used
-  for (auto& conformalTrack : conformalTracks) {
-    for (auto& thisCluster : conformalTrack->m_clusters) {
-      thisCluster->used(true);
-    }
-  }
-
-  stopwatch->Stop();
-  streamlog_out(DEBUG7) << "Building vertex barrel tracks took " << stopwatch->RealTime() << " seconds" << std::endl;
-  stopwatch->Reset();
+  Parameters initialParameters(m_vertexBarrelHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
+                               m_maxDistance, true, false, /*rSearch*/ false, /*vtt*/ true, step++);
+  runStep(kdClusters, nearestNeighbours, conformalTracks, initialParameters, collectionClusters, true, true, false);
 
   // Extend through the endcap
-  stopwatch->Start(false);
-  combineCollections(kdClusters, nearestNeighbours, m_vertexEndcapHits, collectionClusters);
-  extendTracks(conformalTracks, kdClusters, nearestNeighbours, initialParameters);
-  stopwatch->Stop();
 
-  streamlog_out(DEBUG7) << "Extending through vertex endcap took " << stopwatch->RealTime() << " seconds" << std::endl;
-  stopwatch->Reset();
+  Parameters parameters2(m_vertexEndcapHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
+                         m_maxDistance, true, false, /*rSearch*/ false, /*vtt*/ true, step++);
+  runStep(kdClusters, nearestNeighbours, conformalTracks, parameters2, collectionClusters, true, false, true);
 
   // Make combined vertex tracks
-  stopwatch->Start(false);
-  combineCollections(kdClusters, nearestNeighbours, m_vertexCombinedHits, collectionClusters);
+
   if (m_enableTCVC) {
-    buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, initialParameters);
-
-    // Mark hits from "good" tracks as being used
-    for (auto& conformalTrack : conformalTracks) {
-      for (auto& thisCluster : conformalTrack->m_clusters)
-        thisCluster->used(true);
-    }
-    stopwatch->Stop();
-    streamlog_out(DEBUG7) << "Building vertex tracks took " << stopwatch->RealTime() << " seconds" << std::endl;
-    stopwatch->Reset();
+    Parameters parametersTCVC(m_vertexCombinedHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
+                              m_maxDistance, true, false, /*rSearch*/ false, /*vtt*/ true, step++);
+    runStep(kdClusters, nearestNeighbours, conformalTracks, parametersTCVC, collectionClusters, true, true, false);
   }
+
   // Make leftover tracks in the vertex with lower requirements
+  // 1. open the cell angles
 
-  // Lower cell angle criteria
-  //m_highPTfit = false;
+  Parameters lowerCellAngleParameters(m_vertexCombinedHits, m_maxCellAngle * 5.0, m_maxCellAngleRZ * 5.0, m_chi2cut,
+                                      m_minClustersOnTrack, m_maxDistance, true, false, /*rSearch*/ true, /*vtt*/ true,
+                                      step++);
+  runStep(kdClusters, nearestNeighbours, conformalTracks, lowerCellAngleParameters, collectionClusters, not m_enableTCVC,
+          true, false);
 
-  Parameters lowerCellAngleParameters(m_maxCellAngle * 5.0, m_maxCellAngleRZ * 5.0, m_chi2cut, m_minClustersOnTrack,
-                                      m_maxDistance, true, false);
-  //  m_chi2cut*=20.;
-  stopwatch->Start(false);
-  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, lowerCellAngleParameters, true);
+  // 2. open further the cell angles and increase the chi2cut
 
-  // Mark hits from "good" tracks as being used
-  for (auto& conformalTrack : conformalTracks) {
-    for (auto& thisCluster : conformalTrack->m_clusters)
-      thisCluster->used(true);
-  }
+  Parameters lowerCellAngleParameters2({}, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
+                                       m_minClustersOnTrack, m_maxDistance, true, false, /*rSearch*/ true, /*vtt*/ true,
+                                       step++);
+  runStep(kdClusters, nearestNeighbours, conformalTracks, lowerCellAngleParameters2, collectionClusters, false, true, false);
 
-  stopwatch->Stop();
+  // 3. min number of hits on the track = 4
 
-  streamlog_out(DEBUG7) << "Building low pt vertex tracks (1) took " << stopwatch->RealTime() << " seconds" << std::endl;
-  stopwatch->Reset();
-  stopwatch->Start(false);
+  Parameters lowNumberHitsParameters({}, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
+                                     /*m_minClustersOnTrack*/ 4, m_maxDistance, true, false, /*rSearch*/ true, /*vtt*/ true,
+                                     step++);
+  runStep(kdClusters, nearestNeighbours, conformalTracks, lowNumberHitsParameters, collectionClusters, false, true, false);
 
-  lowerCellAngleParameters._maxCellAngle *= 2.;
-  lowerCellAngleParameters._maxCellAngleRZ *= 2.;
-  lowerCellAngleParameters._chi2cut *= 20.;
+  // Extend through inner and outer trackers
 
-  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, lowerCellAngleParameters, true);
-  // Mark hits from "good" tracks as being used
-  for (auto& conformalTrack : conformalTracks) {
-    for (auto& thisCluster : conformalTrack->m_clusters)
-      thisCluster->used(true);
-  }
-
-  stopwatch->Stop();
-
-  streamlog_out(DEBUG7) << "Building low pt vertex tracks (2) took " << stopwatch->RealTime() << " seconds" << std::endl;
-  stopwatch->Reset();
-
-  // Lower number of hits on track
-
-  Parameters lowNumberHitsParameters(m_maxCellAngle * 10, m_maxCellAngleRZ * 10, m_chi2cut * 20.,
-                                     /*minClustersOnTrack=*/4, m_maxDistance, true, false);
-
-  stopwatch->Start(false);
-  buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, lowNumberHitsParameters, true);
-
-  // Mark hits from "good" tracks as being used
-  for (auto& conformalTrack : conformalTracks) {
-    for (auto& thisCluster : conformalTrack->m_clusters)
-      thisCluster->used(true);
-  }
-  stopwatch->Stop();
-
-  streamlog_out(DEBUG7) << "Building low pt vertex tracks with 4 hits took " << stopwatch->RealTime() << " seconds"
-                        << std::endl;
-  stopwatch->Reset();
-
+  // FIXME: Still needed?
   // Sort by pt (low to hight)
   std::sort(conformalTracks.begin(), conformalTracks.end(), sort_by_pt);
 
-  //m_highPTfit = false;
-
-  //lowNumberHitsParameters._chi2cut = m_chi2cut;
-
-  // Extend them through the inner and outer trackers
-  stopwatch->Start(false);
-  combineCollections(kdClusters, nearestNeighbours, m_trackerHits, collectionClusters);
-  extendTracks(conformalTracks, kdClusters, nearestNeighbours, lowNumberHitsParameters);
-  stopwatch->Stop();
-
-  streamlog_out(DEBUG7) << "Extending through trackers took " << stopwatch->RealTime() << " seconds" << std::endl;
-  stopwatch->Reset();
-
-  //  extendHighPT(conformalTracks, kdClusters, nearestNeighbours);
-  // Mark hits from "good" tracks as being used
-  //  for (unsigned int itTrack = 0; itTrack < conformalTracks.size(); itTrack++) {
-  //    for (unsigned int itHit = 0; itHit < conformalTracks[itTrack]->m_clusters.size(); itHit++)
-  //      conformalTracks[itTrack]->m_clusters[itHit]->used(true);
-  //  }
-  //  combineCollections(kdClusters, nearestNeighbours, trackerHits, collectionClusters);
+  Parameters trackerParameters(m_trackerHits, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
+                               /*m_minClustersOnTrack*/ 4, m_maxDistance, true, false, /*rSearch*/ true, /*vtt*/ true,
+                               step++);
+  runStep(kdClusters, nearestNeighbours, conformalTracks, trackerParameters, collectionClusters, true, false, true);
 
   // Finally reconstruct displaced tracks
 
-  stopwatch->Start(false);
-  combineCollections(kdClusters, nearestNeighbours, m_allHits, collectionClusters);
-  double factor          = 10;
-  bool   caughtException = false;
-  do {
-    caughtException = false;
-    try {
-      Parameters displacedParameters(m_maxCellAngle * factor, m_maxCellAngleRZ * factor, m_chi2cut * factor, 5, 0.015, false,
-                                     true);
-      streamlog_out(DEBUG8) << "Building new tracks displaced: " << factor << std::endl;
-      buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, displacedParameters, true, false);
-    } catch (TooManyTracksException& e) {
-      streamlog_out(MESSAGE) << "caught too many tracks, tightening parameters" << std::endl;
-      caughtException = true;
-      factor -= 1;
-      if (not m_retryTooManyTracks && factor <= 0) {
-        streamlog_out(ERROR) << "Skipping event" << std::endl;
-        throw;
-      }
-    }
-  } while (caughtException);
-
-  // Mark hits from "good" tracks as being used
-  for (auto& conformalTrack : conformalTracks) {
-    for (auto& thisCluster : conformalTrack->m_clusters)
-      thisCluster->used(true);
-  }
-  stopwatch->Stop();
-  streamlog_out(DEBUG7) << "Building displaced tracks with all detectors took " << stopwatch->RealTime() << " seconds"
-                        << std::endl;
-  stopwatch->Reset();
-
-  //*/
+  Parameters displacedParameters(m_allHits, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 10.0,
+                                 /*m_minClustersOnTrack*/ 5, 0.015, false, true, /*rSearch*/ true, /*vtt*/ false, step++);
+  runStep(kdClusters, nearestNeighbours, conformalTracks, displacedParameters, collectionClusters, true, true, false);
 
   // Clean up
   nearestNeighbours.reset(nullptr);
@@ -2424,5 +2322,55 @@ void ConformalTracking::fillCollectionIndexVectors() {
     }
     streamlog_out(MESSAGE) << "IndexList " << indexList.str() << std::endl;
     ;
+  }
+}
+
+void ConformalTracking::runStep(SharedKDClusters& kdClusters, UKDTree& nearestNeighbours, UniqueKDTracks& conformalTracks,
+                                Parameters const& parameters, std::map<int, SharedKDClusters> const& collectionClusters,
+                                bool combine, bool build, bool extend) {
+  auto stopwatch = TStopwatch();
+  stopwatch.Start(false);
+
+  if (combine) {
+    combineCollections(kdClusters, nearestNeighbours, parameters._collections, collectionClusters);
+  } else {
+    // Mark hits from "good" tracks as being used
+    for (auto& conformalTrack : conformalTracks) {
+      for (auto& thisCluster : conformalTrack->m_clusters)
+        thisCluster->used(true);
+    }
+  }
+
+  if (build) {
+    double     factor          = 10;
+    bool       caughtException = false;
+    Parameters thisParameters(parameters);
+    do {
+      caughtException = false;
+      try {
+        buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, thisParameters, parameters._radialSearch,
+                       parameters._vertexToTracker);
+      } catch (TooManyTracksException& e) {
+        streamlog_out(MESSAGE) << "caught too many tracks, tightening parameters" << std::endl;
+        caughtException = true;
+        thisParameters.tighten();
+        if (not m_retryTooManyTracks && factor <= 0) {
+          streamlog_out(ERROR) << "Skipping event" << std::endl;
+          throw;
+        }
+      }
+    } while (caughtException);
+
+    stopwatch.Stop();
+    streamlog_out(DEBUG7) << "Step " << parameters._step << "buildNewTracks took " << stopwatch.RealTime() << " seconds"
+                          << std::endl;
+    stopwatch.Reset();
+  }
+  if (extend) {
+    extendTracks(conformalTracks, kdClusters, nearestNeighbours, parameters);
+    stopwatch.Stop();
+    streamlog_out(DEBUG7) << "Step " << parameters._step << "extendTracks took " << stopwatch.RealTime() << " seconds"
+                          << std::endl;
+    stopwatch.Reset();
   }
 }
