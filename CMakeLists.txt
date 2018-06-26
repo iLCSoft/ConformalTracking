@@ -37,7 +37,7 @@ ENDIF()
 FIND_PACKAGE( MarlinUtil 1.4 REQUIRED )
 FIND_PACKAGE( GSL REQUIRED )
 
-FIND_PACKAGE( Boost REQUIRED )
+FIND_PACKAGE( Boost REQUIRED COMPONENTS regex )
 INCLUDE_DIRECTORIES( SYSTEM ${Boost_INCLUDE_DIRS} )
 
 FIND_PACKAGE( Marlin 1.0 REQUIRED ) # minimum required Marlin version
@@ -72,20 +72,6 @@ IF( MARLINRECO_AIDA )
 	ENDIF()
 ENDIF()
 
-# optional package
-FOREACH( pkg Marlin MarlinUtil GSL AIDA ROOT )
-	IF( ${pkg}_FOUND )
-		INCLUDE_DIRECTORIES( SYSTEM ${${pkg}_INCLUDE_DIRS} )
-		LINK_LIBRARIES( ${${pkg}_LIBRARIES} )
-		ADD_DEFINITIONS( ${${pkg}_DEFINITIONS} )
-		MESSAGE( STATUS "${pkg} -- found" )
-	ELSE()
-    MESSAGE( STATUS "${pkg} -- not found" )
-	ENDIF()
-ENDFOREACH()
-
-
-
 ### DOCUMENTATION ###########################################################
 
 OPTION( INSTALL_DOC "Set to OFF to skip build/install Documentation" OFF )
@@ -110,9 +96,27 @@ AUX_SOURCE_DIRECTORY( ./src library_sources )
 ADD_SHARED_LIBRARY( ${PROJECT_NAME} ${library_sources} )
 INSTALL_SHARED_LIBRARY( ${PROJECT_NAME} DESTINATION lib )
 
+
+# optional package
+FOREACH( pkg Marlin MarlinUtil GSL AIDA ROOT )
+	IF( ${pkg}_FOUND )
+		INCLUDE_DIRECTORIES(SYSTEM ${${pkg}_INCLUDE_DIRS})
+		TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${${pkg}_LIBRARIES})
+		ADD_DEFINITIONS( ${${pkg}_DEFINITIONS} )
+		MESSAGE( STATUS "${pkg} -- found" )
+	ELSE()
+    MESSAGE( STATUS "${pkg} -- not found" )
+	ENDIF()
+ENDFOREACH()
+
+
 # display some variables and write them to cache
 DISPLAY_STD_VARIABLES()
 
+
+ADD_EXECUTABLE(TestConfig src/TestConfig.cpp)
+TARGET_INCLUDE_DIRECTORIES(TestConfig SYSTEM PRIVATE ${Boost_INCLUDE_DIRS})
+TARGET_LINK_LIBRARIES(TestConfig PRIVATE ${Boost_LIBRARIES})
 
 ### FORMATTING ##############################################################
 # Set the source files to clang-format (FIXME: determine this betteru
