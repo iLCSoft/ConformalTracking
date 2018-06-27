@@ -35,7 +35,6 @@ IF( ${ROOT_VDT_FOUND} )
 ENDIF()
 
 FIND_PACKAGE( MarlinUtil 1.4 REQUIRED )
-FIND_PACKAGE( GSL REQUIRED )
 
 FIND_PACKAGE( Boost REQUIRED COMPONENTS regex )
 INCLUDE_DIRECTORIES( SYSTEM ${Boost_INCLUDE_DIRS} )
@@ -98,7 +97,7 @@ INSTALL_SHARED_LIBRARY( ${PROJECT_NAME} DESTINATION lib )
 
 
 # optional package
-FOREACH( pkg Marlin MarlinUtil GSL AIDA ROOT )
+FOREACH( pkg Marlin MarlinUtil AIDA ROOT )
 	IF( ${pkg}_FOUND )
 		INCLUDE_DIRECTORIES(SYSTEM ${${pkg}_INCLUDE_DIRS})
 		TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${${pkg}_LIBRARIES})
@@ -113,10 +112,8 @@ ENDFOREACH()
 # display some variables and write them to cache
 DISPLAY_STD_VARIABLES()
 
-
 ADD_EXECUTABLE(TestConfig src/TestConfig.cpp)
 TARGET_INCLUDE_DIRECTORIES(TestConfig SYSTEM PRIVATE ${Boost_INCLUDE_DIRS})
-TARGET_LINK_LIBRARIES(TestConfig PRIVATE ${Boost_LIBRARIES})
 
 ### FORMATTING ##############################################################
 # Set the source files to clang-format (FIXME: determine this betteru
