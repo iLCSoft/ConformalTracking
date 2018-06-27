@@ -1,16 +1,11 @@
 #ifndef CELL_H
 #define CELL_H 1
 
-#include <math.h>
-#include <boost/array.hpp>
-#include <boost/multi_array.hpp>
-#include <fstream>
-#include <iomanip>
-#include <iosfwd>
-#include <iostream>
-#include <sstream>
-#include <vector>
 #include "KDCluster.h"
+
+#include <cmath>
+#include <memory>
+#include <vector>
 
 #ifdef CF_USE_VDT
 #include <vdt/atan.h>

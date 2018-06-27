@@ -1,43 +1,32 @@
 #ifndef ConformalTracking_h
 #define ConformalTracking_h 1
 
-#include "Parameters.h"
-
 #include "marlin/Processor.h"
-
-#include "lcio.h"
-
-#include <EVENT/LCCollection.h>
-#include <algorithm>
-#include <map>
-#include <string>
-#include <vector>
-
-#include <gsl/gsl_rng.h>
-//#include "DDRec/Surface.h"
-#include <EVENT/LCCollection.h>
-#include <EVENT/MCParticle.h>
-#include "EVENT/TrackerHit.h"
-#include "MarlinTrk/IMarlinTrkSystem.h"
-#include "TCanvas.h"
-#include "TGraphErrors.h"
-#include "TH1F.h"
-#include "TH2F.h"
-#include "TH3F.h"
-
-#include <AIDA/AIDA.h>
 
 #include "Cell.h"
 #include "DebugTool.h"
 #include "KDTrack.h"
 #include "KDTree.h"
-#include "KalmanTrack.h"
-#include "Math/Functor.h"
-#include "Minuit2/Minuit2Minimizer.h"
+#include "Parameters.h"
 
-using namespace lcio;
+#include <EVENT/LCCollection.h>
+#include <EVENT/MCParticle.h>
+#include <EVENT/TrackerHit.h>
+#include "lcio.h"
+
+#include <MarlinTrk/IMarlinTrkSystem.h>
+
+#include <TCanvas.h>
+#include <TH1F.h>
+#include <TH2F.h>
+#include <TH3F.h>
+
+#include <algorithm>
+#include <map>
+#include <string>
+#include <vector>
+
 using namespace marlin;
-using namespace AIDA;
 
 class ConformalTracking : public Processor {
 public:

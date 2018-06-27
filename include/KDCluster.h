@@ -2,24 +2,10 @@
 #define KDCLUSTER_H 1
 
 #include <EVENT/TrackerHitPlane.h>
-#include <IMPL/TrackImpl.h>
-#include <IMPL/TrackerHitPlaneImpl.h>
-#include <math.h>
-#include <boost/array.hpp>
-#include <boost/multi_array.hpp>
-#include <cmath>
-#include <fstream>
-#include <iomanip>
-#include <iosfwd>
-#include <iostream>
-#include <sstream>
-#include <vector>
 
-#include <UTIL/BitSet32.h>
-#include <UTIL/CellIDEncoder.h>
-#include <UTIL/ILDConf.h>
-#include <UTIL/LCRelationNavigator.h>
-#include "UTIL/LCTrackerConf.h"
+#include <cmath>
+#include <memory>
+#include <vector>
 
 // ------------------------------------------------------------------------------------
 // The KDCluster class is a simple hit class used in the Cellular Automaton tracking.

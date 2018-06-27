@@ -1,9 +1,11 @@
 #ifndef KDTRACK_H
 #define KDTRACK_H 1
 
-#include <math.h>
 #include "KDCluster.h"
-#include "TH2F.h"
+
+#include <cmath>
+
+class TH2F;
 
 // ------------------------------------------------------------------------------------
 // The KDTrack class is a simple track class designed to allow fast linear fitting in

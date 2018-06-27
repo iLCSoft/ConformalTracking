@@ -1,51 +1,39 @@
 #include "ConformalTracking.h"
 
-#include "MarlinTrk/Factory.h"
-#include "MarlinTrk/HelixFit.h"
-#include "MarlinTrk/HelixTrack.h"
-#include "MarlinTrk/IMarlinTrack.h"
-#include "MarlinTrk/IMarlinTrkSystem.h"
-#include "MarlinTrk/MarlinTrkDiagnostics.h"
-#include "MarlinTrk/MarlinTrkUtils.h"
+#include "Cell.h"
+#include "KDTree.h"
+#include "KalmanTrack.h"
+
+#include <MarlinTrk/Factory.h>
+#include <MarlinTrk/IMarlinTrack.h>
+#include <MarlinTrk/IMarlinTrkSystem.h>
+#include <MarlinTrk/MarlinTrkUtils.h>
 
 #include <EVENT/LCCollection.h>
 #include <EVENT/MCParticle.h>
 #include <EVENT/SimTrackerHit.h>
+
 #include <IMPL/LCCollectionVec.h>
-#include <IMPL/LCRelationImpl.h>
 #include <IMPL/TrackImpl.h>
 #include <IMPL/TrackerHitPlaneImpl.h>
 
-#include <UTIL/BitSet32.h>
-#include <UTIL/CellIDEncoder.h>
 #include <UTIL/ILDConf.h>
 #include <UTIL/LCRelationNavigator.h>
-#include "UTIL/LCTrackerConf.h"
+#include <UTIL/LCTrackerConf.h>
 
 #include <marlinutil/GeometryUtil.h>
 
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_rng.h>
-
+#include <marlin/AIDAProcessor.h>
 #include <marlin/Exceptions.h>
-#include "marlin/AIDAProcessor.h"
-#include "marlin/Global.h"
-#include "marlin/ProcessorEventSeeder.h"
-
-#include "CLHEP/Vector/TwoVector.h"
+#include <marlin/Global.h>
+#include <marlin/ProcessorEventSeeder.h>
 
 #include <AIDA/IAnalysisFactory.h>
-#include <AIDA/IHistogramFactory.h>
 
+#include <TCanvas.h>
+#include <TLine.h>
 #include <TLorentzVector.h>
-#include "TCanvas.h"
-#include "TF1.h"
-#include "TFile.h"
-#include "TFitResult.h"
-#include "TFitResultPtr.h"
-#include "TGraphErrors.h"
-#include "TLine.h"
-#include "TLinearFitter.h"
+#include <TStopwatch.h>
 
 #include <algorithm>
 #include <cfloat>
@@ -56,15 +44,9 @@
 #include <sstream>
 #include <utility>
 
-#include "TStopwatch.h"
-
-#include "Cell.h"
-#include "KDTree.h"
-
 using namespace lcio;
 using namespace marlin;
 using namespace std;
-using namespace dd4hep;
 using namespace AIDA;
 
 // Static instantiation of the processor

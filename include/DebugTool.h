@@ -1,16 +1,21 @@
 #ifndef DEBUGTOOL_H
 #define DEBUGTOOL_H 1
 
+#include "KDCluster.h"
+#include "KDTrack.h"
+
 #include <EVENT/LCCollection.h>
 #include <EVENT/MCParticle.h>
 #include <EVENT/SimTrackerHit.h>
-#include <IMPL/LCCollectionVec.h>
-#include <IMPL/LCRelationImpl.h>
-#include <IMPL/TrackImpl.h>
-#include <IMPL/TrackerHitPlaneImpl.h>
-#include <math.h>
-#include "KDCluster.h"
-#include "KDTrack.h"
+#include <UTIL/LCRelationNavigator.h>
+
+#include <algorithm>
+
+using EVENT::LCCollection;
+using EVENT::TrackerHitPlane;
+using EVENT::MCParticle;
+using EVENT::LCObjectVec;
+using EVENT::SimTrackerHit;
 
 // ------------------------------------------------------------------------------------
 // The ConformalDebugger is a helper class to find associations between MCTruth and the
@@ -18,7 +23,7 @@
 // MCParticles to KDClusters and then give purity values etc. for given tracks.
 // ------------------------------------------------------------------------------------
 
-using SLCRelationNavigator = std::shared_ptr<LCRelationNavigator>;
+using SLCRelationNavigator = std::shared_ptr<UTIL::LCRelationNavigator>;
 
 class ConformalDebugger {
 public:
