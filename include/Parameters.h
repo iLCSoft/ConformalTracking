@@ -1,9 +1,18 @@
 #ifndef STEPPARAMETERS_H
 #define STEPPARAMETERS_H 1
 
+#include <map>
+#include <string>
 #include <vector>
 
+namespace ParameterParser {
+  struct ParsedParameters;
+}
+
 struct Parameters {
+  using ParMap    = std::map<std::string, double>;
+  using StringVec = std::vector<std::string>;
+
 public:
   std::vector<int> _collections;  /// which collections to combine
   double           _maxCellAngle;
@@ -22,7 +31,17 @@ public:
   bool             _sortTracks;
   double           _tightenStep = 1;
 
-  Parameters(std::vector<int> collections, double maxCellAngle, double maxCellAngleRZ, double chi2cut,
+  const StringVec _existingFunctions = {
+      "CombineCollections", "ExtendTracks", "BuildNewTracks", "SortTracks",
+  };
+  const StringVec _existingFlags = {
+      "HighPTFit", "OnlyZSchi2cut", "RadialSearch", "VertexToTracker",
+  };
+  const StringVec _existingParameters = {
+      "MaxCellAngle", "MaxCellAngleRZ", "Chi2Cut", "MinClustersOnTrack", "MaxDistance",
+  };
+
+  Parameters(std::vector<int> const& collections, double maxCellAngle, double maxCellAngleRZ, double chi2cut,
              int minClustersOnTrack, double maxDistance, bool highPTfit, bool onlyZSchi2cut, bool radialSearch,
              bool vertexToTracker, int step, bool combine, bool build, bool extend, bool sortTracks)
       : _collections(collections),
@@ -41,6 +60,9 @@ public:
         _extend(extend),
         _sortTracks(sortTracks) {}
 
+  explicit Parameters(ParameterParser::ParsedParameters const& ps, std::vector<std::string> const& allCollections,
+                      int step = 0);
+
   Parameters(Parameters const& rhs) = default;
 
   void tighten() {
@@ -50,6 +72,10 @@ public:
     _chi2cut *= factor;
     _tightenStep += 1.0;
   }
+
+private:
+  void check(StringVec const& values, StringVec const& options, std::string const& type);
+  void check(ParMap const& values, StringVec const& options, std::string const& type);
 };
 
 #endif  // STEPPARAMETERS_H
