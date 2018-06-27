@@ -6,7 +6,6 @@
 using namespace lcio;
 using namespace marlin;
 using namespace std;
-using namespace AIDA;
 
 // Static instantiation of the processor
 ConformalTrackingV2 aConformalTrackingV2;

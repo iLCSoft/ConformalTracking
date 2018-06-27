@@ -1,6 +1,7 @@
+#include "KDTree.h"
+
 #include <algorithm>
 #include <utility>
-#include "KDTree.h"
 
 //-----------------------------------------------------------------------------
 // Implementation file for class : KDTree.C

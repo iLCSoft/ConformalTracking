@@ -1,19 +1,14 @@
 #ifndef KDTREE_WRAPPER_HPP
 #define KDTREE_WRAPPER_HPP
 
-#include <boost/array.hpp>
-#include <boost/multi_array.hpp>
-#include <fstream>
-#include <functional>
-#include <iomanip>
-#include <iosfwd>
-#include <iostream>
-#include <sstream>
-#include <vector>
-
 #include "KDCluster.h"
 #include "kdtree2.h"
-//#include "Point.h"
+
+#include <boost/array.hpp>
+#include <boost/multi_array.hpp>
+
+#include <memory>
+#include <vector>
 
 //-----------------------------------------------------------------------------
 // Class : KDTree

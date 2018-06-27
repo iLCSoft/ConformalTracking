@@ -1,9 +1,10 @@
 #ifndef KALMANTRACK_H
 #define KALMANTRACK_H 1
 
-#include <memory>
 #include "KDCluster.h"
 #include "KDTrack.h"
+
+#include <memory>
 
 // ------------------------------------------------------------------------------------
 // The Kalman track is a simple extension for the KDTrack, which applies a kalman
