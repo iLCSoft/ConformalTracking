@@ -1,9 +1,57 @@
 #define BOOST_SPIRIT_DEBUG 1
 #include "ParameterParser.h"
 
+namespace qi = boost::spirit::qi;
+
+template <typename It, typename Skipper = qi::blank_type>
+struct ParameterGrammar : qi::grammar<It, ParameterParser::PPVec(), Skipper> {
+  ParameterGrammar() : ParameterGrammar::base_type(start) {
+
+
+    name = +qi::char_("-a-zA-Z_0-9");
+
+    stepName = qi::lit("[") >> name >> qi::lit("]");
+
+    collections = name % spacer;
+    functions   = name % spacer;
+    flags       = name % spacer;
+
+    key = qi::char_("a-zA-Z_") >> *qi::char_("a-zA-Z_0-9");
+
+    parameters = parPair % (qi::lit(';') | qi::lit(','));
+    parPair    = key >> -('=' >> qi::double_);
+
+    spacer = *(qi::eol | ';' | ',' | ':');
+
+    // clang-format off
+    start = *(*qi::eol >> stepName
+              >> spacer >> "@Collections" >> qi::lit('=') >> collections
+              >> spacer >> "@Parameters" >> qi::lit('=') >> parameters
+              >> spacer >> "@Flags" >> qi::lit('=') >> flags
+              >> spacer >> "@Functions" >> qi::lit('=') >> functions
+              >> spacer);
+    // clang-format on
+
+    //BOOST_SPIRIT_DEBUG_NODES((start)(collections)(flags)(parameters)(functions)(parPair)(key)(name)(stepName));
+  }
+
+private:
+  qi::rule<It, ParameterParser::PPVec(), Skipper>                 start{};
+  qi::rule<It, Parameters::StringVec(), Skipper> collections{};
+  qi::rule<It, Parameters::ParMap(), Skipper>    parameters{};
+  qi::rule<It, std::string(), Skipper>           name{};
+  qi::rule<It, std::string(), Skipper>           stepName{};
+  qi::rule<It, std::string(), Skipper>           key{};
+  qi::rule<It, std::pair<std::string, double>(), Skipper> parPair{};
+  qi::rule<It, Parameters::StringVec(), Skipper> flags{};
+  qi::rule<It, Parameters::StringVec(), Skipper> functions{};
+  qi::rule<It, Skipper> spacer{};
+};
+
+
 int main() {
   using It = std::string::const_iterator;
-  ParameterParser::ParameterGrammar<It> const myGrammar;
+  ParameterGrammar<It> const myGrammar;
 
   std::string configString = R"RAW(
     [VXDBarrel]
@@ -23,7 +71,6 @@ int main() {
     @Functions = CombineCollections, BuildNewTracks
 )RAW";
 
-  namespace qi = ParameterParser::qi;
   ParameterParser::PPVec parsed;
   It startString = begin(configString), endString = end(configString);
   bool ok = qi::phrase_parse(startString, endString, myGrammar, qi::blank, parsed);
