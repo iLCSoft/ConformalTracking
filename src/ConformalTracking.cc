@@ -81,6 +81,8 @@ public:
   TooManyTracksException(Processor* proc) : marlin::SkipEventException(proc) {}
 };
 
+ConformalTracking::ConformalTracking(std::string const& procName) : Processor(procName) {}
+
 ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
   // Processor description
   _description = "ConformalTracking constructs tracks using a combined conformal mapping and cellular automaton approach.";
@@ -145,6 +147,8 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
 void ConformalTracking::init() {
   // Print the initial parameters
   printParameters();
+
+  parseStepParameters();
 
   // Reset counters
   m_runNumber   = 0;
@@ -226,47 +230,53 @@ void ConformalTracking::init() {
         new TCanvas("canvConformalEventDisplayMCunreconstructed", "canvConformalEventDisplayMCunreconstructed");
   }
 
-  fillCollectionIndexVectors();
-
   // Register this process
   Global::EVENTSEEDER->registerProcessor(this);
-  parseStepParameters();
 }
 
 void ConformalTracking::parseStepParameters() {
+  fillCollectionIndexVectors();
+
   int step = 0;
   // Build tracks in the vertex barrel
   Parameters initialParameters(m_vertexBarrelHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
-                               m_maxDistance, true, false, /*rSearch*/ false, /*vtt*/ true, step++, true, true, false,
-                               false);
+                               m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false, /*vtt*/ true, step++,
+                               /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // Extend through the endcap
   Parameters parameters2(m_vertexEndcapHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
-                         m_maxDistance, true, false, /*rSearch*/ false, /*vtt*/ true, step++, true, false, true, false);
+                         m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false, /*vtt*/ true, step++,
+                         /*combine*/ true, /*build*/ false, /*extend*/ true, /*sort*/ false);
   // Make combined vertex tracks
   Parameters parametersTCVC(m_vertexCombinedHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
-                            m_maxDistance, true, false, /*rSearch*/ false, /*vtt*/ true, step++, true, true, false, false);
+                            m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false, /*vtt*/ true, step++,
+                            /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // Make leftover tracks in the vertex with lower requirements
   // 1. open the cell angles
   Parameters lowerCellAngleParameters(m_vertexCombinedHits, m_maxCellAngle * 5.0, m_maxCellAngleRZ * 5.0, m_chi2cut,
-                                      m_minClustersOnTrack, m_maxDistance, true, false, /*rSearch*/ true, /*vtt*/ true,
-                                      step++, not m_enableTCVC, true, false, false);
+                                      m_minClustersOnTrack, m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false,
+                                      /*rSearch*/ true, /*vtt*/ true, step++,
+                                      /*combine*/ not m_enableTCVC, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // 2. open further the cell angles and increase the chi2cut
   Parameters lowerCellAngleParameters2({}, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
-                                       m_minClustersOnTrack, m_maxDistance, true, false, /*rSearch*/ true, /*vtt*/ true,
-                                       step++, false, true, false, false);
+                                       m_minClustersOnTrack, m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false,
+                                       /*rSearch*/ true, /*vtt*/ true, step++,
+                                       /*combine*/ false, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // 3. min number of hits on the track = 4
 
   Parameters lowNumberHitsParameters({}, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
-                                     /*m_minClustersOnTrack*/ 4, m_maxDistance, true, false, /*rSearch*/ true, /*vtt*/ true,
-                                     step++, false, true, false, true);
+                                     /*m_minClustersOnTrack*/ 4, m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false,
+                                     /*rSearch*/ true, /*vtt*/ true, step++,
+                                     /*combine*/ false, /*build*/ true, /*extend*/ false, /*sort*/ true);
   // Extend through inner and outer trackers
   Parameters trackerParameters(m_trackerHits, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
-                               /*m_minClustersOnTrack*/ 4, m_maxDistance, true, false, /*rSearch*/ true, /*vtt*/ true,
-                               step++, true, false, true, false);
+                               /*m_minClustersOnTrack*/ 4, m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false,
+                               /*rSearch*/ true, /*vtt*/ true, step++,
+                               /*combine*/ true, /*build*/ false, /*extend*/ true, /*sort*/ false);
   // Finally reconstruct displaced tracks
   Parameters displacedParameters(m_allHits, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 10.0,
-                                 /*m_minClustersOnTrack*/ 5, 0.015, false, true, /*rSearch*/ true, /*vtt*/ false, step++,
-                                 true, true, false, false);
+                                 /*m_minClustersOnTrack*/ 5, 0.015, /*highPT*/ false, /*OnlyZS*/ true, /*rSearch*/ true,
+                                 /*vtt*/ false, step++,
+                                 /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
 
   _stepParameters.push_back(initialParameters);
   _stepParameters.push_back(parameters2);

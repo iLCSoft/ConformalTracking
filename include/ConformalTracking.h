@@ -44,6 +44,7 @@ public:
   virtual Processor* newProcessor() { return new ConformalTracking; }
 
   ConformalTracking();
+  ConformalTracking(std::string const& procName);
   ConformalTracking(const ConformalTracking&) = delete;
   ConformalTracking& operator=(const ConformalTracking&) = delete;
 
@@ -214,7 +215,7 @@ protected:
 // ---------------------------
 
 // Sort tracker hits from smaller to larger radius
-bool sort_by_radius(EVENT::TrackerHit* hit1, EVENT::TrackerHit* hit2) {
+inline bool sort_by_radius(EVENT::TrackerHit* hit1, EVENT::TrackerHit* hit2) {
   double radius1 =
       sqrt((hit1->getPosition()[0]) * (hit1->getPosition()[0]) + (hit1->getPosition()[1]) * (hit1->getPosition()[1]));
   double radius2 =
@@ -223,21 +224,21 @@ bool sort_by_radius(EVENT::TrackerHit* hit1, EVENT::TrackerHit* hit2) {
 }
 
 // Sort kd hits from larger to smaller radius
-bool sort_by_radiusKD(SKDCluster const& hit1, SKDCluster const& hit2) {
+inline bool sort_by_radiusKD(SKDCluster const& hit1, SKDCluster const& hit2) {
   double radius1 = hit1->getR();
   double radius2 = hit2->getR();
   return (radius1 > radius2);
 }
 
 // Sort kd hits from smaller to larger radius
-bool sort_by_lower_radiusKD(SKDCluster const& hit1, SKDCluster const& hit2) {
+inline bool sort_by_lower_radiusKD(SKDCluster const& hit1, SKDCluster const& hit2) {
   double radius1 = hit1->getR();
   double radius2 = hit2->getR();
   return (radius1 < radius2);
 }
 
 // Sort kdhits by lower to higher layer number
-bool sort_by_layer(SKDCluster const& hit1, SKDCluster const& hit2) {
+inline bool sort_by_layer(SKDCluster const& hit1, SKDCluster const& hit2) {
   if (hit1->getSubdetector() != hit2->getSubdetector())
     return (hit1->getSubdetector() < hit2->getSubdetector());
   else if (hit1->getLayer() != hit2->getLayer())
@@ -249,17 +250,17 @@ bool sort_by_layer(SKDCluster const& hit1, SKDCluster const& hit2) {
 }
 
 // Sort cells from higher to lower weight
-bool sort_by_cellWeight(Cell::SCell const& cell1, Cell::SCell const& cell2) {
+inline bool sort_by_cellWeight(Cell::SCell const& cell1, Cell::SCell const& cell2) {
   int weight1 = cell1->getWeight();
   int weight2 = cell2->getWeight();
   return (weight1 > weight2);
 }
 
 // Sort kdtracks from longest to shortest
-bool sort_by_length(UKDTrack const& track1, UKDTrack const& track2) {
+inline bool sort_by_length(UKDTrack const& track1, UKDTrack const& track2) {
   return (track1->m_clusters.size() > track2->m_clusters.size());
 }
 
 // Sort kdtracks from lowest to highest pt
-bool sort_by_pt(UKDTrack const& track1, UKDTrack const& track2) { return (track1->pt() > track2->pt()); }
+inline bool sort_by_pt(UKDTrack const& track1, UKDTrack const& track2) { return (track1->pt() > track2->pt()); }
 #endif
