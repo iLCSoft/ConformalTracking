@@ -28,7 +28,7 @@ IF(CLANG_FORMAT)
         ${CHECK_CXX_SOURCE_FILES} 
         # print output
         | tee ${CMAKE_BINARY_DIR}/check_format_file.txt | grep -c "replacement " | 
-                tr -d "[:cntrl:]" && echo " replacements necessary"
+                tr -d "[:cntrl:]" && echo " replacements necessary" && cat ${CMAKE_BINARY_DIR}/check_format_file.txt
         # WARNING: fix to stop with error if there are problems
         COMMAND ! grep -c "replacement " 
                   ${CMAKE_BINARY_DIR}/check_format_file.txt > /dev/null

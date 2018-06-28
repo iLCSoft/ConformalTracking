@@ -105,6 +105,7 @@ int main() {
   }
 
   if (startString != endString) {
+
     std::cout << "Remaining unparsed: ";
     while (startString != endString) {
       char c = *startString++;
