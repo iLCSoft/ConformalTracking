@@ -24,31 +24,31 @@ protected:
   std::vector<std::string> m_rawSteps = {R"RAW(
     [VXDBarrel]
     @Collections = VXDTrackerHits
-    @Parameters = MaxCellAngle = 0.035; MaxCellAngleRZ = 0.035;  Chi2Cut = 300;  MinClustersOnTrack = 5;  MaxDistance = 0.015;
+    @Parameters = MaxCellAngle = 0.035; MaxCellAngleRZ = 0.035;  Chi2Cut = 300;  MinClustersOnTrack = 4;  MaxDistance = 0.015;
     @Flags = HighPTFit, VertexToTracker
     @Functions = CombineCollections, BuildNewTracks
     [VXDEncap]
     @Collections = VXDEndcapTrackerHits
-    @Parameters = MaxCellAngle = 0.035; MaxCellAngleRZ = 0.035;  Chi2Cut = 300;  MinClustersOnTrack = 5;  MaxDistance = 0.015;
+    @Parameters = MaxCellAngle = 0.035; MaxCellAngleRZ = 0.035;  Chi2Cut = 300;  MinClustersOnTrack = 4;  MaxDistance = 0.015;
     @Flags = HighPTFit, VertexToTracker
     @Functions = CombineCollections, ExtendTracks
     [TCVC]
     @Collections = VXDTrackerHits, VXDEndcapTrackerHits
-    @Parameters = MaxCellAngle = 0.035; MaxCellAngleRZ = 0.035;  Chi2Cut = 300;  MinClustersOnTrack = 5;  MaxDistance = 0.015;
+    @Parameters = MaxCellAngle = 0.035; MaxCellAngleRZ = 0.035;  Chi2Cut = 300;  MinClustersOnTrack = 4;  MaxDistance = 0.015;
     @Flags = HighPTFit, VertexToTracker
     @Functions = CombineCollections, BuildNewTracks
     [LowerCellAngle1]
-    @Collections = VXDTrackerHits, VXDEndcapTrackerHits
-    @Parameters = MaxCellAngle = 0.175; MaxCellAngleRZ = 0.175;  Chi2Cut = 300;  MinClustersOnTrack = 5;  MaxDistance = 0.015;
+    @Collections =
+    @Parameters = MaxCellAngle = 0.175; MaxCellAngleRZ = 0.175;  Chi2Cut = 300;  MinClustersOnTrack = 4;  MaxDistance = 0.015;
     @Flags = HighPTFit, VertexToTracker, RadialSearch
-    @Functions = CombineCollections, BuildNewTracks
+    @Functions = BuildNewTracks
     [LowerCellAngle2]
-    @Collections = VXDTrackerHits, VXDEndcapTrackerHits
-    @Parameters = MaxCellAngle = 0.35; MaxCellAngleRZ = 0.35;  Chi2Cut = 6000;  MinClustersOnTrack = 5;  MaxDistance = 0.015;
+    @Collections =
+    @Parameters = MaxCellAngle = 0.35; MaxCellAngleRZ = 0.35;  Chi2Cut = 6000;  MinClustersOnTrack = 4;  MaxDistance = 0.015;
     @Flags = HighPTFit, VertexToTracker, RadialSearch
     @Functions = BuildNewTracks
     [LowerHitNumbers]
-    @Collections = VXDTrackerHits,VXDEndcapTrackerHits
+    @Collections =
     @Parameters = MaxCellAngle = 0.35; MaxCellAngleRZ = 0.35;  Chi2Cut = 6000;  MinClustersOnTrack = 4;  MaxDistance = 0.015;
     @Flags = HighPTFit, VertexToTracker, RadialSearch
     @Functions = BuildNewTracks, SortTracks
@@ -60,8 +60,8 @@ protected:
     [Displaced]
     @Collections = VXDTrackerHits, VXDEndcapTrackerHits, ITrackerHits, OTrackerHits, ITrackerEndcapHits, OTrackerEndcapHits
     @Parameters = MaxCellAngle = 0.35; MaxCellAngleRZ = 0.35;  Chi2Cut = 3000;  MinClustersOnTrack = 5;  MaxDistance = 0.015;
-    @Flags = OnlyZSchi2cut, VertexToTracker, RadialSearch
-    @Functions = CombineCollections, ExtendTracks
+    @Flags = OnlyZSchi2cut, RadialSearch
+    @Functions = CombineCollections, BuildNewTracks
 )RAW"
   };
   // clang-format on
