@@ -43,15 +43,15 @@ protected:
     @Flags : HighPTFit, VertexToTracker, RadialSearch
     @Functions : BuildNewTracks, SortTracks
     [Tracker]
-    @Collections = ITrackerHits, OTrackerHits, ITrackerEndcapHits, OTrackerEndcapHits
-    @Parameters = MaxCellAngle = 0.05; MaxCellAngleRZ = 0.05; Chi2Cut = 2000; MinClustersOnTrack = 4; MaxDistance = 0.02;
-    @Flags = HighPTFit, VertexToTracker, RadialSearch
-    @Functions = CombineCollections, ExtendTracks
+    @Collections : ITrackerHits, OTrackerHits, ITrackerEndcapHits, OTrackerEndcapHits
+    @Parameters : MaxCellAngle : 0.05; MaxCellAngleRZ : 0.05; Chi2Cut : 2000; MinClustersOnTrack : 4; MaxDistance : 0.02;
+    @Flags : HighPTFit, VertexToTracker, RadialSearch
+    @Functions : CombineCollections, ExtendTracks
     [Displaced]
-    @Collections = VXDTrackerHits, VXDEndcapTrackerHits, ITrackerHits, OTrackerHits, ITrackerEndcapHits, OTrackerEndcapHits
-    @Parameters = MaxCellAngle = 0.05; MaxCellAngleRZ = 0.05; Chi2Cut = 1000; MinClustersOnTrack = 5; MaxDistance = 0.015;
-    @Flags = OnlyZSchi2cut, RadialSearch
-    @Functions = CombineCollections, BuildNewTracks
+    @Collections : VXDTrackerHits, VXDEndcapTrackerHits, ITrackerHits, OTrackerHits, ITrackerEndcapHits, OTrackerEndcapHits
+    @Parameters : MaxCellAngle : 0.05; MaxCellAngleRZ : 0.05; Chi2Cut : 1000; MinClustersOnTrack : 5; MaxDistance : 0.015;
+    @Flags : OnlyZSchi2cut, RadialSearch
+    @Functions : CombineCollections, BuildNewTracks
 )RAW"
   };
   // clang-format on

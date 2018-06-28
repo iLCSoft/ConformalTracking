@@ -14,6 +14,9 @@ struct ParameterGrammar : qi::grammar<It, ParameterParser::PPVec(), Skipper> {
     //separation can be done by arbirary number of newline, semicolon, comma, or colon
     spacer = *(qi::eol | ';' | ',' | ':');
 
+    //assignment can be done with = or colon
+    equals = (qi::lit('=') | qi::lit(':'));
+
     //the name of the step is a name in brackets
     stepName = qi::lit("[") >> name >> qi::lit("]");
 
@@ -26,8 +29,8 @@ struct ParameterGrammar : qi::grammar<It, ParameterParser::PPVec(), Skipper> {
     //a key cannot start with a number
     key = qi::char_("a-zA-Z_") >> *qi::char_("a-zA-Z_0-9");
 
-    // a parameters is a key followed by equal sign and a double
-    parPair = key >> -('=' >> qi::double_);
+    // a parameters is a key followed by equals (=|:) and a double
+    parPair = key >> -(equals >> qi::double_);
     //parameters is a parsing pairs into a map, separated by spacers
     parameters = parPair % spacer;
 
@@ -35,10 +38,10 @@ struct ParameterGrammar : qi::grammar<It, ParameterParser::PPVec(), Skipper> {
     // The order is the same as the struct we pass into its, a number of ParsedParameters
     // described by a ordered! sequence of Collections, parameters, flags and functions
     start = *(*qi::eol >> stepName
-              >> spacer >> "@Collections" >> qi::lit('=') >> collections
-              >> spacer >> "@Parameters" >> qi::lit('=') >> parameters
-              >> spacer >> "@Flags" >> qi::lit('=') >> flags
-              >> spacer >> "@Functions" >> qi::lit('=') >> functions
+              >> spacer >> "@Collections" >> equals >> collections
+              >> spacer >> "@Parameters" >> equals >> parameters
+              >> spacer >> "@Flags" >> equals >> flags
+              >> spacer >> "@Functions" >> equals >> functions
               >> spacer);
     // clang-format on
 
@@ -49,15 +52,11 @@ struct ParameterGrammar : qi::grammar<It, ParameterParser::PPVec(), Skipper> {
 
 private:
   qi::rule<It, PPVec(), Skipper>                 start{};
-  qi::rule<It, Parameters::StringVec(), Skipper> collections{};
+  qi::rule<It, Parameters::StringVec(), Skipper> collections{}, flags{}, functions{};
   qi::rule<It, Parameters::ParMap(), Skipper>    parameters{};
-  qi::rule<It, std::string(), Skipper>           name{};
-  qi::rule<It, std::string(), Skipper>           stepName{};
-  qi::rule<It, std::string(), Skipper>           key{};
+  qi::rule<It, std::string(), Skipper>           name{}, stepName{}, key{};
   qi::rule<It, std::pair<std::string, double>(), Skipper> parPair{};
-  qi::rule<It, Parameters::StringVec(), Skipper> flags{};
-  qi::rule<It, Parameters::StringVec(), Skipper> functions{};
-  qi::rule<It, Skipper> spacer{};
+  qi::rule<It, Skipper> spacer{}, equals{};
 };
 
 int main() {
@@ -66,25 +65,25 @@ int main() {
 
   std::string configString = R"RAW(
     [VXDBarrel]
-    @Collections = VXDTrackerHits
-    @Parameters = MaxCellAngle = 0.035; MaxCellAngleRZ = 0.035;  Chi2Cut = 300;  MinClustersOnTrack = 5;  MaxDistance = 0.015
-    @Flags = HighPTFit, VertexToTracker
-    @Functions = CombineCollections, BuildNewTracks
+    @Collections : VXDTrackerHits
+    @Parameters : MaxCellAngle : 0.035; MaxCellAngleRZ : 0.035;  Chi2Cut : 300;  MinClustersOnTrack : 5;  MaxDistance : 0.015
+    @Flags : HighPTFit, VertexToTracker
+    @Functions : CombineCollections, BuildNewTracks
     [VXDEncap]
-    @Collections = VXDEndcapTrackerHits
-    @Parameters = MaxCellAngle = 0.035; MaxCellAngleRZ = 0.035;  Chi2Cut = 300;  MinClustersOnTrack = 5;  MaxDistance = 0.015
-    @Flags = HighPTFit, VertexToTracker
-    @Functions = CombineCollections, ExtendTracks
+    @Collections : VXDEndcapTrackerHits
+    @Parameters : MaxCellAngle : 0.035 MaxCellAngleRZ : 0.035:  Chi2Cut : 300:  MinClustersOnTrack : 5   MaxDistance : 0.015
+    @Flags : HighPTFit, VertexToTracker
+    @Functions : CombineCollections, ExtendTracks
     [TCVC]
-    @Collections = VXDTrackerHits, VXDEndcapTrackerHits
-    @Parameters = MaxCellAngle = 0.035; MaxCellAngleRZ = 0.035;  Chi2Cut = 300;  MinClustersOnTrack = 5;  MaxDistance = 0.015
-    @Flags = HighPTFit, VertexToTracker;
-    @Functions = CombineCollections, BuildNewTracks
+    @Collections : VXDTrackerHits, VXDEndcapTrackerHits
+    @Parameters : MaxCellAngle : 0.035; MaxCellAngleRZ : 0.035;  Chi2Cut : 300;  MinClustersOnTrack : 5;  MaxDistance : 0.015
+    @Flags : HighPTFit, VertexToTracker;
+    @Functions : CombineCollections, BuildNewTracks
     [Foo]
-    @Collections =
-    @Parameters = MaxCellAngle = 0.035; MaxCellAngleRZ = 0.035;  Chi2Cut = 300;  MinClustersOnTrack = 5;  MaxDistance = 0.015
-    @Flags = HighPTFit, VertexToTracker;
-    @Functions = BuildNewTracks
+    @Collections :
+    @Parameters : MaxCellAngle : 0.035; MaxCellAngleRZ : 0.035;  Chi2Cut : 300;  MinClustersOnTrack : 5;  MaxDistance : 0.015
+    @Flags : HighPTFit, VertexToTracker;
+    @Functions : BuildNewTracks
 )RAW";
 
   ParameterParser::PPVec parsed;
@@ -105,7 +104,6 @@ int main() {
   }
 
   if (startString != endString) {
-
     std::cout << "Remaining unparsed: ";
     while (startString != endString) {
       char c = *startString++;
