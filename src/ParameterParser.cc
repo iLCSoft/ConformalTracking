@@ -10,9 +10,7 @@
 
 using PPVec     = std::vector<ParameterParser::ParsedParameters>;
 using StringVev = std::vector<std::string>;
-
 namespace qi    = boost::spirit::qi;
-namespace ascii = boost::spirit::ascii;
 
 //Create a grammar that returns a vector of ParsedParameters
 template <typename It, typename Skipper = qi::blank_type>
