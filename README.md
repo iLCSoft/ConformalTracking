@@ -26,43 +26,33 @@ The **ConformalTrackingV2** processor is fully configurable via the steering
 file. The parameter *Steps* takes a "Config" like String.  For example:
 
     [VXDBarrel]
-    @Collections = VXDTrackerHits
-    @Parameters = MaxCellAngle = 0.035; MaxCellAngleRZ = 0.035;  Chi2Cut = 300;  MinClustersOnTrack = 4;  MaxDistance = 0.015;
-    @Flags = HighPTFit, VertexToTracker
-    @Functions = CombineCollections, BuildNewTracks
+    @Collections : VXDTrackerHits
+    @Parameters : MaxCellAngle : 0.005; MaxCellAngleRZ : 0.005; Chi2Cut : 100; MinClustersOnTrack : 4; MaxDistance : 0.02;
+    @Flags : HighPTFit, VertexToTracker
+    @Functions : CombineCollections, BuildNewTracks
     [VXDEncap]
-    @Collections = VXDEndcapTrackerHits
-    @Parameters = MaxCellAngle = 0.035; MaxCellAngleRZ = 0.035;  Chi2Cut = 300;  MinClustersOnTrack = 4;  MaxDistance = 0.015;
-    @Flags = HighPTFit, VertexToTracker
-    @Functions = CombineCollections, ExtendTracks
-    [TCVC]
-    @Collections = VXDTrackerHits, VXDEndcapTrackerHits
-    @Parameters = MaxCellAngle = 0.035; MaxCellAngleRZ = 0.035;  Chi2Cut = 300;  MinClustersOnTrack = 4;  MaxDistance = 0.015;
-    @Flags = HighPTFit, VertexToTracker
-    @Functions = CombineCollections, BuildNewTracks
+    @Collections : VXDEndcapTrackerHits
+    @Parameters : MaxCellAngle : 0.005; MaxCellAngleRZ : 0.005; Chi2Cut : 100; MinClustersOnTrack : 4; MaxDistance : 0.02;
+    @Flags : HighPTFit, VertexToTracker
+    @Functions : CombineCollections, ExtendTracks
     [LowerCellAngle1]
-    @Collections =
-    @Parameters = MaxCellAngle = 0.175; MaxCellAngleRZ = 0.175;  Chi2Cut = 300;  MinClustersOnTrack = 4;  MaxDistance = 0.015;
-    @Flags = HighPTFit, VertexToTracker, RadialSearch
-    @Functions = BuildNewTracks
+    @Collections : VXDTrackerHits, VXDEndcapTrackerHits
+    @Parameters : MaxCellAngle : 0.025; MaxCellAngleRZ : 0.025; Chi2Cut : 100; MinClustersOnTrack : 4; MaxDistance : 0.02;
+    @Flags : HighPTFit, VertexToTracker, RadialSearch
+    @Functions : CombineCollections, BuildNewTracks
     [LowerCellAngle2]
-    @Collections =
-    @Parameters = MaxCellAngle = 0.35; MaxCellAngleRZ = 0.35;  Chi2Cut = 6000;  MinClustersOnTrack = 4;  MaxDistance = 0.015;
-    @Flags = HighPTFit, VertexToTracker, RadialSearch
-    @Functions = BuildNewTracks
-    [LowerHitNumbers]
-    @Collections =
-    @Parameters = MaxCellAngle = 0.35; MaxCellAngleRZ = 0.35;  Chi2Cut = 6000;  MinClustersOnTrack = 4;  MaxDistance = 0.015;
-    @Flags = HighPTFit, VertexToTracker, RadialSearch
-    @Functions = BuildNewTracks, SortTracks
+    @Collections :
+    @Parameters : MaxCellAngle : 0.05; MaxCellAngleRZ : 0.05; Chi2Cut : 2000; MinClustersOnTrack : 4; MaxDistance : 0.02;
+    @Flags : HighPTFit, VertexToTracker, RadialSearch
+    @Functions : BuildNewTracks, SortTracks
     [Tracker]
-    @Collections = ITrackerHits,OTrackerHits,ITrackerEndcapHits,OTrackerEndcapHits
-    @Parameters = MaxCellAngle = 0.35; MaxCellAngleRZ = 0.35;  Chi2Cut = 6000;  MinClustersOnTrack = 4;  MaxDistance = 0.015;
+    @Collections = ITrackerHits, OTrackerHits, ITrackerEndcapHits, OTrackerEndcapHits
+    @Parameters = MaxCellAngle = 0.05; MaxCellAngleRZ = 0.05; Chi2Cut = 2000; MinClustersOnTrack = 4; MaxDistance = 0.02;
     @Flags = HighPTFit, VertexToTracker, RadialSearch
     @Functions = CombineCollections, ExtendTracks
     [Displaced]
     @Collections = VXDTrackerHits, VXDEndcapTrackerHits, ITrackerHits, OTrackerHits, ITrackerEndcapHits, OTrackerEndcapHits
-    @Parameters = MaxCellAngle = 0.35; MaxCellAngleRZ = 0.35;  Chi2Cut = 3000;  MinClustersOnTrack = 5;  MaxDistance = 0.015;
+    @Parameters = MaxCellAngle = 0.05; MaxCellAngleRZ = 0.05; Chi2Cut = 1000; MinClustersOnTrack = 5; MaxDistance = 0.015;
     @Flags = OnlyZSchi2cut, RadialSearch
     @Functions = CombineCollections, BuildNewTracks
 
