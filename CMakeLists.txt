@@ -83,16 +83,24 @@ ENDFOREACH()
 # display some variables and write them to cache
 DISPLAY_STD_VARIABLES()
 
-ADD_EXECUTABLE(TestConfig source/test/TestConfig.cpp)
-TARGET_INCLUDE_DIRECTORIES(TestConfig SYSTEM PRIVATE ${Boost_INCLUDE_DIRS})
-
 ### FORMATTING ##############################################################
-# Set the source files to clang-format (FIXME: determine this betteru
+# Set the source files to clang-format (FIXME: determine this better
 FILE(GLOB_RECURSE
      CHECK_CXX_SOURCE_FILES
-        src/*.cc src/*.C include/*.h
+        src/*.cc src/*.C include/*.h source/*
      )
 INCLUDE("cmake/clang-cpp-checks.cmake")
 
+option(BUILD_TESTING "Enable and build tests" ON)
+if(BUILD_TESTING)
+  ADD_EXECUTABLE(CT_TestConfig source/test/TestConfig.cpp)
+  TARGET_INCLUDE_DIRECTORIES(CT_TestConfig SYSTEM PRIVATE ${Boost_INCLUDE_DIRS})
 
+  include(CTest)
+  enable_testing()
 
+  ADD_TEST(NAME CT_TestConfig
+    COMMAND "CT_TestConfig"
+    WORKING_DIRECTORY ${CMAKE_BUILD_DIR}/bin
+    )
+endif(BUILD_TESTING)
