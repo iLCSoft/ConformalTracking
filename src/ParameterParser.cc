@@ -109,7 +109,7 @@ void ParameterParser::parseParameters(std::vector<Parameters>& parameters, Strin
   for (auto const& ps : parsedParameters) {
     try {
       parameters.emplace_back(ps, allCollections, ++count);
-      streamlog_out(DEBUG8) << "Step " << count << ":" << ps << std::endl;
+      streamlog_out(MESSAGE) << "Step " << count << ":" << ps << std::endl;
     } catch (std::out_of_range& e) {
       std::stringstream error;
       error << "Failed to create step configuration: A parameter is missing for " << ps._name;
