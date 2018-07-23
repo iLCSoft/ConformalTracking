@@ -11,9 +11,6 @@ public:
   ConformalTrackingV2(const ConformalTrackingV2&) = delete;
   ConformalTrackingV2& operator=(const ConformalTrackingV2&) = delete;
 
-  // Initialisation - run at the beginning to start histograms, etc.
-  virtual void init();
-
   // Called at the beginning of every run
   virtual void processRunHeader(LCRunHeader*) { m_runNumber++; }
 

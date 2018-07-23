@@ -52,12 +52,6 @@ ConformalTrackingV2::ConformalTrackingV2() : ConformalTracking("ConformalTrackin
   registerProcessorParameter("ThetaRange", "Angular range for initial cell seeding", m_thetaRange, double(0.1));
 }
 
-void ConformalTrackingV2::init() {
-  ConformalTracking::init();
-
-  parseStepParameters();
-}
-
 void ConformalTrackingV2::parseStepParameters() {
   ParameterParser::parseParameters(_stepParameters, m_rawSteps, m_inputTrackerHitCollections);
 }  //parseStepParameters
