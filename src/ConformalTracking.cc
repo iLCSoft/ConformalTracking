@@ -114,6 +114,8 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
                              double(0.035));
   registerProcessorParameter("MaxDistance", "Maximum length of a cell (max. distance between two hits)", m_maxDistance,
                              double(0.015));
+  registerProcessorParameter("HighPTCut", "pT threshold (in GeV) for enabling extendHighPT in extendTracks", m_highPTcut,
+                             double(10.0));
   registerProcessorParameter("MaxChi2", "Maximum chi2/ndof for linear conformal tracks", m_chi2cut, double(300.));
   registerProcessorParameter("MinClustersOnTrack", "Minimum number of clusters to create a track", m_minClustersOnTrack,
                              int(6));
@@ -222,41 +224,47 @@ void ConformalTracking::parseStepParameters() {
   int step = 0;
   // Build tracks in the vertex barrel
   Parameters initialParameters(m_vertexBarrelHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
-                               m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false, /*vtt*/ true, step++,
+                               m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false,
+                               /*vtt*/ true, step++,
                                /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // Extend through the endcap
   Parameters parameters2(m_vertexEndcapHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
-                         m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false, /*vtt*/ true, step++,
+                         m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false, /*vtt*/ true,
+                         step++,
                          /*combine*/ true, /*build*/ false, /*extend*/ true, /*sort*/ false);
   // Make combined vertex tracks
   Parameters parametersTCVC(m_vertexCombinedHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
-                            m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false, /*vtt*/ true, step++,
+                            m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false, /*vtt*/ true,
+                            step++,
                             /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // Make leftover tracks in the vertex with lower requirements
   // 1. open the cell angles
   Parameters lowerCellAngleParameters(m_vertexCombinedHits, m_maxCellAngle * 5.0, m_maxCellAngleRZ * 5.0, m_chi2cut,
-                                      m_minClustersOnTrack, m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false,
+                                      m_minClustersOnTrack, m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
                                       /*rSearch*/ true, /*vtt*/ true, step++,
                                       /*combine*/ not m_enableTCVC, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // 2. open further the cell angles and increase the chi2cut
   Parameters lowerCellAngleParameters2({}, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
-                                       m_minClustersOnTrack, m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false,
+                                       m_minClustersOnTrack, m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
                                        /*rSearch*/ true, /*vtt*/ true, step++,
                                        /*combine*/ false, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // 3. min number of hits on the track = 4
 
   Parameters lowNumberHitsParameters({}, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
-                                     /*m_minClustersOnTrack*/ 4, m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false,
+                                     /*m_minClustersOnTrack*/ 4, m_maxDistance, m_highPTcut, /*highPT*/ true,
+                                     /*OnlyZS*/ false,
                                      /*rSearch*/ true, /*vtt*/ true, step++,
                                      /*combine*/ false, /*build*/ true, /*extend*/ false, /*sort*/ true);
   // Extend through inner and outer trackers
   Parameters trackerParameters(m_trackerHits, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
-                               /*m_minClustersOnTrack*/ 4, m_maxDistance, /*highPT*/ true, /*OnlyZS*/ false,
+                               /*m_minClustersOnTrack*/ 4, m_maxDistance, /*highPTcut*/ 1.0, /*highPT*/ true,
+                               /*OnlyZS*/ false,
                                /*rSearch*/ true, /*vtt*/ true, step++,
                                /*combine*/ true, /*build*/ false, /*extend*/ true, /*sort*/ false);
   // Finally reconstruct displaced tracks
   Parameters displacedParameters(m_allHits, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 10.0,
-                                 /*m_minClustersOnTrack*/ 5, 0.015, /*highPT*/ false, /*OnlyZS*/ true, /*rSearch*/ true,
+                                 /*m_minClustersOnTrack*/ 5, 0.015, m_highPTcut, /*highPT*/ false, /*OnlyZS*/ true,
+                                 /*rSearch*/ true,
                                  /*vtt*/ false, step++,
                                  /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
 
@@ -1450,7 +1458,7 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
     UKDTrack& track = conformalTracks[currentTrack];
 
     // Only look at high pt tracks
-    if (track->pt() < 10.)
+    if (track->pt() < highPTParameters._highPTcut)
       continue;
 
     streamlog_out(DEBUG7) << "Trying to extend high pt track with pt estimate: " << track->pt() << std::endl;
