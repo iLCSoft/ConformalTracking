@@ -20,6 +20,7 @@ public:
   double           _chi2cut;
   int              _minClustersOnTrack;
   double           _maxDistance;
+  double           _highPTcut;
   bool             _highPTfit;
   bool             _onlyZSchi2cut;
   bool             _radialSearch;
@@ -38,18 +39,19 @@ public:
       "HighPTFit", "OnlyZSchi2cut", "RadialSearch", "VertexToTracker",
   };
   const StringVec _existingParameters = {
-      "MaxCellAngle", "MaxCellAngleRZ", "Chi2Cut", "MinClustersOnTrack", "MaxDistance",
+      "MaxCellAngle", "MaxCellAngleRZ", "Chi2Cut", "MinClustersOnTrack", "MaxDistance", "HighPTCut",
   };
 
   Parameters(std::vector<int> const& collections, double maxCellAngle, double maxCellAngleRZ, double chi2cut,
-             int minClustersOnTrack, double maxDistance, bool highPTfit, bool onlyZSchi2cut, bool radialSearch,
-             bool vertexToTracker, int step, bool combine, bool build, bool extend, bool sortTracks)
+             int minClustersOnTrack, double maxDistance, double highPTcut, bool highPTfit, bool onlyZSchi2cut,
+             bool radialSearch, bool vertexToTracker, int step, bool combine, bool build, bool extend, bool sortTracks)
       : _collections(collections),
         _maxCellAngle(maxCellAngle),
         _maxCellAngleRZ(maxCellAngleRZ),
         _chi2cut(chi2cut),
         _minClustersOnTrack(minClustersOnTrack),
         _maxDistance(maxDistance),
+        _highPTcut(highPTcut),
         _highPTfit(highPTfit),
         _onlyZSchi2cut(onlyZSchi2cut),
         _radialSearch(radialSearch),
