@@ -25,6 +25,7 @@ public:
   bool             _onlyZSchi2cut;
   bool             _radialSearch;
   bool             _vertexToTracker;
+  bool             _kalmanFitForward;
   int              _step;
   bool             _combine;
   bool             _build;
@@ -36,7 +37,7 @@ public:
       "CombineCollections", "ExtendTracks", "BuildNewTracks", "SortTracks",
   };
   const StringVec _existingFlags = {
-      "HighPTFit", "OnlyZSchi2cut", "RadialSearch", "VertexToTracker",
+      "HighPTFit", "OnlyZSchi2cut", "RadialSearch", "VertexToTracker", "KalmanFitForward", "KalmanFitBackward",
   };
   const StringVec _existingParameters = {
       "MaxCellAngle", "MaxCellAngleRZ", "Chi2Cut", "MinClustersOnTrack", "MaxDistance", "HighPTCut",
@@ -44,7 +45,8 @@ public:
 
   Parameters(std::vector<int> const& collections, double maxCellAngle, double maxCellAngleRZ, double chi2cut,
              int minClustersOnTrack, double maxDistance, double highPTcut, bool highPTfit, bool onlyZSchi2cut,
-             bool radialSearch, bool vertexToTracker, int step, bool combine, bool build, bool extend, bool sortTracks)
+             bool radialSearch, bool vertexToTracker, bool kalmanFitForward, int step, bool combine, bool build, bool extend,
+             bool sortTracks)
       : _collections(collections),
         _maxCellAngle(maxCellAngle),
         _maxCellAngleRZ(maxCellAngleRZ),
@@ -56,6 +58,7 @@ public:
         _onlyZSchi2cut(onlyZSchi2cut),
         _radialSearch(radialSearch),
         _vertexToTracker(vertexToTracker),
+        _kalmanFitForward(kalmanFitForward),
         _step(step),
         _combine(combine),
         _build(build),
