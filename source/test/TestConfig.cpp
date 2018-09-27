@@ -67,22 +67,22 @@ int main() {
     [VXDBarrel]
     @Collections : VXDTrackerHits
     @Parameters : MaxCellAngle : 0.035; MaxCellAngleRZ : 0.035;  Chi2Cut : 300;  MinClustersOnTrack : 5;  MaxDistance : 0.015
-    @Flags : HighPTFit, VertexToTracker
+    @Flags : HighPTFit, VertexToTracker, KalmanFitForward
     @Functions : CombineCollections, BuildNewTracks
     [VXDEncap]
     @Collections : VXDEndcapTrackerHits
     @Parameters : MaxCellAngle : 0.035 MaxCellAngleRZ : 0.035:  Chi2Cut : 300:  MinClustersOnTrack : 5   MaxDistance : 0.015
-    @Flags : HighPTFit, VertexToTracker
+    @Flags : HighPTFit, VertexToTracker, KalmanFitForward
     @Functions : CombineCollections, ExtendTracks
     [TCVC]
     @Collections : VXDTrackerHits, VXDEndcapTrackerHits
     @Parameters : MaxCellAngle : 0.035; MaxCellAngleRZ : 0.035;  Chi2Cut : 300;  MinClustersOnTrack : 5;  MaxDistance : 0.015
-    @Flags : HighPTFit, VertexToTracker;
+    @Flags : HighPTFit, VertexToTracker, KalmanFitForward
     @Functions : CombineCollections, BuildNewTracks
     [Foo]
     @Collections :
     @Parameters : MaxCellAngle : 0.035; MaxCellAngleRZ : 0.035;  Chi2Cut : 300;  MinClustersOnTrack : 5;  MaxDistance : 0.015
-    @Flags : HighPTFit, VertexToTracker;
+    @Flags : HighPTFit, VertexToTracker, KalmanFitBackward
     @Functions : BuildNewTracks
 )RAW";
 

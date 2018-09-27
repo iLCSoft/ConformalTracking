@@ -225,47 +225,47 @@ void ConformalTracking::parseStepParameters() {
   // Build tracks in the vertex barrel
   Parameters initialParameters(m_vertexBarrelHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
                                m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false,
-                               /*vtt*/ true, step++,
+                               /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // Extend through the endcap
   Parameters parameters2(m_vertexEndcapHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
                          m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false, /*vtt*/ true,
-                         step++,
+                         /*kalmanFitForward*/ true, step++,
                          /*combine*/ true, /*build*/ false, /*extend*/ true, /*sort*/ false);
   // Make combined vertex tracks
   Parameters parametersTCVC(m_vertexCombinedHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
                             m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false, /*vtt*/ true,
-                            step++,
+                            /*kalmanFitForward*/ true, step++,
                             /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // Make leftover tracks in the vertex with lower requirements
   // 1. open the cell angles
   Parameters lowerCellAngleParameters(m_vertexCombinedHits, m_maxCellAngle * 5.0, m_maxCellAngleRZ * 5.0, m_chi2cut,
                                       m_minClustersOnTrack, m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
-                                      /*rSearch*/ true, /*vtt*/ true, step++,
+                                      /*rSearch*/ true, /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                       /*combine*/ not m_enableTCVC, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // 2. open further the cell angles and increase the chi2cut
   Parameters lowerCellAngleParameters2({}, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
                                        m_minClustersOnTrack, m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
-                                       /*rSearch*/ true, /*vtt*/ true, step++,
+                                       /*rSearch*/ true, /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                        /*combine*/ false, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // 3. min number of hits on the track = 4
 
   Parameters lowNumberHitsParameters({}, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
                                      /*m_minClustersOnTrack*/ 4, m_maxDistance, m_highPTcut, /*highPT*/ true,
                                      /*OnlyZS*/ false,
-                                     /*rSearch*/ true, /*vtt*/ true, step++,
+                                     /*rSearch*/ true, /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                      /*combine*/ false, /*build*/ true, /*extend*/ false, /*sort*/ true);
   // Extend through inner and outer trackers
   Parameters trackerParameters(m_trackerHits, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
                                /*m_minClustersOnTrack*/ 4, m_maxDistance, /*highPTcut*/ 1.0, /*highPT*/ true,
                                /*OnlyZS*/ false,
-                               /*rSearch*/ true, /*vtt*/ true, step++,
+                               /*rSearch*/ true, /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                /*combine*/ true, /*build*/ false, /*extend*/ true, /*sort*/ false);
   // Finally reconstruct displaced tracks
   Parameters displacedParameters(m_allHits, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 10.0,
                                  /*m_minClustersOnTrack*/ 5, 0.015, m_highPTcut, /*highPT*/ false, /*OnlyZS*/ true,
                                  /*rSearch*/ true,
-                                 /*vtt*/ false, step++,
+                                 /*vtt*/ false, /*kalmanFitForward*/ true, step++,
                                  /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
 
   _stepParameters.push_back(initialParameters);
@@ -455,7 +455,8 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       std::sort(trackHits.begin(), trackHits.end(), sort_by_radiusKD);
 
       // Make a track
-      auto mcTrack = std::unique_ptr<KDTrack>(new KDTrack());
+      auto pars    = _stepParameters[0];
+      auto mcTrack = std::unique_ptr<KDTrack>(new KDTrack(pars));
       // Loop over all hits for debugging
       for (auto const& cluster : trackHits) {
         // Get the conformal clusters
@@ -679,8 +680,11 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
     // Try to fit
     int fitError =
-        MarlinTrk::createFinalisedLCIOTrack(marlinTrack.get(), trackHits, track.get(), MarlinTrk::IMarlinTrack::forward,
+        MarlinTrk::createFinalisedLCIOTrack(marlinTrack.get(), trackHits, track.get(), conformalTrack->m_kalmanFitForward,
                                             covMatrix, m_magneticField, m_maxChi2perHit);
+
+    streamlog_out(DEBUG9) << " Fit direction " << ((conformalTrack->m_kalmanFitForward) ? "forward" : "backward")
+                          << std::endl;
 
     // Check track quality - if fit fails chi2 will be 0. For the moment add hits by hand to any track that fails the track fit, and store it as if it were ok...
     if (track->getChi2() == 0.) {
@@ -1192,6 +1196,7 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
           streamlog_out(DEBUG9) << "-- Hit " << cluster << ": [x,y] = [" << bestTrack->m_clusters.at(cluster)->getX() << ", "
                                 << bestTrack->m_clusters.at(cluster)->getY() << "]" << std::endl;
         }
+
         conformalTracks.push_back(std::move(bestTrack));
       }
 
@@ -1630,7 +1635,7 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
         }
       }*/
 
-      UKDTrack extendedTrack = std::unique_ptr<KDTrack>(new KDTrack());
+      UKDTrack extendedTrack = std::unique_ptr<KDTrack>(new KDTrack(parameters));
       for (auto const& hit : hits)
         extendedTrack->add(hit);
       extendedTrack->linearRegression(true);
@@ -1805,7 +1810,7 @@ void ConformalTracking::getFittedTracks(UniqueKDTracks& finalTracks, UniqueCellu
     }
 
     // Make the fitting object. TGraphErrors used for 2D error-weighted fitting
-    UKDTrack track = std::unique_ptr<KDTrack>(new KDTrack());
+    UKDTrack track = std::unique_ptr<KDTrack>(new KDTrack(parameters));
 
     // Loop over all hits and add them to the fitter (and track)
     double     npoints = 0.;

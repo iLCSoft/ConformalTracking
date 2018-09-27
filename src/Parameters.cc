@@ -19,6 +19,7 @@ Parameters::Parameters(ParameterParser::ParsedParameters const& ps, std::vector<
       _onlyZSchi2cut(findEntry(ps._flags, "OnlyZSchi2cut")),
       _radialSearch(findEntry(ps._flags, "RadialSearch")),
       _vertexToTracker(findEntry(ps._flags, "VertexToTracker")),
+      _kalmanFitForward(findEntry(ps._flags, "KalmanFitForward") or not findEntry(ps._flags, "KalmanFitBackward")),
       _step(step),
       _combine(findEntry(ps._functions, "CombineCollections")),
       _build(findEntry(ps._functions, "BuildNewTracks")),

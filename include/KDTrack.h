@@ -2,6 +2,7 @@
 #define KDTRACK_H 1
 
 #include "KDCluster.h"
+#include "Parameters.h"
 
 #include <cmath>
 
@@ -18,7 +19,7 @@ class KalmanTrack;
 class KDTrack {
 public:
   //--- Constructor and destructor
-  KDTrack();
+  KDTrack(Parameters const& par);
   ~KDTrack();
 
   KDTrack(const KDTrack&) = default;
@@ -95,7 +96,8 @@ public:
   int              m_nPoints = 0;
   double           m_pT      = 0.0;
   SharedKDClusters m_clusters{};
-  KalmanTrack*     m_kalmanTrack = nullptr;
+  KalmanTrack*     m_kalmanTrack      = nullptr;
+  bool             m_kalmanFitForward = true;
 
 private:
 };

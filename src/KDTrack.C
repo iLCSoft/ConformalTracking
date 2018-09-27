@@ -4,8 +4,14 @@
 #include "TH2F.h"
 
 // Constructor
-KDTrack::KDTrack()
-    : m_gradient(0.), m_intercept(0.), m_rotated(false), fillFit(false), m_nPoints(0), m_kalmanTrack(nullptr) {}
+KDTrack::KDTrack(Parameters const& par)
+    : m_gradient(0.),
+      m_intercept(0.),
+      m_rotated(false),
+      fillFit(false),
+      m_nPoints(0),
+      m_kalmanTrack(nullptr),
+      m_kalmanFitForward(par._kalmanFitForward) {}
 
 // Destructor
 KDTrack::~KDTrack() {}
