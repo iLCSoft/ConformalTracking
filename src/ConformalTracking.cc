@@ -1667,6 +1667,256 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
   return;
 }
 
+// Take a collection of tracks and find the best extension layer by layer in the passed collection of clusters 
+void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, SharedKDClusters& collection, UKDTree& nearestNeighbours, 
+					     Parameters const& parameters, bool vertexToTracker){
+
+  streamlog_out( DEBUG9 )  << "*** extendTracksPerLayer: extending " << conformalTracks.size() << " tracks layer by layer, into " << collection.size() << " hits" << std::endl;
+
+  if(collection.size() == 0)
+    return;
+
+  int nTracks = conformalTracks.size();
+
+  // Sort the input collection by layer
+  std::sort(collection.begin(), collection.end(), (vertexToTracker ? sort_by_layer : sort_by_lower_layer));
+
+  // Loop over all tracks
+  for(int currentTrack = 0; currentTrack < nTracks; currentTrack++){
+    streamlog_out( DEBUG9 ) << "Track " << currentTrack << std::endl;
+
+    // Get the track
+    UKDTrack& track = conformalTracks[currentTrack];
+    // Make sure that the hits are ordered in KDradius
+    std::sort(track->m_clusters.begin(), track->m_clusters.end(), (vertexToTracker ? sort_by_radiusKD : sort_by_lower_radiusKD));
+
+    // Make the cell from the two hits of the track from which to extend
+    int nclusters = track->m_clusters.size();
+    streamlog_out( DEBUG9 ) << "Track has " << nclusters << " hits" << std::endl;
+    for(int i=0; i<nclusters; i++){
+      streamlog_out( DEBUG9 ) << "- Hit " << i << ": [x,y] = [" << track->m_clusters.at(i)->getX() << ", " << track->m_clusters.at(i)->getY() << "]" << std::endl;
+    }
+    auto seedCell = std::make_shared<Cell>(track->m_clusters[nclusters-2],track->m_clusters[nclusters-1]);
+    streamlog_out(DEBUG9) << "Seed cell A ([x,y] = [" << track->m_clusters[nclusters-2]->getX() << "," << track->m_clusters[nclusters-2]->getY()
+			  <<"]) - B ([x,y] = [" << track->m_clusters[nclusters-1]->getX() << "," << track->m_clusters[nclusters-1]->getY() << "])" << std::endl;
+
+    // Initialize variables for nearest neighbours search and subdetector layers
+    SharedKDClusters results;
+    bool loop = true;
+    int extendInSubdet = 0;
+    int extendInLayer = 0;
+    int final_subdet = 0;
+    int final_layer = 0;
+    bool firstLayer = true;
+    bool skipLayer = false;
+    SKDCluster hitOnCurrentLayer = NULL;
+    SKDCluster expectedHit = NULL;
+
+    // Start the extension into input collection, layer by layer
+    do{
+      streamlog_out( DEBUG9 ) << "- Start extension" << std::endl;
+      // Find nearest neighbours in theta and sort them by layer
+      SKDCluster const& kdhit = seedCell->getEnd();
+      streamlog_out( DEBUG9 ) << "- Endpoint seed cell: [x,y] = [" << kdhit->getX() << ", " << kdhit->getY() << "]" << std::endl;
+      double theta = kdhit->getTheta();
+      nearestNeighbours->allNeighboursInTheta(theta, m_thetaRange*4, results);
+      //nearestNeighbours->allNeighboursInRadius(kdhit, parameters._maxDistance, results);
+      streamlog_out( DEBUG9 ) << "- Found " << results.size() << " neighbours. " << std::endl;
+      if(results.size() == 0)
+	return;
+
+      std::sort(results.begin(), results.end(), (vertexToTracker ? sort_by_layer : sort_by_lower_layer)); 
+      // Get the final values of subdet and layer to stop the loop at the (vertexToTracker? outermost : innermost) layer with neighbours
+      final_subdet = results.at(results.size()-1)->getSubdetector();
+      final_layer = results.at(results.size()-1)->getLayer();
+      streamlog_out( DEBUG9 ) << "- Final layer with neighbours: [subdet,layer] = [" << final_subdet << ", " << final_layer << "]" << std::endl;
+      
+      if(streamlog::out.write<DEBUG9>()) {
+	for(unsigned int neighbour = 0; neighbour < results.size(); neighbour++){
+	  streamlog_out( DEBUG9 ) << "-- Neighbour " << neighbour << ": [x,y] = [" << results.at(neighbour)->getX() << ", " << results.at(neighbour)->getY() 
+				  << "]; [subdet,layer] = [" << results.at(neighbour)->getSubdetector() << ", " << results.at(neighbour)->getLayer() << "]" << std::endl;
+	}
+      }
+      
+      // If no hit was found on a layer, we use expectedHit as current position
+      // However, the nearest neighbour search is always performed from the last real hit (kdhit)
+      if(!skipLayer) hitOnCurrentLayer = kdhit;
+      else hitOnCurrentLayer = expectedHit;
+
+      // Set the subdetector layer in which to extend -- for this it is important that the hits are sorted by layer before
+      // First layer is based on first neighbour
+      // Next layers are based on next wrt current
+      for(unsigned int neighbour = 0; neighbour < results.size(); neighbour++){
+
+	streamlog_out( DEBUG9 ) << "-- Neighbour " << neighbour << ": [x,y] = [" << results.at(neighbour)->getX() << ", " << results.at(neighbour)->getY() 
+				<< "]; [subdet,layer] = [" << results.at(neighbour)->getSubdetector() << ", " << results.at(neighbour)->getLayer() << "]" << std::endl;
+
+	if(firstLayer){ // first neighbour
+	  extendInSubdet = results.at(0)->getSubdetector();
+	  extendInLayer = results.at(0)->getLayer();
+	  streamlog_out( DEBUG9 ) << "-- firstLayer) [subdet,layer] = [" << extendInSubdet << ", " << extendInLayer << "]" << std::endl;
+	  firstLayer = false;
+	  break;
+	}
+	else if(results.at(neighbour)->getSubdetector() == hitOnCurrentLayer->getSubdetector()){ // next layer is in same subdetector
+	  if( (vertexToTracker && (results.at(neighbour)->getLayer() > hitOnCurrentLayer->getLayer())) || (!vertexToTracker && (results.at(neighbour)->getLayer() < hitOnCurrentLayer->getLayer()))){ 
+	    extendInSubdet = results.at(neighbour)->getSubdetector();
+	    extendInLayer = results.at(neighbour)->getLayer();
+	    streamlog_out( DEBUG9 ) << "-- sameSub,diffLayer) [subdet,layer] = [" << extendInSubdet << ", " << extendInLayer << "]" << std::endl;
+	    break;
+	  }	  
+	}
+	else if((vertexToTracker && (results.at(neighbour)->getSubdetector() > hitOnCurrentLayer->getSubdetector())) || (!vertexToTracker && (results.at(neighbour)->getSubdetector() < hitOnCurrentLayer->getSubdetector()))){ // next layer is in next subdetector
+	  extendInSubdet = results.at(neighbour)->getSubdetector();
+	  extendInLayer = results.at(neighbour)->getLayer();
+	  streamlog_out( DEBUG9 ) << "-- diffSub) [subdet,layer] = [" << extendInSubdet << ", " << extendInLayer << "]" << std::endl;
+	  break;
+	}
+	else
+	  continue;
+      }
+
+      // Set the condition to end the loop 
+      if(extendInSubdet == final_subdet && extendInLayer == final_layer){ 
+	streamlog_out( DEBUG9 ) << "- Ending the loop. Reached final subdet layer" << std::endl;
+	loop = false;
+      }
+
+      // Initialize variables for choosing the best neighbour in layer
+      SKDCluster bestCluster = NULL;
+      double bestChi2 = 0.;
+      double chi2 = conformalTracks[currentTrack]->chi2ndof();
+      double chi2zs = conformalTracks[currentTrack]->chi2ndofZS();
+      UKDTrack& tempTrack = conformalTracks[currentTrack];
+
+      // Loop over neighbours
+      for(unsigned int neighbour = 0; neighbour < results.size(); neighbour++){
+
+	SKDCluster& nhit = results[neighbour];
+	// only in the layer in which to extend
+	if(nhit->getSubdetector() == extendInSubdet && nhit->getLayer() == extendInLayer){
+
+	  // Store the hit in case no bestCluster will be found in this layer
+	  expectedHit = nhit;
+      
+	  streamlog_out( DEBUG9 ) << "-- Looking at neighbour " << neighbour << ": [x,y] = [" << nhit->getX() << ", " << nhit->getY() << "]" << std::endl;
+
+	  // Check that the hit has not been used
+	  if(nhit->used()){
+	    streamlog_out(DEBUG9) << "-- used" << std::endl;
+	    continue;
+	  }
+
+	  // Check that the hit is not in the opposite side of the detector (if endcap)
+	  if (nhit->endcap() && kdhit->endcap() && (nhit->forward() != kdhit->forward())) {
+	    streamlog_out(DEBUG9) << "-- opposite side of detector" << std::endl;
+	    continue;
+	  }	
+
+	  // Check that radial conditions are met
+	  if((vertexToTracker && nhit->getR() >= kdhit->getR()) || (!vertexToTracker && nhit->getR() <= kdhit->getR())){
+	    streamlog_out(DEBUG9) << "-- radial conditions not met" << std::endl;
+	    continue;
+	  }
+
+	  // Check that the hit is not wildly away from the track (make cell and check angle)
+	  Cell extensionCell(conformalTracks[currentTrack]->m_clusters[nclusters-1], nhit);
+	  double cellAngle = seedCell->getAngle(extensionCell);
+	  double cellAngleRZ = seedCell->getAngleRZ(extensionCell);
+	  double maxCellAngle = parameters._maxCellAngle;
+	  double maxCellAngleRZ = parameters._maxCellAngleRZ;
+
+	  if(cellAngle > maxCellAngle || cellAngleRZ > maxCellAngleRZ){
+	    streamlog_out(DEBUG9) << "-- killed by cell angle cut" << std::endl;
+	    continue;
+	  }
+
+	  // Now fit the track with the new hit and check the increase in chi2 - use a tempTrack object: add hit, fit, get chi2, remove hit
+	  double deltaChi2(0.), deltaChi2zs(0.);
+	  streamlog_out(DEBUG9) << "-- tempTrack has " << tempTrack->m_clusters.size() << " hits " << std::endl;
+	  tempTrack->add(nhit);
+	  tempTrack->linearRegression();
+	  tempTrack->linearRegressionConformal();
+	  double newchi2 = tempTrack->chi2ndof();
+	  double newchi2zs = tempTrack->chi2ndofZS();
+	  streamlog_out(DEBUG9) << "-- tempTrack has now " << tempTrack->m_clusters.size() << " hits " << std::endl;
+	  deltaChi2 = newchi2 - chi2;
+	  deltaChi2zs = newchi2zs - chi2zs; 	  
+	  streamlog_out(DEBUG9) << "-- hit was fitted and has a delta chi2 of " << deltaChi2 << " and delta chi2zs of " << deltaChi2zs << std::endl;
+	  tempTrack->remove(tempTrack->m_clusters.size());
+	  streamlog_out(DEBUG9) << "-- tempTrack has now " << tempTrack->m_clusters.size() << " hits " << std::endl;
+
+	  double chi2cut = parameters._chi2cut;
+	  if(deltaChi2 > chi2cut || deltaChi2zs > chi2cut){
+	    streamlog_out(DEBUG9) << "-- killed by chi2 cut" << std::endl;
+	    continue;
+	  }
+	  streamlog_out(DEBUG9) << "-- valid candidate" << std::endl;
+
+	  // bestCluster still empty - fill it with the first candidate
+	  if(bestCluster == NULL){ 
+	    bestCluster = nhit;
+	    bestChi2 = deltaChi2;
+	    streamlog_out(DEBUG9) << "-- First candidate: [x,y] = [" << bestCluster->getX() << ", " << bestCluster->getY() << "], deltachi2 = " << bestChi2 << std::endl;
+	  }
+	  // bestCluster contains already a candidate
+	  else{
+	    if(deltaChi2 < bestChi2){
+	      bestCluster = nhit;
+	      bestChi2 = deltaChi2;
+	      streamlog_out(DEBUG9) << "-- Best cluster updated: [x,y] = [" << bestCluster->getX() << ", " << bestCluster->getY() << "], deltachi2 = " << bestChi2 << std::endl;
+
+	    }
+	    else{
+	      streamlog_out(DEBUG9) << "-- Best cluster unchanged: [x,y] = [" << bestCluster->getX() << ", " << bestCluster->getY() << "], deltachi2 = " << bestChi2 << std::endl;
+	      continue;
+	    }
+	  }
+
+	} // end if on the extension layer
+
+      } // end loop on neighbours
+
+      // If a bestCluster has been found in this layer, add it to the track, update the seed cell and reset
+      if(bestCluster != NULL){
+	skipLayer = false;
+	streamlog_out(DEBUG9) << "- Found bestCluster [x,y] = [" << bestCluster->getX() << ", " << bestCluster->getY() << "]" << std::endl;
+	conformalTracks[currentTrack]->add(bestCluster);
+	conformalTracks[currentTrack]->linearRegression();
+	conformalTracks[currentTrack]->linearRegressionConformal();
+	bestCluster->used(true);
+	nclusters = conformalTracks[currentTrack]->m_clusters.size();
+	if(vertexToTracker)
+	  seedCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[nclusters-2], conformalTracks[currentTrack]->m_clusters[nclusters-1]);
+	else
+	  seedCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[0], conformalTracks[currentTrack]->m_clusters[1]);	  
+	bestCluster = NULL;
+      }
+      // If not bestCluster has been found in this layer, make cell with the expected hit (from extrapolation) and increment the missing hit count
+      else{
+	streamlog_out(DEBUG9) << "- Found no bestCluster for [subdet,layer] = [" << extendInSubdet << ", " << extendInLayer << "]" << std::endl;
+	skipLayer = true;
+      }
+      // Clear the neighbours tree
+      results.clear();
+
+      streamlog_out(DEBUG9) << (skipLayer ? "- Still" : "- Updated") << " seed cell A ([x,y] = [" << conformalTracks[currentTrack]->m_clusters[nclusters-2]->getX() << ", " << conformalTracks[currentTrack]->m_clusters[nclusters-2]->getY()
+			    <<"]) - B ([x,y] = [" << conformalTracks[currentTrack]->m_clusters[nclusters-1]->getX() << ", " << conformalTracks[currentTrack]->m_clusters[nclusters-1]->getY() << ")]" << std::endl;
+
+    }while(loop); // end of track extension
+
+    streamlog_out(DEBUG9) << "Track ends with " << conformalTracks[currentTrack]->m_clusters.size() << " hits" << std::endl;
+    if (streamlog::out.write<DEBUG9>()) {
+      for(unsigned int i=0; i<conformalTracks[currentTrack]->m_clusters.size(); i++){
+	streamlog_out(DEBUG9) << "- Hit " << i << ": [x,y] = [" << conformalTracks[currentTrack]->m_clusters.at(i)->getX() << ", " << conformalTracks[currentTrack]->m_clusters.at(i)->getY() << "], [subdet,layer] = [" << conformalTracks[currentTrack]->m_clusters.at(i)->getSubdetector() << ", " << conformalTracks[currentTrack]->m_clusters.at(i)->getLayer() << "]" << std::endl;
+      }
+    }
+
+  } // end loop on tracks
+
+}
+
+
 //===================================
 // Cellular Track Functions
 //===================================
@@ -2519,9 +2769,10 @@ void ConformalTracking::runStep(SharedKDClusters& kdClusters, UKDTree& nearestNe
     stopwatch.Reset();
   }
   if (parameters._extend) {
-    extendTracks(conformalTracks, kdClusters, nearestNeighbours, parameters);
+    //extendTracks(conformalTracks, kdClusters, nearestNeighbours, parameters);
+    extendTracksPerLayer(conformalTracks, kdClusters, nearestNeighbours, parameters, parameters._vertexToTracker);
     stopwatch.Stop();
-    streamlog_out(DEBUG7) << "Step " << parameters._step << "extendTracks took " << stopwatch.RealTime() << " seconds"
+    streamlog_out(DEBUG7) << "Step " << parameters._step << "extendTracksPerLayer took " << stopwatch.RealTime() << " seconds"
                           << std::endl;
     stopwatch.Reset();
   }
