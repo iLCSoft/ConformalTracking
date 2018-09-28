@@ -79,6 +79,8 @@ public:
 
   void extendHighPT(UniqueKDTracks&, SharedKDClusters&, UKDTree&, Parameters const&, bool radialSearch = false);
 
+  void extendTracksPerLayer(UniqueKDTracks&, SharedKDClusters&, UKDTree&, Parameters const&, bool vertexToTracker = true);
+
   void createTracksNew(UniqueCellularTracks&, Cell::SCell&, std::map<Cell::SCell, bool>&);
   bool toBeUpdated(UniqueCellularTracks const&);
   void updateCell(Cell::SCell const&);
@@ -235,6 +237,18 @@ inline bool sort_by_layer(SKDCluster const& hit1, SKDCluster const& hit2) {
     return (hit1->getLayer() < hit2->getLayer());
   else if (hit1->getSide() != hit2->getSide())
     return (hit1->getSide() < hit2->getSide());
+  else
+    return false;
+}
+
+// Sort kdhits by higher to lower layer number
+inline bool sort_by_lower_layer(SKDCluster const& hit1, SKDCluster const& hit2){
+  if (hit1->getSubdetector() != hit2->getSubdetector())
+    return (hit1->getSubdetector() > hit2->getSubdetector());
+  else if (hit1->getLayer() != hit2->getLayer())
+    return (hit1->getLayer() > hit2->getLayer());
+  else if (hit1->getSide() != hit2->getSide())
+    return (hit1->getSide() > hit2->getSide());
   else
     return false;
 }
