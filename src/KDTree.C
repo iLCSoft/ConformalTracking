@@ -144,7 +144,7 @@ void KDTree::transformThetaResults(KDTreeResultVector& vec, SharedKDClusters& re
   KDTreeResultVector filtered;
   filtered.reserve(vec.size());
   for (auto const& entry : vec) {
-    if (filter(det[entry.idx])) {
+    if (filter(thetaLookup[arrayTheta[entry.idx][0]])) {
       continue;
     }
     filtered.push_back(entry);

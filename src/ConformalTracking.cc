@@ -843,7 +843,7 @@ void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, UKDTree
 
   // Sort the KDClusters from larger to smaller radius
   std::sort(kdClusters.begin(), kdClusters.end(), sort_by_radiusKD);
-
+ 
   // Make the binary search tree. This tree class contains two binary trees - one sorted by u-v and the other by theta
   nearestNeighbours = UKDTree(new KDTree(kdClusters, m_thetaRange, m_sortTreeResults));
 }
@@ -1717,13 +1717,27 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
       streamlog_out( DEBUG9 ) << "- Start extension" << std::endl;
       // Find nearest neighbours in theta and sort them by layer
       SKDCluster const& kdhit = seedCell->getEnd();
-      streamlog_out( DEBUG9 ) << "- Endpoint seed cell: [x,y] = [" << kdhit->getX() << ", " << kdhit->getY() << "]" << std::endl;
+      streamlog_out( DEBUG9 ) << "- Endpoint seed cell: [x,y] = [" << kdhit->getX() << ", " << kdhit->getY() << "]; " 
+                              << "[subdet,layer] = [" << kdhit->getSubdetector() << ", " << kdhit->getLayer() << "]" << std::endl;
       double theta = kdhit->getTheta();
-      nearestNeighbours->allNeighboursInTheta(theta, m_thetaRange*4, results);
+      nearestNeighbours->allNeighboursInTheta(theta, m_thetaRange*4, results, [&kdhit, vertexToTracker](SKDCluster const& nhit) {
+        if ((vertexToTracker && nhit->getR() >= kdhit->getR()) || (!vertexToTracker && nhit->getR() <= kdhit->getR()))
+          return true;
+        return false;
+      });
       //nearestNeighbours->allNeighboursInRadius(kdhit, parameters._maxDistance, results);
       streamlog_out( DEBUG9 ) << "- Found " << results.size() << " neighbours. " << std::endl;
-      if(results.size() == 0)
-	return;
+      if(streamlog::out.write<DEBUG9>()) {
+	      for(unsigned int neighbour = 0; neighbour < results.size(); neighbour++){
+	        streamlog_out( DEBUG9 ) << "-- Neighbour from allNeighboursInTheta " << neighbour << ": [x,y] = [" << results.at(neighbour)->getX() << ", " << results.at(neighbour)->getY() 
+				                          << "]; [subdet,layer] = [" << results.at(neighbour)->getSubdetector() << ", " << results.at(neighbour)->getLayer() << "]" << std::endl;
+	      }
+      }
+
+      if(results.size() == 0){
+	      loop=false;
+	      continue;
+      }
 
       std::sort(results.begin(), results.end(), (vertexToTracker ? sort_by_layer : sort_by_lower_layer)); 
       // Get the final values of subdet and layer to stop the loop at the (vertexToTracker? outermost : innermost) layer with neighbours
