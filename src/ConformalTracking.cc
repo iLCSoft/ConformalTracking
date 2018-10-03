@@ -1721,7 +1721,7 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
                               << "[subdet,layer] = [" << kdhit->getSubdetector() << ", " << kdhit->getLayer() << "]" << std::endl;
       double theta = kdhit->getTheta();
       nearestNeighbours->allNeighboursInTheta(theta, m_thetaRange*4, results, [&kdhit, vertexToTracker](SKDCluster const& nhit) {
-        if ((vertexToTracker && nhit->getR() >= kdhit->getR()) || (!vertexToTracker && nhit->getR() <= kdhit->getR()))
+        if ((vertexToTracker && nhit->getR() > kdhit->getR()) || (!vertexToTracker && nhit->getR() < kdhit->getR()))
           return true;
         return false;
       });
