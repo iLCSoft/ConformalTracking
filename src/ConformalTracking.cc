@@ -1718,7 +1718,7 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
       // Find nearest neighbours in theta and sort them by layer
       SKDCluster const& kdhit = seedCell->getEnd();
       streamlog_out( DEBUG9 ) << "- Endpoint seed cell: [x,y] = [" << kdhit->getX() << ", " << kdhit->getY() << "]; " 
-                              << "[subdet,layer] = [" << kdhit->getSubdetector() << ", " << kdhit->getLayer() << "]" << std::endl;
+                               << "]; r = " << kdhit->getR() << "; [subdet,layer] = [" << kdhit->getSubdetector() << ", " << kdhit->getLayer() << "]" << std::endl;
       double theta = kdhit->getTheta();
       nearestNeighbours->allNeighboursInTheta(theta, m_thetaRange*4, results, [&kdhit, vertexToTracker](SKDCluster const& nhit) {
         if ((vertexToTracker && nhit->getR() > kdhit->getR()) || (!vertexToTracker && nhit->getR() < kdhit->getR()))
@@ -1730,7 +1730,7 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
       if(streamlog::out.write<DEBUG9>()) {
 	      for(unsigned int neighbour = 0; neighbour < results.size(); neighbour++){
 	        streamlog_out( DEBUG9 ) << "-- Neighbour from allNeighboursInTheta " << neighbour << ": [x,y] = [" << results.at(neighbour)->getX() << ", " << results.at(neighbour)->getY() 
-				                          << "]; [subdet,layer] = [" << results.at(neighbour)->getSubdetector() << ", " << results.at(neighbour)->getLayer() << "]" << std::endl;
+				         << "]; r = " << results.at(neighbour)->getR() << "; [subdet,layer] = [" << results.at(neighbour)->getSubdetector() << ", " << results.at(neighbour)->getLayer() << "]" << std::endl;
 	      }
       }
 
@@ -1798,6 +1798,8 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
 
       // Initialize variables for choosing the best neighbour in layer
       SKDCluster bestCluster = NULL;
+      map<SKDCluster,double> bestClustersWithChi2 = {};
+      vector<SKDCluster> bestClusters = {};
       double bestChi2 = 0.;
       double chi2 = conformalTracks[currentTrack]->chi2ndof();
       double chi2zs = conformalTracks[currentTrack]->chi2ndofZS();
@@ -1854,8 +1856,8 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
 	  double newchi2 = tempTrack->chi2ndof();
 	  double newchi2zs = tempTrack->chi2ndofZS();
 	  streamlog_out(DEBUG9) << "-- tempTrack has now " << tempTrack->m_clusters.size() << " hits " << std::endl;
-	  deltaChi2 = newchi2 - chi2;
-	  deltaChi2zs = newchi2zs - chi2zs; 	  
+	  deltaChi2 = fabs(newchi2 - chi2);
+	  deltaChi2zs = fabs(newchi2zs - chi2zs);
 	  streamlog_out(DEBUG9) << "-- hit was fitted and has a delta chi2 of " << deltaChi2 << " and delta chi2zs of " << deltaChi2zs << std::endl;
 	  tempTrack->remove(tempTrack->m_clusters.size());
 	  streamlog_out(DEBUG9) << "-- tempTrack has now " << tempTrack->m_clusters.size() << " hits " << std::endl;
@@ -1867,22 +1869,24 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
 	  }
 	  streamlog_out(DEBUG9) << "-- valid candidate" << std::endl;
 
+	  bestClustersWithChi2[nhit] = deltaChi2;
+
 	  // bestCluster still empty - fill it with the first candidate
 	  if(bestCluster == NULL){ 
 	    bestCluster = nhit;
 	    bestChi2 = deltaChi2;
-	    streamlog_out(DEBUG9) << "-- First candidate: [x,y] = [" << bestCluster->getX() << ", " << bestCluster->getY() << "], deltachi2 = " << bestChi2 << std::endl;
+//	    streamlog_out(DEBUG9) << "-- First candidate: [x,y] = [" << bestCluster->getX() << ", " << bestCluster->getY() << "], deltachi2 = " << bestChi2 << std::endl;
 	  }
 	  // bestCluster contains already a candidate
 	  else{
 	    if(deltaChi2 < bestChi2){
 	      bestCluster = nhit;
 	      bestChi2 = deltaChi2;
-	      streamlog_out(DEBUG9) << "-- Best cluster updated: [x,y] = [" << bestCluster->getX() << ", " << bestCluster->getY() << "], deltachi2 = " << bestChi2 << std::endl;
+//	      streamlog_out(DEBUG9) << "-- Best cluster updated: [x,y] = [" << bestCluster->getX() << ", " << bestCluster->getY() << "], deltachi2 = " << bestChi2 << std::endl;
 
 	    }
 	    else{
-	      streamlog_out(DEBUG9) << "-- Best cluster unchanged: [x,y] = [" << bestCluster->getX() << ", " << bestCluster->getY() << "], deltachi2 = " << bestChi2 << std::endl;
+//	      streamlog_out(DEBUG9) << "-- Best cluster unchanged: [x,y] = [" << bestCluster->getX() << ", " << bestCluster->getY() << "], deltachi2 = " << bestChi2 << std::endl;
 	      continue;
 	    }
 	  }
@@ -1891,31 +1895,71 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
 
       } // end loop on neighbours
 
-      // If a bestCluster has been found in this layer, add it to the track, update the seed cell and reset
-      if(bestCluster != NULL){
-	skipLayer = false;
-	streamlog_out(DEBUG9) << "- Found bestCluster [x,y] = [" << bestCluster->getX() << ", " << bestCluster->getY() << "]" << std::endl;
-	conformalTracks[currentTrack]->add(bestCluster);
-	conformalTracks[currentTrack]->linearRegression();
-	conformalTracks[currentTrack]->linearRegressionConformal();
-	bestCluster->used(true);
-	nclusters = conformalTracks[currentTrack]->m_clusters.size();
-	if(vertexToTracker)
-	  seedCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[nclusters-2], conformalTracks[currentTrack]->m_clusters[nclusters-1]);
-	else
-	  seedCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[0], conformalTracks[currentTrack]->m_clusters[1]);	  
-	bestCluster = NULL;
+      streamlog_out(DEBUG9) << "-- this seed cells has " << bestClustersWithChi2.size() << " good candidates." << std::endl;
+      float chi2window = 100.0;
+      if(bestClustersWithChi2.size()>0){
+        for(auto clu : bestClustersWithChi2){
+	  streamlog_out(DEBUG9) << "-- Best cluster candidate: [x,y] = [" << clu.first->getX() << ", " << clu.first->getY() << "]; r = " << clu.first->getR() << "; radius = " << clu.first->getRadius() << std::endl;
+          streamlog_out(DEBUG9) << "-- chi " << clu.second << " compared to best chi " << bestChi2 << " of best candidate." << std::endl;
+	  if(clu.second < bestChi2 + chi2window && clu.second > bestChi2 - chi2window)
+	    bestClusters.push_back(clu.first); 
+	}
       }
+      streamlog_out(DEBUG9) << "-- this seed cells will be updated with " << bestClusters.size() << " candidates." << std::endl;
+      std::sort(bestClusters.begin(), bestClusters.end(), (vertexToTracker ? sort_by_radiusKD : sort_by_lower_radiusKD));
+     
+      // If bestClusters have been found in this layer, add them to the track, update the seed cell and reset
+      if(!bestClusters.empty()){
+	skipLayer = false;
+	nclusters = conformalTracks[currentTrack]->m_clusters.size();
+	streamlog_out(DEBUG9) << "- nclusters = " << nclusters << std::endl;
+        for(int i=0; i<nclusters; i++){
+          streamlog_out( DEBUG9 ) << "- Hit " << i << ": [x,y] = [" << track->m_clusters.at(i)->getX() << ", " << track->m_clusters.at(i)->getY() << "]; r = " << track->m_clusters.at(i)->getR() << "; radius = " << track->m_clusters.at(i)->getRadius()  << std::endl;
+        }
+        //create new cell with last track cluster and last bestCluster
+        //Best clusters are already ordered depending on vertexToTracker bool
+	seedCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[nclusters-1], bestClusters.at(bestClusters.size()-1));
+        streamlog_out(DEBUG9) << (skipLayer ? "- Still" : "- Updated") << " seed cell A ([x,y] = [" << seedCell->getStart()->getX() << ", " << seedCell->getStart()->getY()
+			      <<"]) - B ([x,y] = [" << seedCell->getEnd()->getX() << ", " << seedCell->getEnd()->getY() << ")]" << std::endl;
+
+	for(auto bestClu : bestClusters){
+	  streamlog_out(DEBUG9) << "- Found bestCluster [x,y] = [" << bestClu->getX() << ", " << bestClu->getY() << "]; r = " << bestClu->getR()<< std::endl;
+	  conformalTracks[currentTrack]->add(bestClu);
+	  conformalTracks[currentTrack]->linearRegression();
+	  conformalTracks[currentTrack]->linearRegressionConformal();
+	  bestClu->used(true);
+	  nclusters = conformalTracks[currentTrack]->m_clusters.size();
+	  streamlog_out(DEBUG9) << "- nclusters = " << nclusters << std::endl;
+          for(int i=0; i<nclusters; i++){
+            streamlog_out( DEBUG9 ) << "- Hit " << i << ": [x,y] = [" << track->m_clusters.at(i)->getX() << ", " << track->m_clusters.at(i)->getY() << "]; r = " << track->m_clusters.at(i)->getR() << "; radius = " << track->m_clusters.at(i)->getRadius()  << std::endl;
+          }
+	}
+/*
+	if(bestClusters.size()==1){
+  	  if(vertexToTracker)
+	    seedCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[nclusters-2], conformalTracks[currentTrack]->m_clusters[nclusters-1]);
+	  else
+	    seedCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[1], conformalTracks[currentTrack]->m_clusters[0]);	  
+        }else{
+            //Best clusters are already ordered depending on vertexToTracker bool
+	    seedCell = std::make_shared<Cell>(bestClusters.at(bestClusters.size()-2), bestClusters.at(bestClusters.size()-1));
+	}
+        streamlog_out(DEBUG9) << (skipLayer ? "- Still" : "- Updated") << " seed cell A ([x,y] = [" << seedCell->getStart()->getX() << ", " << seedCell->getStart()->getY()
+			      <<"]) - B ([x,y] = [" << seedCell->getEnd()->getX() << ", " << seedCell->getEnd()->getY() << ")]" << std::endl;
+*/      }
       // If not bestCluster has been found in this layer, make cell with the expected hit (from extrapolation) and increment the missing hit count
       else{
-	streamlog_out(DEBUG9) << "- Found no bestCluster for [subdet,layer] = [" << extendInSubdet << ", " << extendInLayer << "]" << std::endl;
-	skipLayer = true;
+        streamlog_out(DEBUG9) << "- Found no bestCluster for [subdet,layer] = [" << extendInSubdet << ", " << extendInLayer << "]" << std::endl;
+        skipLayer = true;
+        streamlog_out(DEBUG9) << (skipLayer ? "- Still" : "- Updated") << " seed cell A ([x,y] = [" << conformalTracks[currentTrack]->m_clusters[nclusters-2]->getX() << ", " << conformalTracks[currentTrack]->m_clusters[nclusters-2]->getY()
+			    <<"]) - B ([x,y] = [" << conformalTracks[currentTrack]->m_clusters[nclusters-1]->getX() << ", " << conformalTracks[currentTrack]->m_clusters[nclusters-1]->getY() << ")]" << std::endl;
       }
+
       // Clear the neighbours tree
       results.clear();
+      bestClustersWithChi2.clear();
+      bestClusters.clear();
 
-      streamlog_out(DEBUG9) << (skipLayer ? "- Still" : "- Updated") << " seed cell A ([x,y] = [" << conformalTracks[currentTrack]->m_clusters[nclusters-2]->getX() << ", " << conformalTracks[currentTrack]->m_clusters[nclusters-2]->getY()
-			    <<"]) - B ([x,y] = [" << conformalTracks[currentTrack]->m_clusters[nclusters-1]->getX() << ", " << conformalTracks[currentTrack]->m_clusters[nclusters-1]->getY() << ")]" << std::endl;
 
     }while(loop); // end of track extension
 
