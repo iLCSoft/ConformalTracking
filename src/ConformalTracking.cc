@@ -1901,8 +1901,10 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
         for(auto clu : bestClustersWithChi2){
 	  streamlog_out(DEBUG9) << "-- Best cluster candidate: [x,y] = [" << clu.first->getX() << ", " << clu.first->getY() << "]; r = " << clu.first->getR() << "; radius = " << clu.first->getRadius() << std::endl;
           streamlog_out(DEBUG9) << "-- chi " << clu.second << " compared to best chi " << bestChi2 << " of best candidate." << std::endl;
-	  if(clu.second < bestChi2 + chi2window && clu.second > bestChi2 - chi2window)
-	    bestClusters.push_back(clu.first); 
+	  if(clu.second < bestChi2 + chi2window && clu.second > bestChi2 - chi2window){
+            if(bestCluster != NULL && clu.first->sameSensor(bestCluster))
+	      bestClusters.push_back(clu.first); 
+          }
 	}
       }
       streamlog_out(DEBUG9) << "-- this seed cells will be updated with " << bestClusters.size() << " candidates." << std::endl;
