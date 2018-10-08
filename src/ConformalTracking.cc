@@ -1896,13 +1896,22 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
       } // end loop on neighbours
 
       streamlog_out(DEBUG9) << "-- this seed cells has " << bestClustersWithChi2.size() << " good candidates." << std::endl;
+
+      //put the best cluster already found
+      if(bestCluster != NULL){
+	bestClusters.push_back(bestCluster); 
+      }
+
+      //put all the other cluster with a similar chi2 - probably duplicates
       float chi2window = 100.0;
       if(bestClustersWithChi2.size()>0){
         for(auto clu : bestClustersWithChi2){
 	  streamlog_out(DEBUG9) << "-- Best cluster candidate: [x,y] = [" << clu.first->getX() << ", " << clu.first->getY() << "]; r = " << clu.first->getR() << "; radius = " << clu.first->getRadius() << std::endl;
           streamlog_out(DEBUG9) << "-- chi " << clu.second << " compared to best chi " << bestChi2 << " of best candidate." << std::endl;
 	  if(clu.second < bestChi2 + chi2window && clu.second > bestChi2 - chi2window){
-            if(bestCluster != NULL && clu.first->sameSensor(bestCluster))
+            if(clu.first->sameSensor(bestCluster))
+              streamlog_out(DEBUG9) << "-- current candidate and best one are in the same sensor " << std::endl;
+            if(bestCluster != NULL && !clu.first->sameSensor(bestCluster))
 	      bestClusters.push_back(clu.first); 
           }
 	}
