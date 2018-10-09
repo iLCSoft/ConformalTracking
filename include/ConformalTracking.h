@@ -242,7 +242,7 @@ inline bool sort_by_layer(SKDCluster const& hit1, SKDCluster const& hit2) {
 }
 
 // Sort kdhits by higher to lower layer number
-inline bool sort_by_lower_layer(SKDCluster const& hit1, SKDCluster const& hit2){
+inline bool sort_by_lower_layer(SKDCluster const& hit1, SKDCluster const& hit2) {
   if (hit1->getSubdetector() != hit2->getSubdetector())
     return (hit1->getSubdetector() > hit2->getSubdetector());
   else if (hit1->getLayer() != hit2->getLayer())
