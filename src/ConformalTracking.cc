@@ -1733,6 +1733,14 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
       double theta = kdhit->getTheta();
       nearestNeighbours->allNeighboursInTheta(
           theta, m_thetaRange * 4, results, [&kdhit, vertexToTracker](SKDCluster const& nhit) {
+            //if same subdet, take only the hits within two layers
+            if (nhit->getSubdetector() == kdhit->getSubdetector()) {
+              if ((vertexToTracker && nhit->getLayer() > (kdhit->getLayer() + 2)) ||
+                  (!vertexToTracker && nhit->getLayer() < (kdhit->getLayer() - 2))) {
+                return true;
+              }
+            }
+
             if ((vertexToTracker && nhit->getR() > kdhit->getR()) || (!vertexToTracker && nhit->getR() < kdhit->getR()))
               return true;
             return false;
@@ -2878,8 +2886,8 @@ void ConformalTracking::runStep(SharedKDClusters& kdClusters, UKDTree& nearestNe
   if (parameters._extend) {
     extendTracks(conformalTracks, kdClusters, nearestNeighbours, parameters);
     stopwatch.Stop();
-    streamlog_out(DEBUG7) << "Step " << parameters._step << "extendTracksPerLayer took " << stopwatch.RealTime()
-                          << " seconds" << std::endl;
+    streamlog_out(DEBUG7) << "Step " << parameters._step << "extendTracks took " << stopwatch.RealTime() << " seconds"
+                          << std::endl;
     stopwatch.Reset();
   }
 
