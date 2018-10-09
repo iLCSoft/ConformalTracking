@@ -1225,7 +1225,7 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
   std::sort(collection.begin(), collection.end(), sort_by_layer);
 
   // First extend high pt tracks
-  extendHighPT(conformalTracks, collection, nearestNeighbours, parameters);
+  extendTracksPerLayer(conformalTracks, collection, nearestNeighbours, parameters, parameters._vertexToTracker);
 
   // Mark hits from "good" tracks as being used
   for (auto& conformalTrack : conformalTracks) {
@@ -1688,6 +1688,11 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
 
     // Get the track
     UKDTrack& track = conformalTracks[currentTrack];
+
+    // Only look at high pt tracks
+    if (track->pt() < parameters._highPTcut)
+      continue;
+
     // Make sure that the hits are ordered in KDradius
     std::sort(track->m_clusters.begin(), track->m_clusters.end(),
               (vertexToTracker ? sort_by_radiusKD : sort_by_lower_radiusKD));
@@ -2871,8 +2876,7 @@ void ConformalTracking::runStep(SharedKDClusters& kdClusters, UKDTree& nearestNe
     stopwatch.Reset();
   }
   if (parameters._extend) {
-    //extendTracks(conformalTracks, kdClusters, nearestNeighbours, parameters);
-    extendTracksPerLayer(conformalTracks, kdClusters, nearestNeighbours, parameters, parameters._vertexToTracker);
+    extendTracks(conformalTracks, kdClusters, nearestNeighbours, parameters);
     stopwatch.Stop();
     streamlog_out(DEBUG7) << "Step " << parameters._step << "extendTracksPerLayer took " << stopwatch.RealTime()
                           << " seconds" << std::endl;
