@@ -157,7 +157,7 @@ void ConformalTracking::init() {
   m_magneticField = MarlinUtil::getBzAtOrigin();  // z component at (0,0,0)
 
   // Seed hit for debug printouts. If not set later, isn't used
-  debugSeed = NULL;
+  debugSeed = nullptr;
 
   // Initialise histograms (if debug plotting on)
   if (m_debugPlots) {
@@ -653,7 +653,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       trackHits.push_back(kdClusterMap[cluster]);
     }
     // Add kalman filtered hits
-    if (conformalTrack->kalmanTrack() != NULL) {
+    if (conformalTrack->kalmanTrack() != nullptr) {
       KalmanTrack* kalmanTrack = conformalTrack->kalmanTrack();
       for (size_t i = 1; i < kalmanTrack->m_kalmanClusters.size(); i++) {
         SKDCluster cluster = kalmanTrack->m_kalmanClusters[i];
@@ -1215,11 +1215,10 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
   // hit in the collection to every track, and keep the ones thta have a good chi2. In fact, it will extrapolate
   // the track and do a nearest neighbours search, but this seemed to fail for some reason, TODO!
 
-  streamlog_out(DEBUG7) << "EXTENDING " << conformalTracks.size() << " tracks, into " << collection.size() << " hits"
-                        << std::endl;
+  int nTracks = conformalTracks.size();
+  streamlog_out(DEBUG7) << "EXTENDING " << nTracks << " tracks, into " << collection.size() << " hits" << std::endl;
   if (collection.size() == 0)
     return;
-  int nTracks = conformalTracks.size();
 
   // Sort the hit collection by layer
   std::sort(collection.begin(), collection.end(), sort_by_layer);
@@ -1233,40 +1232,41 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
       thisCluster->used(true);
   }
 
-  for (int currentTrack = 0; currentTrack < nTracks; currentTrack++) {
+  //index just for debug
+  int debug_idxTrack = 0;
+
+  for (auto& track : conformalTracks) {
     // Make sure that track hits are ordered from largest to smallest radius
-    std::sort(conformalTracks[currentTrack]->m_clusters.begin(), conformalTracks[currentTrack]->m_clusters.end(),
-              sort_by_radiusKD);
+    std::sort(track->m_clusters.begin(), track->m_clusters.end(), sort_by_radiusKD);
 
     // TODO: are kalman tracks necessary?
     // Make sure that all tracks have a kalman track attached to them
-    //    if(conformalTracks[currentTrack]->kalmanTrack() == NULL){
-    //      KalmanTrack* kalmanTrack = new KalmanTrack(conformalTracks[currentTrack]);
-    //      conformalTracks[currentTrack]->setKalmanTrack(kalmanTrack);
+    //    if(track->kalmanTrack() == nullptr){
+    //      KalmanTrack* kalmanTrack = new KalmanTrack(track);
+    //      track->setKalmanTrack(kalmanTrack);
     //    }
 
     // Get the associated MC particle
-    MCParticle* associatedParticle = NULL;
+    MCParticle* associatedParticle = nullptr;
     if (m_debugPlots) {
-      associatedParticle = m_debugger.getAssociatedParticle(conformalTracks[currentTrack]);
-      if (associatedParticle == NULL)
-        streamlog_out(DEBUG7) << "- NULL particle!" << std::endl;
+      associatedParticle = m_debugger.getAssociatedParticle(track);
+      if (associatedParticle == nullptr)
+        streamlog_out(DEBUG7) << "- nullptr particle!" << std::endl;
 
       // Check the track pt estimate
       TLorentzVector mc_helper;
       mc_helper.SetPxPyPzE(associatedParticle->getMomentum()[0], associatedParticle->getMomentum()[1],
                            associatedParticle->getMomentum()[2], associatedParticle->getEnergy());
 
-      streamlog_out(DEBUG7) << "- extending track " << currentTrack << " with pt = " << mc_helper.Pt()
-                            << ". pt estimate: " << conformalTracks[currentTrack]->pt() << " chi2/ndof "
-                            << conformalTracks[currentTrack]->chi2ndof() << " and chi2/ndof ZS "
-                            << conformalTracks[currentTrack]->chi2ndofZS() << std::endl;
+      streamlog_out(DEBUG7) << "- extending track " << debug_idxTrack << " with pt = " << mc_helper.Pt()
+                            << ". pt estimate: " << track->pt() << " chi2/ndof " << track->chi2ndof() << " and chi2/ndof ZS "
+                            << track->chi2ndofZS() << std::endl;
     }
+    debug_idxTrack++;
 
     // Create a seed cell (connecting the first two hits in the track vector - those at smallest conformal radius)
-    int  nclusters = conformalTracks[currentTrack]->m_clusters.size();
-    auto seedCell  = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[nclusters - 2],
-                                           conformalTracks[currentTrack]->m_clusters[nclusters - 1]);
+    int  nclusters = track->m_clusters.size();
+    auto seedCell  = std::make_shared<Cell>(track->m_clusters[nclusters - 2], track->m_clusters[nclusters - 1]);
 
     // Extrapolate along the cell and then make a 2D nearest neighbour search at this extrapolated point
     //double searchDistance = parameters._maxDistance;
@@ -1278,7 +1278,7 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
 
     // Loop over all hits found and check if any have a sufficiently good delta Chi2
     SharedKDClusters goodHits;
-    SKDCluster       bestCluster = NULL;
+    SKDCluster       bestCluster = nullptr;
     double           bestChi2    = 0.;
 
     unsigned int nKDHits = collection.size();
@@ -1296,12 +1296,12 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
       //streamlog_out(DEBUG7)<<"Detector "<<kdhit->getSubdetector()<<", layer "<<kdhit->getLayer()<<", side "<<kdhit->getSide()<<std::endl;
 
       // If this hit is on a new sensor, then add the hit from the previous sensor and start anew
-      if (bestCluster != NULL && !(kdhit->sameSensor(bestCluster))) {
+      if (bestCluster != nullptr && !(kdhit->sameSensor(bestCluster))) {
         bestCluster->used(true);
-        conformalTracks[currentTrack]->add(bestCluster);
-        conformalTracks[currentTrack]->linearRegression();
-        conformalTracks[currentTrack]->linearRegressionConformal();
-        bestCluster = NULL;
+        track->add(bestCluster);
+        track->linearRegression();
+        track->linearRegressionConformal();
+        bestCluster = nullptr;
       }
 
       // Don't reuse hits
@@ -1312,16 +1312,16 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
       }
 
       // Don't pick up hits in the opposite side of the detector
-      if ((conformalTracks[currentTrack]->m_clusters[nclusters - 1]->getZ() > 0. && kdhit->getZ() < 0.) ||
-          (conformalTracks[currentTrack]->m_clusters[nclusters - 1]->getZ() < 0. && kdhit->getZ() > 0.)) {
+      if ((track->m_clusters[nclusters - 1]->getZ() > 0. && kdhit->getZ() < 0.) ||
+          (track->m_clusters[nclusters - 1]->getZ() < 0. && kdhit->getZ() > 0.)) {
         if (associated)
           streamlog_out(DEBUG7) << "opposite side of detector" << std::endl;
         continue;
       }
 
       // First check that the hit is not wildly away from the track (make cell and check angle)
-      // SCell extensionCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[0],results2[newHit]);
-      Cell   extensionCell(conformalTracks[currentTrack]->m_clusters[nclusters - 1], kdhit);
+      // SCell extensionCell = std::make_shared<Cell>(track->m_clusters[0],results2[newHit]);
+      Cell   extensionCell(track->m_clusters[nclusters - 1], kdhit);
       double cellAngle   = seedCell->getAngle(extensionCell);
       double cellAngleRZ = seedCell->getAngleRZ(extensionCell);
       if (cellAngle > 3. * parameters._maxCellAngle || cellAngleRZ > 3. * parameters._maxCellAngleRZ) {
@@ -1333,8 +1333,7 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
       // Now fit the track with the new hit and check the increase in chi2
       double deltaChi2(0.), deltaChi2zs(0.);
 
-      fitWithPoint(*(conformalTracks[currentTrack]), kdhit, deltaChi2,
-                   deltaChi2zs);  //conformalTracks[currentTrack]->deltaChi2(results2[newHit]);
+      fitWithPoint(*(track), kdhit, deltaChi2, deltaChi2zs);  //track->deltaChi2(results2[newHit]);
 
       if (associated) {
         streamlog_out(DEBUG7) << "-- hit was fitted and has a delta chi2 of " << deltaChi2 << " and delta chi2zs of "
@@ -1343,14 +1342,14 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
 
       // We have an estimate of the pT here, could use it in the chi2 criteria
       double chi2cut = parameters._chi2cut;
-      //if (conformalTracks[currentTrack]->pt() < 5.)
+      //if (track->pt() < 5.)
       //  chi2cut = 1000.;
 
       if (deltaChi2 > chi2cut || deltaChi2zs > chi2cut)
         continue;
 
       bool onSameSensor = false;
-      for (auto const& clusterOnTrack : conformalTracks[currentTrack]->m_clusters) {
+      for (auto const& clusterOnTrack : track->m_clusters) {
         if (kdhit->sameSensor(clusterOnTrack)) {
           onSameSensor = true;
           break;
@@ -1362,24 +1361,24 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
       if (associated)
         streamlog_out(DEBUG7) << "-- valid candidate!" << std::endl;
 
-      if (bestCluster == NULL || deltaChi2 < bestChi2) {
+      if (bestCluster == nullptr || deltaChi2 < bestChi2) {
         bestCluster = kdhit;
         bestChi2    = deltaChi2;
       }
 
-      //conformalTracks[currentTrack]->add(kdhit);
+      //track->add(kdhit);
       //kdhit->used(true);
 
       // New hit has been added, go back to the beginning and start again...
       // nKDHit = 0;
     }
 
-    if (bestCluster != NULL) {
+    if (bestCluster != nullptr) {
       bestCluster->used(true);
-      conformalTracks[currentTrack]->add(bestCluster);
-      conformalTracks[currentTrack]->linearRegression();
-      conformalTracks[currentTrack]->linearRegressionConformal();
-      bestCluster = NULL;
+      track->add(bestCluster);
+      track->linearRegression();
+      track->linearRegressionConformal();
+      bestCluster = nullptr;
     }
 
   }  // End of loop over tracks
@@ -1558,11 +1557,7 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
   highPTParameters._maxCellAngleRZ = 0.005;
 
   // Loop over all tracks
-  int nTracks = conformalTracks.size();
-  for (int currentTrack = 0; currentTrack < nTracks; currentTrack++) {
-    // Get the track
-    UKDTrack& track = conformalTracks[currentTrack];
-
+  for (auto& track : conformalTracks) {
     // Only look at high pt tracks
     if (track->pt() < highPTParameters._highPTcut)
       continue;
@@ -1659,9 +1654,9 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
     double existingChi2 = sqrt(track->chi2ndof() * track->chi2ndof() + track->chi2ndofZS() * track->chi2ndofZS());
     if (lowestChi2ndof < (existingChi2 + 10.)) {
       //delete track;
-      conformalTracks[currentTrack] = std::move(lowestChi2Track);
+      track = std::move(lowestChi2Track);
     }
-    streamlog_out(DEBUG7) << "- track finishes with size " << conformalTracks[currentTrack]->m_clusters.size() << std::endl;
+    streamlog_out(DEBUG7) << "- track finishes with size " << track->m_clusters.size() << std::endl;
   }
 
   return;
@@ -1678,16 +1673,18 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
     return;
 
   int nTracks = conformalTracks.size();
+  streamlog_out(DEBUG9) << "Total number of tracks = " << nTracks << std::endl;
+
+  //index just for debug
+  int debug_idxTrack = 0;
 
   // Sort the input collection by layer
   std::sort(collection.begin(), collection.end(), (vertexToTracker ? sort_by_layer : sort_by_lower_layer));
 
   // Loop over all tracks
-  for (int currentTrack = 0; currentTrack < nTracks; currentTrack++) {
-    streamlog_out(DEBUG9) << "Track " << currentTrack << std::endl;
-
-    // Get the track
-    UKDTrack& track = conformalTracks[currentTrack];
+  for (auto& track : conformalTracks) {
+    streamlog_out(DEBUG9) << "Track " << debug_idxTrack << std::endl;
+    debug_idxTrack++;
 
     // Only look at high pt tracks
     if (track->pt() < parameters._highPTcut)
@@ -1712,15 +1709,14 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
 
     // Initialize variables for nearest neighbours search and subdetector layers
     SharedKDClusters results;
-    bool             loop              = true;
-    int              extendInSubdet    = 0;
-    int              extendInLayer     = 0;
-    int              final_subdet      = 0;
-    int              final_layer       = 0;
-    bool             firstLayer        = true;
-    bool             skipLayer         = false;
-    SKDCluster       hitOnCurrentLayer = NULL;
-    SKDCluster       expectedHit       = NULL;
+    bool             loop           = true;
+    int              extendInSubdet = 0;
+    int              extendInLayer  = 0;
+    int              final_subdet   = 0;
+    int              final_layer    = 0;
+    bool             firstLayer     = true;
+    bool             skipLayer      = false;
+    SKDCluster       expectedHit    = nullptr;
 
     // Start the extension into input collection, layer by layer
     do {
@@ -1748,12 +1744,10 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
       //nearestNeighbours->allNeighboursInRadius(kdhit, parameters._maxDistance, results);
       streamlog_out(DEBUG9) << "- Found " << results.size() << " neighbours. " << std::endl;
       if (streamlog::out.write<DEBUG9>()) {
-        for (unsigned int neighbour = 0; neighbour < results.size(); neighbour++) {
-          streamlog_out(DEBUG9) << "-- Neighbour from allNeighboursInTheta " << neighbour << ": [x,y] = ["
-                                << results.at(neighbour)->getX() << ", " << results.at(neighbour)->getY()
-                                << "]; r = " << results.at(neighbour)->getR() << "; [subdet,layer] = ["
-                                << results.at(neighbour)->getSubdetector() << ", " << results.at(neighbour)->getLayer()
-                                << "]" << std::endl;
+        for (auto const& neighbour : results) {
+          streamlog_out(DEBUG9) << "-- Neighbour from allNeighboursInTheta : [x,y] = [" << neighbour->getX() << ", "
+                                << neighbour->getY() << "]; r = " << neighbour->getR() << "; [subdet,layer] = ["
+                                << neighbour->getSubdetector() << ", " << neighbour->getLayer() << "]" << std::endl;
         }
       }
 
@@ -1764,58 +1758,45 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
 
       std::sort(results.begin(), results.end(), (vertexToTracker ? sort_by_layer : sort_by_lower_layer));
       // Get the final values of subdet and layer to stop the loop at the (vertexToTracker? outermost : innermost) layer with neighbours
-      final_subdet = results.at(results.size() - 1)->getSubdetector();
-      final_layer  = results.at(results.size() - 1)->getLayer();
+      final_subdet = results.back()->getSubdetector();
+      final_layer  = results.back()->getLayer();
       streamlog_out(DEBUG9) << "- Final layer with neighbours: [subdet,layer] = [" << final_subdet << ", " << final_layer
                             << "]" << std::endl;
 
-      if (streamlog::out.write<DEBUG9>()) {
-        for (unsigned int neighbour = 0; neighbour < results.size(); neighbour++) {
-          streamlog_out(DEBUG9) << "-- Neighbour " << neighbour << ": [x,y] = [" << results.at(neighbour)->getX() << ", "
-                                << results.at(neighbour)->getY() << "]; [subdet,layer] = ["
-                                << results.at(neighbour)->getSubdetector() << ", " << results.at(neighbour)->getLayer()
-                                << "]" << std::endl;
-        }
-      }
-
       // If no hit was found on a layer, we use expectedHit as current position
       // However, the nearest neighbour search is always performed from the last real hit (kdhit)
-      if (!skipLayer)
-        hitOnCurrentLayer = kdhit;
-      else
-        hitOnCurrentLayer = expectedHit;
+      SKDCluster hitOnCurrentLayer = skipLayer ? expectedHit : kdhit;
 
       // Set the subdetector layer in which to extend -- for this it is important that the hits are sorted by layer before
       // First layer is based on first neighbour
       // Next layers are based on next wrt current
-      for (unsigned int neighbour = 0; neighbour < results.size(); neighbour++) {
-        streamlog_out(DEBUG9) << "-- Neighbour " << neighbour << ": [x,y] = [" << results.at(neighbour)->getX() << ", "
-                              << results.at(neighbour)->getY() << "]; [subdet,layer] = ["
-                              << results.at(neighbour)->getSubdetector() << ", " << results.at(neighbour)->getLayer() << "]"
-                              << std::endl;
+      for (auto const& neighbour : results) {
+        streamlog_out(DEBUG9) << "-- Neighbour : [x,y] = [" << neighbour->getX() << ", " << neighbour->getY()
+                              << "]; [subdet,layer] = [" << neighbour->getSubdetector() << ", " << neighbour->getLayer()
+                              << "]" << std::endl;
 
         if (firstLayer) {  // first neighbour
-          extendInSubdet = results.at(0)->getSubdetector();
-          extendInLayer  = results.at(0)->getLayer();
+          extendInSubdet = results.front()->getSubdetector();
+          extendInLayer  = results.front()->getLayer();
           streamlog_out(DEBUG9) << "-- firstLayer) [subdet,layer] = [" << extendInSubdet << ", " << extendInLayer << "]"
                                 << std::endl;
           firstLayer = false;
           break;
-        } else if (results.at(neighbour)->getSubdetector() ==
+        } else if (neighbour->getSubdetector() ==
                    hitOnCurrentLayer->getSubdetector()) {  // next layer is in same subdetector
-          if ((vertexToTracker && (results.at(neighbour)->getLayer() > hitOnCurrentLayer->getLayer())) ||
-              (!vertexToTracker && (results.at(neighbour)->getLayer() < hitOnCurrentLayer->getLayer()))) {
-            extendInSubdet = results.at(neighbour)->getSubdetector();
-            extendInLayer  = results.at(neighbour)->getLayer();
+          if ((vertexToTracker && (neighbour->getLayer() > hitOnCurrentLayer->getLayer())) ||
+              (!vertexToTracker && (neighbour->getLayer() < hitOnCurrentLayer->getLayer()))) {
+            extendInSubdet = neighbour->getSubdetector();
+            extendInLayer  = neighbour->getLayer();
             streamlog_out(DEBUG9) << "-- sameSub,diffLayer) [subdet,layer] = [" << extendInSubdet << ", " << extendInLayer
                                   << "]" << std::endl;
             break;
           }
-        } else if ((vertexToTracker && (results.at(neighbour)->getSubdetector() > hitOnCurrentLayer->getSubdetector())) ||
-                   (!vertexToTracker && (results.at(neighbour)->getSubdetector() <
+        } else if ((vertexToTracker && (neighbour->getSubdetector() > hitOnCurrentLayer->getSubdetector())) ||
+                   (!vertexToTracker && (neighbour->getSubdetector() <
                                          hitOnCurrentLayer->getSubdetector()))) {  // next layer is in next subdetector
-          extendInSubdet = results.at(neighbour)->getSubdetector();
-          extendInLayer  = results.at(neighbour)->getLayer();
+          extendInSubdet = neighbour->getSubdetector();
+          extendInLayer  = neighbour->getLayer();
           streamlog_out(DEBUG9) << "-- diffSub) [subdet,layer] = [" << extendInSubdet << ", " << extendInLayer << "]"
                                 << std::endl;
           break;
@@ -1830,45 +1811,45 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
       }
 
       // Initialize variables for choosing the best neighbour in layer
-      SKDCluster bestCluster = NULL;
+      SKDCluster bestCluster = nullptr;
       map<SKDCluster, double> bestClustersWithChi2 = {};
       vector<SKDCluster> bestClusters = {};
-      double             bestChi2     = 0.;
-      double             chi2         = conformalTracks[currentTrack]->chi2ndof();
-      double             chi2zs       = conformalTracks[currentTrack]->chi2ndofZS();
-      UKDTrack&          tempTrack    = conformalTracks[currentTrack];
+      double             bestChi2     = std::numeric_limits<double>::max();
+      double             chi2         = track->chi2ndof();
+      double             chi2zs       = track->chi2ndofZS();
+      KDTrack            tempTrack    = *track;
 
       // Loop over neighbours
-      for (unsigned int neighbour = 0; neighbour < results.size(); neighbour++) {
-        SKDCluster& nhit = results[neighbour];
+      for (auto const& neighbour : results) {
         // only in the layer in which to extend
-        if (nhit->getSubdetector() == extendInSubdet && nhit->getLayer() == extendInLayer) {
+        if (neighbour->getSubdetector() == extendInSubdet && neighbour->getLayer() == extendInLayer) {
           // Store the hit in case no bestCluster will be found in this layer
-          expectedHit = nhit;
+          expectedHit = neighbour;
 
-          streamlog_out(DEBUG9) << "-- Looking at neighbour " << neighbour << ": [x,y] = [" << nhit->getX() << ", "
-                                << nhit->getY() << "]" << std::endl;
+          streamlog_out(DEBUG9) << "-- Looking at neighbour " << neighbour << ": [x,y] = [" << neighbour->getX() << ", "
+                                << neighbour->getY() << "]" << std::endl;
 
           // Check that the hit has not been used
-          if (nhit->used()) {
+          if (neighbour->used()) {
             streamlog_out(DEBUG9) << "-- used" << std::endl;
             continue;
           }
 
           // Check that the hit is not in the opposite side of the detector (if endcap)
-          if (nhit->endcap() && kdhit->endcap() && (nhit->forward() != kdhit->forward())) {
+          if (neighbour->endcap() && kdhit->endcap() && (neighbour->forward() != kdhit->forward())) {
             streamlog_out(DEBUG9) << "-- opposite side of detector" << std::endl;
             continue;
           }
 
           // Check that radial conditions are met
-          if ((vertexToTracker && nhit->getR() >= kdhit->getR()) || (!vertexToTracker && nhit->getR() <= kdhit->getR())) {
+          if ((vertexToTracker && neighbour->getR() >= kdhit->getR()) ||
+              (!vertexToTracker && neighbour->getR() <= kdhit->getR())) {
             streamlog_out(DEBUG9) << "-- radial conditions not met" << std::endl;
             continue;
           }
 
           // Check that the hit is not wildly away from the track (make cell and check angle)
-          Cell   extensionCell(conformalTracks[currentTrack]->m_clusters[nclusters - 1], nhit);
+          Cell   extensionCell(track->m_clusters[nclusters - 1], neighbour);
           double cellAngle      = seedCell->getAngle(extensionCell);
           double cellAngleRZ    = seedCell->getAngleRZ(extensionCell);
           double maxCellAngle   = parameters._maxCellAngle;
@@ -1881,19 +1862,19 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
 
           // Now fit the track with the new hit and check the increase in chi2 - use a tempTrack object: add hit, fit, get chi2, remove hit
           double deltaChi2(0.), deltaChi2zs(0.);
-          streamlog_out(DEBUG9) << "-- tempTrack has " << tempTrack->m_clusters.size() << " hits " << std::endl;
-          tempTrack->add(nhit);
-          tempTrack->linearRegression();
-          tempTrack->linearRegressionConformal();
-          double newchi2   = tempTrack->chi2ndof();
-          double newchi2zs = tempTrack->chi2ndofZS();
-          streamlog_out(DEBUG9) << "-- tempTrack has now " << tempTrack->m_clusters.size() << " hits " << std::endl;
-          deltaChi2   = fabs(newchi2 - chi2);
-          deltaChi2zs = fabs(newchi2zs - chi2zs);
+          streamlog_out(DEBUG9) << "-- tempTrack has " << tempTrack.m_clusters.size() << " hits " << std::endl;
+          tempTrack.add(neighbour);
+          tempTrack.linearRegression();
+          tempTrack.linearRegressionConformal();
+          double newchi2   = tempTrack.chi2ndof();
+          double newchi2zs = tempTrack.chi2ndofZS();
+          streamlog_out(DEBUG9) << "-- tempTrack has now " << tempTrack.m_clusters.size() << " hits " << std::endl;
+          deltaChi2   = newchi2 - chi2;
+          deltaChi2zs = newchi2zs - chi2zs;
           streamlog_out(DEBUG9) << "-- hit was fitted and has a delta chi2 of " << deltaChi2 << " and delta chi2zs of "
                                 << deltaChi2zs << std::endl;
-          tempTrack->remove(tempTrack->m_clusters.size());
-          streamlog_out(DEBUG9) << "-- tempTrack has now " << tempTrack->m_clusters.size() << " hits " << std::endl;
+          tempTrack.remove(tempTrack.m_clusters.size());
+          streamlog_out(DEBUG9) << "-- tempTrack has now " << tempTrack.m_clusters.size() << " hits " << std::endl;
 
           double chi2cut = parameters._chi2cut;
           if (deltaChi2 > chi2cut || deltaChi2zs > chi2cut) {
@@ -1902,12 +1883,12 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
           }
           streamlog_out(DEBUG9) << "-- valid candidate" << std::endl;
 
-          bestClustersWithChi2[nhit] = deltaChi2;
+          bestClustersWithChi2[neighbour] = deltaChi2;
 
           // bestCluster still empty - fill it with the first candidate
           // otherwise fill it with the one with best chi2
-          if (bestCluster == NULL || deltaChi2 < bestChi2) {
-            bestCluster = nhit;
+          if (bestCluster == nullptr || deltaChi2 < bestChi2) {
+            bestCluster = neighbour;
             bestChi2    = deltaChi2;
           } else {
             continue;
@@ -1920,7 +1901,7 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
       streamlog_out(DEBUG9) << "-- this seed cells has " << bestClustersWithChi2.size() << " good candidates." << std::endl;
 
       //put the best cluster already found
-      if (bestCluster != NULL) {
+      if (bestCluster != nullptr) {
         bestClusters.push_back(bestCluster);
       }
 
@@ -1945,7 +1926,7 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
       // If bestClusters have been found in this layer, add them to the track, update the seed cell and reset
       if (!bestClusters.empty()) {
         skipLayer = false;
-        nclusters = conformalTracks[currentTrack]->m_clusters.size();
+        nclusters = track->m_clusters.size();
         streamlog_out(DEBUG9) << "- nclusters = " << nclusters << std::endl;
         for (int i = 0; i < nclusters; i++) {
           streamlog_out(DEBUG9) << "- Hit " << i << ": [x,y] = [" << track->m_clusters.at(i)->getX() << ", "
@@ -1954,17 +1935,16 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
         }
         //create new cell with last track cluster and last bestCluster
         //Best clusters are already ordered depending on vertexToTracker bool
-        seedCell = std::make_shared<Cell>(conformalTracks[currentTrack]->m_clusters[nclusters - 1],
-                                          bestClusters.at(bestClusters.size() - 1));
+        seedCell = std::make_shared<Cell>(track->m_clusters[nclusters - 1], bestClusters.at(bestClusters.size() - 1));
 
         for (auto bestClu : bestClusters) {
           streamlog_out(DEBUG9) << "- Found bestCluster [x,y] = [" << bestClu->getX() << ", " << bestClu->getY()
                                 << "]; r = " << bestClu->getR() << std::endl;
-          conformalTracks[currentTrack]->add(bestClu);
-          conformalTracks[currentTrack]->linearRegression();
-          conformalTracks[currentTrack]->linearRegressionConformal();
+          track->add(bestClu);
+          track->linearRegression();
+          track->linearRegressionConformal();
           bestClu->used(true);
-          nclusters = conformalTracks[currentTrack]->m_clusters.size();
+          nclusters = track->m_clusters.size();
           streamlog_out(DEBUG9) << "- nclusters = " << nclusters << std::endl;
           for (int i = 0; i < nclusters; i++) {
             streamlog_out(DEBUG9) << "- Hit " << i << ": [x,y] = [" << track->m_clusters.at(i)->getX() << ", "
@@ -1990,13 +1970,13 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
 
     } while (loop);  // end of track extension
 
-    streamlog_out(DEBUG9) << "Track ends with " << conformalTracks[currentTrack]->m_clusters.size() << " hits" << std::endl;
+    streamlog_out(DEBUG9) << "Track ends with " << track->m_clusters.size() << " hits" << std::endl;
     if (streamlog::out.write<DEBUG9>()) {
-      for (unsigned int i = 0; i < conformalTracks[currentTrack]->m_clusters.size(); i++) {
-        streamlog_out(DEBUG9) << "- Hit " << i << ": [x,y] = [" << conformalTracks[currentTrack]->m_clusters.at(i)->getX()
-                              << ", " << conformalTracks[currentTrack]->m_clusters.at(i)->getY() << "], [subdet,layer] = ["
-                              << conformalTracks[currentTrack]->m_clusters.at(i)->getSubdetector() << ", "
-                              << conformalTracks[currentTrack]->m_clusters.at(i)->getLayer() << "]" << std::endl;
+      for (unsigned int i = 0; i < track->m_clusters.size(); i++) {
+        streamlog_out(DEBUG9) << "- Hit " << i << ": [x,y] = [" << track->m_clusters.at(i)->getX() << ", "
+                              << track->m_clusters.at(i)->getY() << "], [subdet,layer] = ["
+                              << track->m_clusters.at(i)->getSubdetector() << ", " << track->m_clusters.at(i)->getLayer()
+                              << "]" << std::endl;
       }
     }
 
@@ -2511,7 +2491,7 @@ double ConformalTracking::checkReal(UKDTrack& track, std::map<SKDCluster, MCPart
 
   // Now look how many hits are on each particle and calculate the purity
   double      bestHits     = 0.;
-  MCParticle* bestParticle = NULL;
+  MCParticle* bestParticle = nullptr;
   for (auto& particle : particles) {
     if (particleHits[particle] > bestHits) {
       bestHits     = particleHits[particle];
@@ -2568,7 +2548,7 @@ double ConformalTracking::checkReal(UKDTrack& track, std::map<SKDCluster, MCPart
   streamlog_out(DEBUG7) << "== Terms in zs fit: " << track->m_interceptZS << ", " << track->m_gradientZS << std::endl;
 
   track->linearRegressionConformal(true);
-  track->calculateChi2SZ(NULL, true);
+  track->calculateChi2SZ(nullptr, true);
   if (purity >= m_purity) {
     reconstructed[bestParticle] = true;
   }
@@ -2759,7 +2739,7 @@ void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
   streamlog_out(DEBUG7) << "== Terms in conformal fit: " << mcTrack->m_intercept << ", " << mcTrack->m_gradient << ", "
                         << mcTrack->m_quadratic << std::endl;
   streamlog_out(DEBUG7) << "== Terms in zs fit: " << mcTrack->m_interceptZS << ", " << mcTrack->m_gradientZS << std::endl;
-  mcTrack->calculateChi2SZ(NULL, true);
+  mcTrack->calculateChi2SZ(nullptr, true);
 
   if (mcTrack->chi2ndof() > parameters._chi2cut || mcTrack->chi2ndofZS() > parameters._chi2cut) {
     if (mcTrack->chi2ndof() > parameters._chi2cut)
