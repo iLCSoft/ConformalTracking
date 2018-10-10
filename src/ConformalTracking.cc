@@ -1365,12 +1365,6 @@ void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDCl
         bestCluster = kdhit;
         bestChi2    = deltaChi2;
       }
-
-      //track->add(kdhit);
-      //kdhit->used(true);
-
-      // New hit has been added, go back to the beginning and start again...
-      // nKDHit = 0;
     }
 
     if (bestCluster != nullptr) {
