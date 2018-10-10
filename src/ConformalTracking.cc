@@ -1972,8 +1972,9 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
                                   << "; radius = " << track->m_clusters.at(i)->getRadius() << std::endl;
           }
         }
+      }
       // If not bestCluster has been found in this layer, make cell with the expected hit (from extrapolation) and increment the missing hit count
-      } else {
+      else {
         streamlog_out(DEBUG9) << "- Found no bestCluster for [subdet,layer] = [" << extendInSubdet << ", " << extendInLayer
                               << "]" << std::endl;
         skipLayer = true;
