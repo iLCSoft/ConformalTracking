@@ -1759,7 +1759,7 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
 
       // If no hit was found on a layer, we use expectedHit as current position
       // However, the nearest neighbour search is always performed from the last real hit (kdhit)
-      SKDCluster hitOnCurrentLayer = skipLayer ? expectedHit : kdhit;
+      const SKDCluster& hitOnCurrentLayer = skipLayer ? expectedHit : kdhit;
 
       // Set the subdetector layer in which to extend -- for this it is important that the hits are sorted by layer before
       // First layer is based on first neighbour
