@@ -685,9 +685,34 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
     streamlog_out(DEBUG9) << " Fit direction " << ((conformalTrack->m_kalmanFitForward) ? "forward" : "backward")
                           << std::endl;
+    streamlog_out(DEBUG9) << " Track hits after fit = " << track->getTrackerHits().size() << std::endl;
+
+    // If the track is too short (usually less than 7 hits correspond to a vertex track)
+    // the fit is tried using the inverted direction
+    if (track->getTrackerHits().size() < 7 || fitError != MarlinTrk::IMarlinTrack::success) {
+      shared_ptr<MarlinTrk::IMarlinTrack> marlinTrack_inv(trackFactory->createTrack());
+      auto                                track_inv = std::unique_ptr<TrackImpl>(new TrackImpl);
+
+      // Try to fit on the other way
+      fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack_inv.get(), trackHits, track_inv.get(),
+                                                     !conformalTrack->m_kalmanFitForward, covMatrix, m_magneticField,
+                                                     m_maxChi2perHit);
+
+      streamlog_out(DEBUG9) << " Fit direction " << ((!conformalTrack->m_kalmanFitForward) ? "forward" : "backward")
+                            << std::endl;
+      streamlog_out(DEBUG9) << " Track hits after inverse fit = " << track_inv->getTrackerHits().size() << std::endl;
+
+      if (track_inv->getTrackerHits().size() > track->getTrackerHits().size()) {
+        streamlog_out(DEBUG9) << " Track is replaced. " << std::endl;
+        track.swap(track_inv);
+        marlinTrack.swap(marlinTrack_inv);
+      } else {
+        streamlog_out(DEBUG9) << " Track is not replaced. " << std::endl;
+      }
+    }
 
     // Check track quality - if fit fails chi2 will be 0. For the moment add hits by hand to any track that fails the track fit, and store it as if it were ok...
-    if (track->getChi2() == 0.) {
+    if (fitError != MarlinTrk::IMarlinTrack::success) {
       //streamlog_out(DEBUG7) << "- Fit failed. Track has " << track->getTrackerHits().size() << " hits" << std::endl;
       streamlog_out(DEBUG9) << "- Fit fail error " << fitError << std::endl;
       continue;
