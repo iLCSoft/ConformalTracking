@@ -126,6 +126,8 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
   registerProcessorParameter("EnableTightCutsVertexCombined",
                              "Enabled tight cuts as first step of reconstruction in vertex b+e [TMP!!]", m_enableTCVC,
                              bool(true));
+  registerProcessorParameter("MaxHitInvertedFit", "Maximum number of track hits to try the inverted fit", m_maxHitsInvFit,
+                             int(7));
 }
 
 void ConformalTracking::init() {
@@ -689,14 +691,14 @@ void ConformalTracking::processEvent(LCEvent* evt) {
 
     // If the track is too short (usually less than 7 hits correspond to a vertex track)
     // the fit is tried using the inverted direction
-    if (track->getTrackerHits().size() < 7 || fitError != MarlinTrk::IMarlinTrack::success) {
+    if (int(track->getTrackerHits().size()) < m_maxHitsInvFit || fitError != MarlinTrk::IMarlinTrack::success) {
       shared_ptr<MarlinTrk::IMarlinTrack> marlinTrack_inv(trackFactory->createTrack());
       auto                                track_inv = std::unique_ptr<TrackImpl>(new TrackImpl);
 
       // Try to fit on the other way
-      fitError = MarlinTrk::createFinalisedLCIOTrack(marlinTrack_inv.get(), trackHits, track_inv.get(),
-                                                     !conformalTrack->m_kalmanFitForward, covMatrix, m_magneticField,
-                                                     m_maxChi2perHit);
+      int fitError_inv = MarlinTrk::createFinalisedLCIOTrack(marlinTrack_inv.get(), trackHits, track_inv.get(),
+                                                             !conformalTrack->m_kalmanFitForward, covMatrix, m_magneticField,
+                                                             m_maxChi2perHit);
 
       streamlog_out(DEBUG9) << " Fit direction " << ((!conformalTrack->m_kalmanFitForward) ? "forward" : "backward")
                             << std::endl;
@@ -706,6 +708,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         streamlog_out(DEBUG9) << " Track is replaced. " << std::endl;
         track.swap(track_inv);
         marlinTrack.swap(marlinTrack_inv);
+        fitError = fitError_inv;
       } else {
         streamlog_out(DEBUG9) << " Track is not replaced. " << std::endl;
       }
