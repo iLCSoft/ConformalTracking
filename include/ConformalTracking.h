@@ -193,6 +193,7 @@ protected:
   double            m_maxDistance        = 0.0;
   double            m_highPTcut          = 0.0;
   int               m_minClustersOnTrack = 0;
+  int               m_maxHitsInvFit      = 0;
   bool              m_enableTCVC         = true;
   bool              m_debugPlots         = false;
   bool              m_retryTooManyTracks = true;
