@@ -567,7 +567,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     if (streamlog::out.write<DEBUG9>()) {
       for (auto const& confTrack : conformalTracks) {
         streamlog_out(DEBUG9) << "- Track " << &confTrack << " has " << confTrack->m_clusters.size() << " hits" << std::endl;
-        for (unsigned int ht = 0; ht > confTrack->m_clusters.size(); ht++) {
+        for (unsigned int ht = 0; ht < confTrack->m_clusters.size(); ht++) {
           SKDCluster const& kdhit = confTrack->m_clusters.at(ht);
           streamlog_out(DEBUG9) << "-- Hit " << ht << ": [x,y,z] = [" << kdhit->getX() << ", " << kdhit->getY() << ", "
                                 << kdhit->getZ() << "]" << std::endl;
@@ -1193,11 +1193,22 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
             break;
           }
           // Otherwise take the longest
-          else if (bestTrack->m_clusters.size() >= conformalTrack->m_clusters.size()) {  // New track longer/equal in length
+          else if (bestTrack->m_clusters.size() == conformalTrack->m_clusters.size()) {  // New track equal in length
+            if (newchi2 > oldchi2) {
+              streamlog_out(DEBUG9) << "- New equal length. Worse chi2:" << newchi2 << std::endl;
+              break;
+            }
             // Take it
             conformalTrack = std::move(bestTrack);
             bestTrackUsed  = true;
-            streamlog_out(DEBUG9) << "- New longer/equal. Replaced existing with new" << std::endl;
+            streamlog_out(DEBUG9) << "- New equal. Better chi2 Replaced existing with new" << std::endl;
+
+          } else if (bestTrack->m_clusters.size() > conformalTrack->m_clusters.size()) {  // New track longer
+
+            // Take it
+            conformalTrack = std::move(bestTrack);
+            bestTrackUsed  = true;
+            streamlog_out(DEBUG9) << "- New longer. Replaced existing with new" << std::endl;
 
           } else if (bestTrack->m_clusters.size() < conformalTrack->m_clusters.size()) {  // Old track longer
             streamlog_out(DEBUG9) << "- Old longer. New ignored" << std::endl;
@@ -2142,7 +2153,7 @@ void ConformalTracking::getFittedTracks(UniqueKDTracks& finalTracks, UniqueCellu
   for (auto& candidateTrack : candidateTracks) {
     // If there are not enough hits on the track, ignore it
     if (int(candidateTrack->size()) < (parameters._minClustersOnTrack - 2)) {
-      streamlog_out(DEBUG8) << "- Track " << &candidateTrack << ": not enough hits on track." << std::endl;
+      streamlog_out(DEBUG8) << "- Track " << candidateTrack.get() << ": not enough hits on track." << std::endl;
       candidateTrack.reset();
       continue;
     }
@@ -2177,7 +2188,7 @@ void ConformalTracking::getFittedTracks(UniqueKDTracks& finalTracks, UniqueCellu
             parameters
                 ._chi2cut) {  //CHANGE ME?? Upper limit to get rid of really terrible tracks (temp lower changed from 0 to parameters._chi2cut)
 
-      streamlog_out(DEBUG8) << "- Track " << &candidateTrack << ": chi2ndof > chi2cut. Try to fit without point"
+      streamlog_out(DEBUG8) << "- Track " << candidateTrack.get() << ": chi2ndof > chi2cut. Try to fit without point"
                             << std::endl;
       for (int point = npoints - 1; point >= 0; point--) {
         // Stop if we would remove too many points on the track to meet the minimum hit requirement (or if the track has more
@@ -2198,7 +2209,7 @@ void ConformalTracking::getFittedTracks(UniqueKDTracks& finalTracks, UniqueCellu
       }
     }
 
-    streamlog_out(DEBUG8) << "- Track " << &candidateTrack << " has " << track->m_clusters.size() << " hits after fit"
+    streamlog_out(DEBUG8) << "- Track " << candidateTrack.get() << " has " << track->m_clusters.size() << " hits after fit"
                           << std::endl;
     for (unsigned int cluster = 0; cluster < track->m_clusters.size() && streamlog::out.write<DEBUG8>(); cluster++) {
       streamlog_out(DEBUG8) << "-- Hit " << cluster << ": [x,y] = [" << track->m_clusters.at(cluster)->getX() << ", "
@@ -2235,7 +2246,7 @@ void ConformalTracking::getLowestChi2(UniqueKDTracks& finalTracks, UniqueKDTrack
   for (auto& itTrack : trackContainer) {
     double chi2ndof = sqrt(itTrack->chi2ndof() * itTrack->chi2ndof() + itTrack->chi2ndofZS() * itTrack->chi2ndofZS());
 
-    streamlog_out(DEBUG8) << "- Track " << &itTrack << " has " << chi2ndof << " chi2" << std::endl;
+    streamlog_out(DEBUG8) << "- Track " << itTrack.get() << " has " << chi2ndof << " chi2" << std::endl;
     if (chi2ndof < lowestChi2ndof) {
       lowestChi2ndof = itTrack->chi2ndof();
       // lowestChi2ndofTrack = trackContainer[itTrack];
@@ -2258,7 +2269,7 @@ void ConformalTracking::getLowestChi2(UniqueKDTracks& finalTracks, UniqueKDTrack
   streamlog_out(DEBUG8) << "Final fitted tracks: " << finalTracks.size() << std::endl;
   if (streamlog::out.write<DEBUG8>()) {
     for (auto& itTrk : finalTracks) {
-      streamlog_out(DEBUG8) << "- Track " << &itTrk << " has " << itTrk->m_clusters.size() << " hits" << std::endl;
+      streamlog_out(DEBUG8) << "- Track " << itTrk.get() << " has " << itTrk->m_clusters.size() << " hits" << std::endl;
       for (unsigned int cluster = 0; cluster < itTrk->m_clusters.size(); cluster++) {
         streamlog_out(DEBUG8) << "-- Hit " << cluster << ": [x,y] = [" << itTrk->m_clusters.at(cluster)->getX() << ", "
                               << itTrk->m_clusters.at(cluster)->getY() << "]" << std::endl;
