@@ -567,7 +567,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     if (streamlog::out.write<DEBUG9>()) {
       for (auto const& confTrack : conformalTracks) {
         streamlog_out(DEBUG9) << "- Track " << &confTrack << " has " << confTrack->m_clusters.size() << " hits" << std::endl;
-        for (unsigned int ht = 0; ht > confTrack->m_clusters.size(); ht++) {
+        for (unsigned int ht = 0; ht < confTrack->m_clusters.size(); ht++) {
           SKDCluster const& kdhit = confTrack->m_clusters.at(ht);
           streamlog_out(DEBUG9) << "-- Hit " << ht << ": [x,y,z] = [" << kdhit->getX() << ", " << kdhit->getY() << ", "
                                 << kdhit->getZ() << "]" << std::endl;
@@ -1192,8 +1192,17 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
             streamlog_out(DEBUG9) << "- New + segment = existing. New ignored" << std::endl;
             break;
           }
+          // If the new track has same length as the old
+          else if (bestTrack->m_clusters.size() == conformalTrack->m_clusters.size()) {  // New track equal in length
+            if (newchi2 > oldchi2)
+              break;
+            // Otherwise replace the existing track
+            conformalTrack = std::move(bestTrack);
+            bestTrackUsed  = true;
+            streamlog_out(DEBUG9) << " - New as long as old, but better chi2. Replaced existing with new" << std::endl;
+          }
           // Otherwise take the longest
-          else if (bestTrack->m_clusters.size() >= conformalTrack->m_clusters.size()) {  // New track longer/equal in length
+          else if (bestTrack->m_clusters.size() > conformalTrack->m_clusters.size()) {  // New track longer in length
             // Take it
             conformalTrack = std::move(bestTrack);
             bestTrackUsed  = true;
