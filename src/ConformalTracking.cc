@@ -1174,13 +1174,8 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
           //double deltachi2ZS = (bestTracks[itTrack]->chi2ndofZS() - conformalTracks[existingTrack]->chi2ndofZS());
           //double deltachi2   = (bestTracks[itTrack]->chi2ndof() - conformalTracks[existingTrack]->chi2ndof());
 
-          // If the new track is an existing track + segment, make sure the increase in chi2 is not too much
+          // If the new track is an existing track + segment, take the new track
           if (nOverlappingHits == conformalTrack->m_clusters.size()) {
-            // Increase in chi2 is too much (double)
-            if ((newchi2 - oldchi2) > oldchi2)
-              break;
-
-            // Otherwise replace the existing track
             conformalTrack = std::move(bestTrack);
             bestTrackUsed  = true;
             streamlog_out(DEBUG9) << "- New = existing + segment. Replaced existing with new" << std::endl;
