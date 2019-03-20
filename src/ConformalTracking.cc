@@ -69,11 +69,8 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
   // Processor description
   _description = "ConformalTracking constructs tracks using a combined conformal mapping and cellular automaton approach.";
 
-  // Input collections - tracker hits
-  std::vector<std::string> inputTrackerHitCollections = {"VXDTrackerHits", "VXDEndcapTrackerHits", "ITrackerHits",
-                                                         "OTrackerHits",   "ITrackerEndcapHits",   "OTrackerEndcapHits"};
-  registerInputCollections(LCIO::TRACKERHITPLANE, "TrackerHitCollectionNames", "Name of the TrackerHit input collections",
-                           m_inputTrackerHitCollections, inputTrackerHitCollections);
+  // Input collections and parameters
+  registerParameters();
 
   registerInputCollections(LCIO::TRACKERHITPLANE, "MainTrackerHitCollectionNames",
                            "Name of the TrackerHit input collections from the Main Tracker",
@@ -87,6 +84,33 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
   registerInputCollections(LCIO::TRACKERHITPLANE, "VertexEndcapHitCollectionNames",
                            "Name of the TrackerHit input collections from the Vertex Endcap", m_inputVertexEndcapCollections,
                            {"VXDEndcapTrackerHits"});
+
+  // Parameters for tracking
+  registerProcessorParameter("MaxCellAngle", "Cut on angle between two cells for cell to be valid", m_maxCellAngle,
+                             double(0.035));
+  registerProcessorParameter("MaxCellAngleRZ", "Cut on angle between two cells in RZ for cell to be valid", m_maxCellAngleRZ,
+                             double(0.035));
+  registerProcessorParameter("MaxDistance", "Maximum length of a cell (max. distance between two hits)", m_maxDistance,
+                             double(0.015));
+  registerProcessorParameter("HighPTCut", "pT threshold (in GeV) for enabling extendHighPT in extendTracks", m_highPTcut,
+                             double(10.0));
+  registerProcessorParameter("MaxChi2", "Maximum chi2/ndof for linear conformal tracks", m_chi2cut, double(300.));
+  registerProcessorParameter("MinClustersOnTrack", "Minimum number of clusters to create a track in pattern recognition",
+                             m_minClustersOnTrack, int(6));
+
+  registerProcessorParameter("MaxChi2Increase", "Chi2 increase when adding new hits to a track", m_chi2increase,
+                             double(10.));
+  registerProcessorParameter("EnableTightCutsVertexCombined",
+                             "Enabled tight cuts as first step of reconstruction in vertex b+e [TMP!!]", m_enableTCVC,
+                             bool(true));
+}
+
+void ConformalTracking::registerParameters() {
+  std::vector<std::string> inputTrackerHitCollections = {"VXDTrackerHits", "VXDEndcapTrackerHits", "ITrackerHits",
+                                                         "OTrackerHits",   "ITrackerEndcapHits",   "OTrackerEndcapHits"};
+
+  registerInputCollections(LCIO::TRACKERHITPLANE, "TrackerHitCollectionNames", "Name of the TrackerHit input collections",
+                           m_inputTrackerHitCollections, inputTrackerHitCollections);
 
   // Debugging collections - MC particles and relation collections
   registerInputCollection(LCIO::MCPARTICLE, "MCParticleCollectionName", "Name of the MCParticle input collection",
@@ -102,32 +126,19 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
                            std::string("CATracks"));
   registerOutputCollection(LCIO::TRACKERHITPLANE, "DebugHits", "DebugHits", m_outputDebugHits, std::string("DebugHits"));
 
-  // Parameters for tracking
   registerProcessorParameter("DebugPlots", "Plots for debugging the tracking", m_debugPlots, bool(false));
+
+  // Parameters for tracking
   registerProcessorParameter("RetryTooManyTracks", "retry with tightened parameters, when too many tracks are being created",
                              m_retryTooManyTracks, m_retryTooManyTracks);
   registerProcessorParameter("SortTreeResults", "sort results from kdtree search", m_sortTreeResults, m_sortTreeResults);
-  registerProcessorParameter("ThetaRange", "Angular range for initial cell seeding", m_thetaRange, double(0.1));
-  registerProcessorParameter("MaxCellAngle", "Cut on angle between two cells for cell to be valid", m_maxCellAngle,
-                             double(0.035));
-  registerProcessorParameter("MaxCellAngleRZ", "Cut on angle between two cells in RZ for cell to be valid", m_maxCellAngleRZ,
-                             double(0.035));
-  registerProcessorParameter("MaxDistance", "Maximum length of a cell (max. distance between two hits)", m_maxDistance,
-                             double(0.015));
-  registerProcessorParameter("HighPTCut", "pT threshold (in GeV) for enabling extendHighPT in extendTracks", m_highPTcut,
-                             double(10.0));
-  registerProcessorParameter("MaxChi2", "Maximum chi2/ndof for linear conformal tracks", m_chi2cut, double(300.));
-  registerProcessorParameter("MinClustersOnTrack", "Minimum number of clusters to create a track", m_minClustersOnTrack,
-                             int(6));
   registerProcessorParameter("trackPurity", "Purity value used for checking if tracks are real or not", m_purity,
                              double(0.75));
-  registerProcessorParameter("MaxChi2Increase", "Chi2 increase when adding new hits to a track", m_chi2increase,
-                             double(10.));
-  registerProcessorParameter("EnableTightCutsVertexCombined",
-                             "Enabled tight cuts as first step of reconstruction in vertex b+e [TMP!!]", m_enableTCVC,
-                             bool(true));
+  registerProcessorParameter("ThetaRange", "Angular range for initial cell seeding", m_thetaRange, double(0.1));
+  registerProcessorParameter("MinClustersOnTrackAfterFit", "Final minimum number of track clusters",
+                             m_minClustersOnTrackAfterFit, int(4));
   registerProcessorParameter("MaxHitInvertedFit", "Maximum number of track hits to try the inverted fit", m_maxHitsInvFit,
-                             int(7));
+                             int(0));
 }
 
 void ConformalTracking::init() {
@@ -680,6 +691,8 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     covMatrix[9]  = (m_initialTrackError_z0);     //sigma_z0^2
     covMatrix[14] = (m_initialTrackError_tanL);   //sigma_tanl^2
 
+    streamlog_out(DEBUG9) << " Track hits before fit = " << trackHits.size() << std::endl;
+
     // Try to fit
     int fitError =
         MarlinTrk::createFinalisedLCIOTrack(marlinTrack.get(), trackHits, track.get(), conformalTrack->m_kalmanFitForward,
@@ -720,6 +733,13 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       streamlog_out(DEBUG9) << "- Fit fail error " << fitError << std::endl;
       continue;
     }  //*/
+
+    // Check if track has minimum number of hits
+    if (int(track->getTrackerHits().size()) < m_minClustersOnTrackAfterFit) {
+      streamlog_out(DEBUG9) << "- Track has " << track->getTrackerHits().size() << " hits. The minimum required is "
+                            << m_minClustersOnTrackAfterFit << std::endl;
+      continue;
+    }
 
     /*for (unsigned int p = 0; p < trackHits.size(); p++) {
       track->addHit(trackHits[p]);
