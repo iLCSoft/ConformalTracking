@@ -40,6 +40,9 @@ public:
   // Initialisation - run at the beginning to start histograms, etc.
   virtual void init();
 
+  // Register input collections and parameters
+  void registerParameters();
+
   /// fill the vectors mapping collections to index
   void fillCollectionIndexVectors();
 
@@ -185,21 +188,22 @@ protected:
   TH3F* m_xyzDistribution = nullptr;
 
   // Other constants
-  double            m_thetaRange         = 0.0;
-  double            m_chi2cut            = 0.0;
-  double            m_chi2increase       = 0.0;
-  double            m_maxCellAngle       = 0.0;
-  double            m_maxCellAngleRZ     = 0.0;
-  double            m_maxDistance        = 0.0;
-  double            m_highPTcut          = 0.0;
-  int               m_minClustersOnTrack = 0;
-  int               m_maxHitsInvFit      = 0;
-  bool              m_enableTCVC         = true;
-  bool              m_debugPlots         = false;
-  bool              m_retryTooManyTracks = true;
-  bool              m_sortTreeResults    = true;
-  double            m_purity             = 0.0;
-  SKDCluster        debugSeed            = nullptr;
+  double            m_thetaRange                 = 0.0;
+  double            m_chi2cut                    = 0.0;
+  double            m_chi2increase               = 0.0;
+  double            m_maxCellAngle               = 0.0;
+  double            m_maxCellAngleRZ             = 0.0;
+  double            m_maxDistance                = 0.0;
+  double            m_highPTcut                  = 0.0;
+  int               m_minClustersOnTrack         = 0;
+  int               m_minClustersOnTrackAfterFit = 0;
+  int               m_maxHitsInvFit              = 0;
+  bool              m_enableTCVC                 = true;
+  bool              m_debugPlots                 = false;
+  bool              m_retryTooManyTracks         = true;
+  bool              m_sortTreeResults            = true;
+  double            m_purity                     = 0.0;
+  SKDCluster        debugSeed                    = nullptr;
   ConformalDebugger m_debugger{};
 };
 
