@@ -190,7 +190,6 @@ protected:
   // Other constants
   double            m_thetaRange                 = 0.0;
   double            m_chi2cut                    = 0.0;
-  double            m_chi2increase               = 0.0;
   double            m_maxCellAngle               = 0.0;
   double            m_maxCellAngleRZ             = 0.0;
   double            m_maxDistance                = 0.0;

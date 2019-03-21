@@ -98,8 +98,6 @@ ConformalTracking::ConformalTracking() : Processor("ConformalTracking") {
   registerProcessorParameter("MinClustersOnTrack", "Minimum number of clusters to create a track in pattern recognition",
                              m_minClustersOnTrack, int(6));
 
-  registerProcessorParameter("MaxChi2Increase", "Chi2 increase when adding new hits to a track", m_chi2increase,
-                             double(10.));
   registerProcessorParameter("EnableTightCutsVertexCombined",
                              "Enabled tight cuts as first step of reconstruction in vertex b+e [TMP!!]", m_enableTCVC,
                              bool(true));
