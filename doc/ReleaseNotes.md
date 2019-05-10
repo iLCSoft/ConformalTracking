@@ -1,3 +1,73 @@
+# v01-08
+
+* 2019-02-07 Emilia Leogrande ([PR#49](https://github.com/iLCSoft/ConformalTracking/pull/49))
+  - Clone checker: if equal length, keep the one with the better chi2
+  - Debug9 prints clone checker info
+  - Fix address of the track in the debug printouts among functions
+
+* 2018-10-30 Erica Brondolin ([PR#48](https://github.com/iLCSoft/ConformalTracking/pull/48))
+  - Solving bug introduced with the PR #47 : the `fitError` variable was overwritten even when the inverted fit was not better than the normal one.
+  - The maximum number of track hit to try the inverted fit is now a parameter.
+
+* 2018-10-26 Erica Brondolin ([PR#47](https://github.com/iLCSoft/ConformalTracking/pull/47))
+  - If the track is too short (usually less than 7 hits correspond to a vertex track) the fit in the inverse direction is tried. If the track is longer, then it is kept as the final one.
+  - This is important especially for tracks reconstructed in the very forward region where the extrapolation VTX-TRK is longer.
+
+* 2018-10-11 Erica Brondolin ([PR#46](https://github.com/iLCSoft/ConformalTracking/pull/46))
+  - Introduce `extendTracksPerLayer` function to find all the hits layer by layer
+  - Filter the neighbours that are in the wrong direction of the track and that are in layers too far
+  - The best candidates are inserted in the track if their chi2 is within a certain range, otherwise only the hit with the best chi2 is kept
+  - Results in the bbar show improved number of hits for tracks with pT > 1 GeV and basically unchanged for tracks with pT < 1 GeV
+
+* 2018-09-27 Emilia Leogrande ([PR#45](https://github.com/iLCSoft/ConformalTracking/pull/45))
+  - ConfomalTrackingV2
+      - Kalman fit direction can now be set per reconstruction step, to allow for the foreseen possibility to fit prompt tracks forward and non-prompt backward
+      - added flag "KalmanFitBackward" and "KalmanFitForward" that can be parsed from steering file; if nothing is set, the default is forward
+   - Kalman fit direction added as member variable of the KDTrack class, with getter/setter
+
+* 2018-09-26 Emilia Leogrande ([PR#44](https://github.com/iLCSoft/ConformalTracking/pull/44))
+  - in ConformalTracking::runStep, marking hits as used is now repositioned at the end of every step
+  - implemented debug streamlog printouts to follow pattern recognition
+  -- streamlog_out( DEBUG9 ) for 'main' functions: processEvent, buildNewTracks [to do: extendTracks, but function is intended to be upgraded]
+  -- streamlog_out( DEBUG8 ) for 'secondary' functions: extendSeedCells, createTracksNew, getFittedTracks, getLowestChi2
+
+* 2018-08-09 Emilia Leogrande ([PR#42](https://github.com/iLCSoft/ConformalTracking/pull/42))
+  - The pt threshold to run extendHighPt is now a parameter, to be set in the steering file
+    - It has effect only on the steps when extendTracks is run (buildNewTracks does not use extendHighPt)
+    - Default values at the moment: 10 GeV for extending in the vertex endcap, 1 GeV for extending in the trackers
+
+* 2018-07-24 Emilia Leogrande ([PR#41](https://github.com/iLCSoft/ConformalTracking/pull/41))
+  - ConformalTrackingV2: removed the call to init()
+    - init() is already done in ConformalTracking.cc
+    - since in init() the step parameters are parsed, they were parsed twice, resulting in twice the number of steps in the pattern recognition chain
+
+* 2018-06-28 Andre Sailer ([PR#40](https://github.com/iLCSoft/ConformalTracking/pull/40))
+  - New processor ConformalTrackingV2, which allows complete freedom to configure the steps of the pattern recognition
+    - See the README.md File
+    - The ConformalTracking processor is kept for backward compatibility but should be considered deprecated
+    - Refactored ConformalTracking for inheritance, loop over vector of parameters
+    - Cleaned up header includes and CMakeLists
+
+* 2018-06-25 Emilia Leogrande ([PR#39](https://github.com/iLCSoft/ConformalTracking/pull/39))
+  - Conformal Tracking restructured to be run in steps with function runStep
+  - runStep allows to decide which functions to run per step for the reconstruction, i.e. combineCollections, buildNewTracks, extendTracks
+  - prior to runStep, the set of parameters for the reconstruction step is initialized
+
+* 2018-05-18 Emilia Leogrande ([PR#37](https://github.com/iLCSoft/ConformalTracking/pull/37))
+  - ConformalTracking: fixed two issues, one in the pattern recognition, one in the choice among clones
+  - when building tracks in the combined vertex barrel + endcap, the step with looser cut must be done all at one (open the angles and increase the chi2 cut at the same time, not in two subsequent steps), otherwise tracks are made with less hits than desired
+  - once increased, keep the chi2 cut the same for subsequent steps
+  - in presence of clones, it is not good to prefer shorter tracks with better chi2 (the comparison is also progressive, so one can easily go from a 8 hits track to a 4 hits track). To avoid in order not to have double tracks per particle
+
+* 2018-05-16 Emilia Leogrande ([PR#36](https://github.com/iLCSoft/ConformalTracking/pull/36))
+  - new strategy: hits on the same subdetector layer are accepted (otherwise the leftover of the pairs can make a second track)
+  - if hits on the same *sensor* of the same subdetector layer, only one (smaller radius) is taken
+  - flag to enable tight cuts in the combined vertex endcap + barrel added as processor parameter (Temporary, will be removed in the future)
+
+* 2018-05-09 Andre Sailer ([PR#35](https://github.com/iLCSoft/ConformalTracking/pull/35))
+  - ConformalTracking.cc: [extendTracks]fix for hits from the same subdetector layers not to be accepted in the same track, when tracks are extended to vertex endcap and to trackers
+
+
 # v01-07
 
 * 2018-03-29 Andre Sailer ([PR#33](https://github.com/ilcsoft/ConformalTracking/pull/33))
