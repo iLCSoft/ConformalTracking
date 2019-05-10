@@ -1,6 +1,7 @@
 # ConformalTracking
 [![Build Status](https://travis-ci.org/iLCSoft/ConformalTracking.svg?branch=master)](https://travis-ci.org/iLCSoft/ConformalTracking)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/12348/badge.svg)](https://scan.coverity.com/projects/ilcsoft-conformaltracking)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2708196.svg)](https://doi.org/10.5281/zenodo.2708196)
 
 Package for running pattern recognition based on conformal mapping and cellular automaton. This is not tied to a given geometry, but has been developed for the CLIC detector model 2015.
 
