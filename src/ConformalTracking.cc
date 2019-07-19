@@ -11,7 +11,6 @@
 
 #include <EVENT/LCCollection.h>
 #include <EVENT/MCParticle.h>
-#include <EVENT/SimTrackerHit.h>
 
 #include <IMPL/LCCollectionVec.h>
 #include <IMPL/TrackImpl.h>
@@ -125,6 +124,7 @@ void ConformalTracking::registerParameters() {
   registerOutputCollection(LCIO::TRACKERHITPLANE, "DebugHits", "DebugHits", m_outputDebugHits, std::string("DebugHits"));
 
   registerProcessorParameter("DebugPlots", "Plots for debugging the tracking", m_debugPlots, bool(false));
+  registerProcessorParameter("DebugTiming", "Print out time profile", m_debugTime, bool(false));
 
   // Parameters for tracking
   registerProcessorParameter("RetryTooManyTracks", "retry with tightened parameters, when too many tracks are being created",
@@ -133,6 +133,7 @@ void ConformalTracking::registerParameters() {
   registerProcessorParameter("trackPurity", "Purity value used for checking if tracks are real or not", m_purity,
                              double(0.75));
   registerProcessorParameter("ThetaRange", "Angular range for initial cell seeding", m_thetaRange, double(0.1));
+  registerProcessorParameter("SlopeZRange", "Cut on the slope in the r-z plane for seeding", m_slopeZRange, double(10));
   registerProcessorParameter("MinClustersOnTrackAfterFit", "Final minimum number of track clusters",
                              m_minClustersOnTrackAfterFit, int(4));
   registerProcessorParameter("MaxHitInvertedFit", "Maximum number of track hits to try the inverted fit", m_maxHitsInvFit,
@@ -180,6 +181,19 @@ void ConformalTracking::init() {
     m_uvDistribution  = new TH2F("m_uvDistribution", "m_uvDistribution", 1000, -0.05, 0.05, 1000, -0.05, 0.05);
     m_xyDistribution  = new TH2F("m_xyDistribution", "m_xyDistribution", 500, -1500, 1500, 500, -1500, 1500);
     m_xyzDistribution = new TH3F("m_xyzDistribution", "m_xyzDistribution", 50, 0, 100, 50, 0, 100, 100, 0, 25);
+
+    // Histograms for neighbors parameters
+    m_X      = new TH1F("m_X", "m_X", 500, -1500, 1500);
+    m_Y      = new TH1F("m_Y", "m_Y", 500, -1500, 1500);
+    m_Z      = new TH1F("m_Z", "m_Z", 500, -2500, 2500);
+    m_neighX = new TH1F("m_neighX", "m_neighX", 500, -1500, 1500);
+    m_neighY = new TH1F("m_neighY", "m_neighY", 500, -1500, 1500);
+    m_neighZ = new TH1F("m_neighZ", "m_neighZ", 500, -2500, 2500);
+
+    m_slopeZ            = new TH1F("m_slopeZ", "m_slopeZ", 1000, -100, 100);
+    m_slopeZ_true       = new TH1F("m_slopeZ_true", "m_slopeZ_true", 1000, -100, 100);
+    m_slopeZ_true_first = new TH1F("m_slopeZ_true_first", "m_slopeZ_true_first", 1000, -100, 100);
+    m_slopeZ_vs_pt_true = new TH2F("m_diffZ_pt_true_first", "m_diffZ_pt_true_first", 2000, -500, 500, 400, 0, 100);
 
     // Histograms for tuning parameters (cell angle cut, cell length cut)
     m_cellAngle           = new TH1F("cellAngle", "cellAngle", 1250, 0, 0.05);
@@ -368,7 +382,6 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   std::map<TrackerHitPlane*, SKDCluster> conformalHits;       // The reverse link
 
   // Debug collections (not filled if debug off)
-  std::map<SKDCluster, MCParticle*>       kdParticles;    // Link from conformal hit to MC particle
   std::map<MCParticle*, SharedKDClusters> particleHits;   // List of conformal hits on each MC particle
   std::map<MCParticle*, bool>             reconstructed;  // Check for MC particles
   SharedKDClusters debugHits;                             // Debug hits for plotting
@@ -423,6 +436,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
         MCParticle* particle = simHit->getMCParticle();
         // Store the information (not for secondaries)
         kdParticles[kdhit] = particle;
+        kdSimHits[kdhit]   = simHit;
         if (!simHit->isProducedBySecondary()) {
           particleHits[particle].push_back(kdhit);
         }
@@ -568,7 +582,6 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   UniqueKDTracks   conformalTracks;
   SharedKDClusters kdClusters;
   UKDTree          nearestNeighbours = nullptr;
-  auto             stopwatch         = std::unique_ptr<TStopwatch>(new TStopwatch());
 
   for (auto const& parameters : _stepParameters) {
     runStep(kdClusters, nearestNeighbours, conformalTracks, collectionClusters, parameters);
@@ -750,9 +763,9 @@ void ConformalTracking::processEvent(LCEvent* evt) {
     // calculate purities and check if track has been reconstructed
     if (m_debugPlots) {
       m_conformalChi2->Fill(conformalTrack->chi2ndof());
-      streamlog_out(DEBUG7) << "-------------------- New TRACK --------------------" << std::endl;
+      streamlog_out(DEBUG9) << "-------------------- New TRACK --------------------" << std::endl;
       //streamlog_out(DEBUG7) << " LCIO track fit chi2 is "<<track->getChi2()<<std::endl;
-      double purity = checkReal(conformalTrack, kdParticles, reconstructed, particleHits);
+      double purity = checkReal(conformalTrack, reconstructed, particleHits);
       if (purity >= m_purity) {
         m_conformalChi2real->Fill(conformalTrack->chi2ndof());
       }
@@ -815,12 +828,12 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       if (mcParticle->getGeneratorStatus() != 1)
         continue;
       // Check if it was reconstructed
-      streamlog_out(DEBUG7) << "-------------------- New PARTICLE --------------------" << std::endl;
+      streamlog_out(DEBUG9) << "-------------------- New PARTICLE --------------------" << std::endl;
       // List the pt
       double particlePt = sqrt(mcParticle->getMomentum()[0] * mcParticle->getMomentum()[0] +
                                mcParticle->getMomentum()[1] * mcParticle->getMomentum()[1]);
-      streamlog_out(DEBUG7) << "Particle pt: " << particlePt << std::endl;
-      checkReconstructionFailure(mcParticle, particleHits, nearestNeighbours_debug, _stepParameters[0]);
+      streamlog_out(DEBUG9) << "Particle pt: " << particlePt << std::endl;
+      //checkReconstructionFailure(mcParticle, particleHits, nearestNeighbours_debug, _stepParameters[0]);
       if (reconstructed.count(mcParticle)) {
         nReconstructed++;
         continue;
@@ -836,7 +849,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
       // Check why particles were not reconstructed
       //      checkReconstructionFailure(mcParticle, particleHits, used, nearestNeighbours);
     }
-    streamlog_out(DEBUG7) << "Reconstructed " << nReconstructed << " particles out of " << nReconstructed + nUnreconstructed
+    streamlog_out(DEBUG9) << "Reconstructed " << nReconstructed << " particles out of " << nReconstructed + nUnreconstructed
                           << ". Gives efficiency "
                           << 100. * (double)nReconstructed / (double)(nReconstructed + nUnreconstructed) << "%" << std::endl;
     nearestNeighbours_debug.reset(nullptr);
@@ -863,6 +876,8 @@ void ConformalTracking::end() {
     m_canvConformalEventDisplayMCunreconstructed->Write();
   }
 
+  kdParticles.clear();
+  kdSimHits.clear();
   //FIXME trackFactory is leaking Memory, but probably a MarlinTRK issue
 }
 
@@ -906,17 +921,31 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
   // Loop over all hits, using each as a seed to produce a new track
   unsigned int nKDHits = collection.size();
   for (unsigned int nKDHit = 0; nKDHit < nKDHits; nKDHit++) {
+    auto stopwatch_hit       = TStopwatch();
+    auto stopwatch_hit_total = TStopwatch();
+
     // Get the kdHit and check if it has already been used (assigned to a track)
     SKDCluster kdhit = collection[nKDHit];
 
-    streamlog_out(DEBUG9) << "Seed hit " << nKDHit << ": [x,y] = [" << kdhit->getX() << ", " << kdhit->getY() << "]"
-                          << std::endl;
+    streamlog_out(DEBUG9) << "Seed hit " << nKDHit << ": [x,y,z] = [" << kdhit->getX() << ", " << kdhit->getY() << ", "
+                          << kdhit->getZ() << "]" << std::endl;
+    if (m_debugPlots) {
+      m_X->Fill(kdhit->getX());
+      m_Y->Fill(kdhit->getY());
+      m_Z->Fill(kdhit->getZ());
+    }
+
     if (debugSeed && kdhit == debugSeed)
       streamlog_out(DEBUG7) << "Starting to seed with debug cluster" << std::endl;
     if (kdhit->used()) {
       streamlog_out(DEBUG9) << "hit already used" << std::endl;
       continue;
     }
+
+    // Debug: Plot residuals between hit and associated SimTrackerHit
+    streamlog_out(DEBUG7) << "SimHit : [x,y,z] = [" << kdSimHits[kdhit]->getPosition()[0] << ", "
+                          << kdSimHits[kdhit]->getPosition()[1] << ", " << kdSimHits[kdhit]->getPosition()[2] << "] "
+                          << std::endl;
     //      if(kdhit->getR() < 0.003) break; // new cut - once we get to inner radius we will never make tracks. temp? TODO: make parameter? FCC (0.005 to 0.003)
 
     // The tracking differentiates between the first and all subsequent hits on a chain.
@@ -931,10 +960,44 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
     // radial distance. Check that they are at lower radius and further from the IP
     SharedKDClusters results;
     double           theta = kdhit->getTheta();
+    // Filter already if the neighbour is used, is on the same detector layer,
+    // or is in the opposite side of the detector and points inwards
     if (radialSearch)
-      nearestNeighbours->allNeighboursInRadius(kdhit, parameters._maxDistance, results);
+      nearestNeighbours->allNeighboursInRadius(
+          kdhit, parameters._maxDistance, results, [&kdhit, vertexToTracker](SKDCluster const& nhit) {
+            if (nhit->used())
+              return true;
+            if (kdhit->sameLayer(nhit))
+              return true;
+            //not pointing in the same direction
+            if (nhit->endcap() && kdhit->endcap() && (nhit->forward() != kdhit->forward()))
+              return true;
+            //radial conditions not met
+            if ((vertexToTracker && nhit->getR() >= kdhit->getR()) || (!vertexToTracker && nhit->getR() <= kdhit->getR()))
+              return true;
+            return false;
+          });
     else
-      nearestNeighbours->allNeighboursInTheta(theta, m_thetaRange, results);
+      nearestNeighbours->allNeighboursInTheta(
+          theta, m_thetaRange, results, [&kdhit, vertexToTracker](SKDCluster const& nhit) {
+            if (nhit->used())
+              return true;
+            if (kdhit->sameLayer(nhit))
+              return true;
+            //not pointing in the same direction
+            if (nhit->endcap() && kdhit->endcap() && (nhit->forward() != kdhit->forward()))
+              return true;
+            //radial conditions not met
+            if ((vertexToTracker && nhit->getR() >= kdhit->getR()) || (!vertexToTracker && nhit->getR() <= kdhit->getR()))
+              return true;
+
+            return false;
+          });
+
+    if (m_debugTime)
+      streamlog_out(DEBUG7) << "  Time report: Searching for " << results.size() << " neighbours took "
+                            << stopwatch_hit.RealTime() * 1000 << std::scientific << " milli-seconds" << std::endl;
+    stopwatch_hit.Start(true);
 
     streamlog_out(DEBUG9) << "Picked up " << results.size() << " neighbours from " << (radialSearch ? "radial" : "theta")
                           << " search" << std::endl;
@@ -949,37 +1012,17 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
 
     // Objects to hold cells
     SharedCells cells;
+    bool        isFirst = true;
 
     // Make seed cells pointing inwards/outwards (conformal space)
     for (unsigned int neighbour = 0; neighbour < results.size(); neighbour++) {
       // Get the neighbouring hit
       SKDCluster const& nhit = results[neighbour];
 
-      streamlog_out(DEBUG9) << "- Neighbour " << neighbour << ": [x,y] = [" << nhit->getX() << ", " << nhit->getY() << "]"
-                            << std::endl;
-      // Check that it is not used, is not on the same detector layer, is not in the opposite side of the detector and points inwards
-      if (nhit->used()) {
-        streamlog_out(DEBUG9) << "- used" << std::endl;
-        if (debugSeed && kdhit == debugSeed)
-          streamlog_out(DEBUG7) << "- used" << std::endl;
-        continue;
-      }
-      if (kdhit->sameLayer(nhit)) {
-        streamlog_out(DEBUG9) << "- same layer" << std::endl;
-        if (debugSeed && kdhit == debugSeed)
-          streamlog_out(DEBUG7) << "- same layer" << std::endl;
-        continue;
-      }
-      if (nhit->endcap() && kdhit->endcap() && (nhit->forward() != kdhit->forward())) {
-        streamlog_out(DEBUG9) << "- not pointing in the same direction" << std::endl;
-        if (debugSeed && kdhit == debugSeed)
-          streamlog_out(DEBUG7) << "- not pointing in the same direction" << std::endl;
-        continue;
-      }
-      if ((vertexToTracker && nhit->getR() >= kdhit->getR()) || (!vertexToTracker && nhit->getR() <= kdhit->getR())) {
-        streamlog_out(DEBUG9) << "- radial conditions not met" << std::endl;
-        if (debugSeed && kdhit == debugSeed)
-          streamlog_out(DEBUG7) << "- radial conditions not met" << std::endl;
+      streamlog_out(DEBUG7) << "- Neighbour " << neighbour << ": [x,y,z] = [" << nhit->getX() << ", " << nhit->getY() << ", "
+                            << nhit->getZ() << "]" << std::endl;
+
+      if (!neighbourIsCompatible(nhit, kdhit)) {
         continue;
       }
 
@@ -987,11 +1030,51 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
       double length2 = ((kdhit->getU() - nhit->getU()) * (kdhit->getU() - nhit->getU()) +
                         (kdhit->getV() - nhit->getV()) * (kdhit->getV() - nhit->getV()));
       if (length2 > parameters._maxDistance * parameters._maxDistance) {
-        streamlog_out(DEBUG9) << "- cell between A ([x,y] = [" << kdhit->getX() << ", " << kdhit->getY()
+        streamlog_out(DEBUG7) << "- cell between A ([x,y] = [" << kdhit->getX() << ", " << kdhit->getY()
                               << "]) and B ([x,y] = [" << nhit->getX() << ", " << nhit->getY() << "]) is too long"
                               << std::endl;
         continue;
       }
+
+      if (m_debugPlots) {
+        m_neighX->Fill(nhit->getX());
+        m_neighY->Fill(nhit->getY());
+        m_neighZ->Fill(nhit->getZ());
+
+        double nhit_r   = sqrt(nhit->getX() * nhit->getX() + nhit->getY() * nhit->getY());
+        double khit_r   = sqrt(kdhit->getX() * kdhit->getX() + kdhit->getY() * kdhit->getY());
+        double distance = nhit_r - khit_r;
+        double deltaZ   = nhit->getZ() - kdhit->getZ();
+        double slopeZ   = deltaZ / distance;
+        m_slopeZ->Fill(slopeZ);
+
+        // Debug using the seed hit and the associated SimTrackerHit
+        double simpt;
+        if (kdParticles[kdhit] == kdParticles[nhit] && kdhit != nhit) {
+          simpt = sqrt(kdParticles[kdhit]->getMomentum()[0] * kdParticles[kdhit]->getMomentum()[0] +
+                       kdParticles[kdhit]->getMomentum()[1] * kdParticles[kdhit]->getMomentum()[1]);
+          streamlog_out(DEBUG7) << "- They were produced by the same MCParticle with pt = " << simpt << std::endl;
+          streamlog_out(DEBUG7) << "- SimHit : [x,y,z] = [" << kdSimHits[nhit]->getPosition()[0] << ", "
+                                << kdSimHits[nhit]->getPosition()[1] << ", " << kdSimHits[nhit]->getPosition()[2] << "] "
+                                << std::endl;
+          streamlog_out(DEBUG7) << "- Delta : [x,y,z] = [" << nhit->getX() - kdhit->getX() << ", "
+                                << nhit->getY() - kdhit->getY() << ", " << nhit->getZ() - kdhit->getZ() << "] " << std::endl;
+
+          m_slopeZ_true->Fill(slopeZ);
+          m_slopeZ_vs_pt_true->Fill(slopeZ, simpt);
+
+          if (isFirst) {
+            streamlog_out(DEBUG7) << "- is first" << std::endl;
+            m_slopeZ_true_first->Fill(slopeZ);
+            isFirst = false;
+          }
+        }
+        //Debugging: uncomment in the case you want to create seeds only with hits belonging to the same MCParticle
+        // else {
+        //  continue;
+        //}
+      }
+
       // Create the new seed cell
       cells.emplace_back(std::make_shared<Cell>(kdhit, nhit));
       auto const& cell = cells.back();
@@ -1000,7 +1083,7 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
       //        continue;
       //      }
 
-      streamlog_out(DEBUG9) << "- made cell between A ([x,y] = [" << kdhit->getX() << ", " << kdhit->getY()
+      streamlog_out(DEBUG7) << "- made cell between A ([x,y] = [" << kdhit->getX() << ", " << kdhit->getY()
                             << "]) and B ([x,y] = [" << nhit->getX() << ", " << nhit->getY() << "])" << std::endl;
       if (debugSeed && kdhit == debugSeed)
         streamlog_out(DEBUG7) << "- made cell with neighbour " << neighbour << " at " << nhit->getU() << "," << nhit->getV()
@@ -1015,6 +1098,11 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
         }
       }
     }
+
+    if (m_debugTime)
+      streamlog_out(DEBUG7) << "  Time report: Making " << cells.size() << " seed cells took "
+                            << stopwatch_hit.RealTime() * 1000 << std::scientific << " milli-seconds" << std::endl;
+    stopwatch_hit.Start(true);
 
     streamlog_out(DEBUG9) << "Produced " << cells.size() << " seed cells from seed hit A ([x,y] = [" << kdhit->getX() << ", "
                           << kdhit->getY() << "])" << std::endl;
@@ -1032,6 +1120,11 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
     } else {
       extendSeedCells(cells, nearestNeighbours, true, debugHits, parameters, vertexToTracker);
     }
+
+    if (m_debugTime)
+      streamlog_out(DEBUG7) << "  Time report: Extending " << cells.size() << " seed cells took "
+                            << stopwatch_hit.RealTime() * 1000 << std::scientific << " milli-seconds" << std::endl;
+    stopwatch_hit.Start(true);
 
     streamlog_out(DEBUG9) << "After extension, have " << cells.size() << " cells from seed hit A ([x,y] = [" << kdhit->getX()
                           << ", " << kdhit->getY() << "])" << std::endl;
@@ -1056,7 +1149,7 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
 
     int nCells = cells.size();
     for (int itCell = 0; itCell < nCells; itCell++) {
-      streamlog_out(DEBUG9) << "- Cell " << itCell << " between A ([x,y] = [" << cells[itCell]->getStart()->getX() << ", "
+      streamlog_out(DEBUG7) << "- Cell " << itCell << " between A ([x,y] = [" << cells[itCell]->getStart()->getX() << ", "
                             << cells[itCell]->getStart()->getY() << "]) and B ([x,y] = [" << cells[itCell]->getEnd()->getX()
                             << ", " << cells[itCell]->getEnd()->getY() << "]) has weight " << cells[itCell]->getWeight()
                             << std::endl;
@@ -1064,13 +1157,13 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
       if (debugSeed && kdhit == debugSeed)
         streamlog_out(DEBUG7) << "-- looking at cell " << itCell << std::endl;
       if (usedCells.count(cells[itCell])) {
-        streamlog_out(DEBUG9) << "-- used cell" << std::endl;
+        streamlog_out(DEBUG7) << "-- used cell" << std::endl;
         continue;
       }
       // Check if this cell could produce a track (is on a long enough chain)
 
       if (cells[itCell]->getWeight() < (parameters._minClustersOnTrack - 2)) {
-        streamlog_out(DEBUG9) << "-- cell can not produce a track: weight < (minClustersOnTrack - 2)" << std::endl;
+        streamlog_out(DEBUG7) << "-- cell can not produce a track: weight < (minClustersOnTrack - 2)" << std::endl;
         break;
       }
       // Produce all tracks leading back to the seed hit from this cell
@@ -1085,12 +1178,12 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
               });
       candidateTracksTemp.clear();
 
-      streamlog_out(DEBUG9) << "- From cell, produced " << candidateTracks.size() << " candidate tracks" << std::endl;
+      streamlog_out(DEBUG7) << "- From cell, produced " << candidateTracks.size() << " candidate tracks" << std::endl;
       if (streamlog::out.write<DEBUG9>()) {
         for (auto& candidateTrack : candidateTracks) {
-          streamlog_out(DEBUG9) << "--  track is made of " << candidateTrack->size() << " cells " << std::endl;
+          streamlog_out(DEBUG7) << "--  track is made of " << candidateTrack->size() << " cells " << std::endl;
           for (unsigned int candidateCell = 0; candidateCell < candidateTrack->size(); candidateCell++) {
-            streamlog_out(DEBUG9) << "--- cell between A ([x,y] = [" << (*candidateTrack)[candidateCell]->getStart()->getX()
+            streamlog_out(DEBUG7) << "--- cell between A ([x,y] = [" << (*candidateTrack)[candidateCell]->getStart()->getX()
                                   << ", " << (*candidateTrack)[candidateCell]->getStart()->getY() << "]) and B ([x,y] = ["
                                   << (*candidateTrack)[candidateCell]->getEnd()->getX() << ", "
                                   << (*candidateTrack)[candidateCell]->getEnd()->getY() << "])" << std::endl;
@@ -1128,6 +1221,10 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
     }
 
     streamlog_out(DEBUG9) << "Final number of fitted tracks to this seed hit: " << cellTracks.size() << std::endl;
+    if (m_debugTime)
+      streamlog_out(DEBUG7) << "  Time report: " << cellTracks.size() << " tracks reconstructed from cells took "
+                            << stopwatch_hit.RealTime() * 1000 << std::scientific << " milli-seconds" << std::endl;
+    stopwatch_hit.Start(true);
 
     // All tracks leading back to the seed hit have now been found. Decide which are the feasible candidates (may be more than 1)
     if (debugSeed && kdhit == debugSeed)
@@ -1257,9 +1354,30 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
       }
 
     }  // end for besttracks
+    if (m_debugTime)
+      streamlog_out(DEBUG7) << "  Time report: Sort best tracks took " << stopwatch_hit.RealTime() * 1000 << std::scientific
+                            << " milli-seconds" << std::endl;
+    if (m_debugTime)
+      streamlog_out(DEBUG7) << " Time report: Total time for seed hit " << nKDHit << " = "
+                            << stopwatch_hit_total.RealTime() * 1000 << std::scientific << " milli-seconds" << std::endl;
   }
 }
 
+// Check that it the neighbour has the z slope is in the range
+bool ConformalTracking::neighbourIsCompatible(const SKDCluster& neighbourHit, const SKDCluster& seedHit) {
+  double neighbourHit_r = sqrt(neighbourHit->getX() * neighbourHit->getX() + neighbourHit->getY() * neighbourHit->getY());
+  double seedHit_r      = sqrt(seedHit->getX() * seedHit->getX() + seedHit->getY() * seedHit->getY());
+  double distance       = neighbourHit_r - seedHit_r;
+  double deltaZ         = neighbourHit->getZ() - seedHit->getZ();
+  if (fabs(deltaZ / distance) > m_slopeZRange) {
+    streamlog_out(DEBUG7) << "- z condition not met" << std::endl;
+    if (debugSeed && seedHit == debugSeed)
+      streamlog_out(DEBUG7) << "- z condition not met" << std::endl;
+    return false;
+  }
+
+  return true;
+}
 // Take a collection of tracks and try to extend them into the collection of clusters passed.
 void ConformalTracking::extendTracks(UniqueKDTracks& conformalTracks, SharedKDClusters& collection,
                                      UKDTree& nearestNeighbours, Parameters const& parameters) {
@@ -1467,6 +1585,8 @@ void ConformalTracking::extendSeedCells(SharedCells& cells, UKDTree& nearestNeig
       SharedKDClusters results;
       nearestNeighbours->allNeighboursInRadius(
           fakeHit, 0.625 * searchDistance, results, [&hit, vertexToTracker](SKDCluster const& nhit) {
+            if (nhit->used())
+              return true;
             if (hit->sameLayer(nhit))
               return true;
             if (nhit->endcap() && hit->endcap() && (nhit->forward() != hit->forward()))
@@ -2057,7 +2177,7 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
 
     streamlog_out(DEBUG8) << "Going to create " << nTracks << " tracks" << std::endl;
     if (nTracks > 10000) {
-      streamlog_out(WARNING) << "Going to create " << nTracks << std::endl;
+      streamlog_out(WARNING) << "WARNING: Going to create " << nTracks << " tracks " << std::endl;
     }
     if (nTracks > 5e5) {
       streamlog_out(ERROR) << "Too many tracks (" << nTracks << " > 1e6) are going to be created, tightening parameters"
@@ -2509,8 +2629,7 @@ void ConformalTracking::checkUnallowedTracks(UniqueCellularTracks candidateTrack
 }
 
 // Debug function - checks if a track will be associated to an MC particle or not
-double ConformalTracking::checkReal(UKDTrack& track, std::map<SKDCluster, MCParticle*> kdParticles,
-                                    std::map<MCParticle*, bool>&            reconstructed,
+double ConformalTracking::checkReal(UKDTrack& track, std::map<MCParticle*, bool>& reconstructed,
                                     std::map<MCParticle*, SharedKDClusters> MCparticleHits) {
   // Store all mcparticles associated to this track
   std::vector<MCParticle*> particles;
@@ -2547,7 +2666,7 @@ double ConformalTracking::checkReal(UKDTrack& track, std::map<SKDCluster, MCPart
 
   // Calculate the purity
   double purity = bestHits / nHits;
-  streamlog_out(DEBUG7) << "Number of hits on track: " << nHits << ". Good hits: " << bestHits << ". Purity: " << purity
+  streamlog_out(DEBUG9) << "Number of hits on track: " << nHits << ". Good hits: " << bestHits << ". Purity: " << purity
                         << ". Pt: " << sqrt(bestParticle->getMomentum()[0] * bestParticle->getMomentum()[0] +
                                             bestParticle->getMomentum()[1] * bestParticle->getMomentum()[1])
                         << ". Pt estimate: " << track->pt() << ". Track chi2/ndof: " << track->chi2ndof()
@@ -2570,7 +2689,7 @@ double ConformalTracking::checkReal(UKDTrack& track, std::map<SKDCluster, MCPart
 
   SharedKDClusters trackHits = track->m_clusters;
   for (size_t th = 0; th < trackHits.size(); th++) {
-    streamlog_out(DEBUG7) << "Hit " << th << " u = " << trackHits[th]->getU() << " v = " << trackHits[th]->getV()
+    streamlog_out(DEBUG9) << "Hit " << th << " u = " << trackHits[th]->getU() << " v = " << trackHits[th]->getV()
                           << " x = " << trackHits[th]->getX() << " y = " << trackHits[th]->getY()
                           << " z = " << trackHits[th]->getZ() << std::endl;
 
@@ -2580,10 +2699,10 @@ double ConformalTracking::checkReal(UKDTrack& track, std::map<SKDCluster, MCPart
     double      mcVertexY = particle->getVertex()[1];
     double      mcVertexR = sqrt(pow(mcVertexX, 2) + pow(mcVertexY, 2));
 
-    streamlog_out(DEBUG7) << "Come from particle with id " << particle->getPDG() << " produced at vertexR = " << mcVertexR;
+    streamlog_out(DEBUG9) << "Come from particle with id " << particle->getPDG() << " produced at vertexR = " << mcVertexR;
 
     if (particle->getParents().size() != 0) {
-      streamlog_out(DEBUG7) << ". Comes from particle with id " << particle->getParents()[0]->getPDG();
+      streamlog_out(DEBUG9) << ". Comes from particle with id " << particle->getParents()[0]->getPDG();
     }
     streamlog_out(DEBUG7) << std::endl;
   }
@@ -2876,15 +2995,17 @@ void ConformalTracking::runStep(SharedKDClusters& kdClusters, UKDTree& nearestNe
     } while (caughtException);
 
     stopwatch.Stop();
-    streamlog_out(DEBUG7) << "Step " << parameters._step << "buildNewTracks took " << stopwatch.RealTime() << " seconds"
-                          << std::endl;
+    if (m_debugTime)
+      streamlog_out(DEBUG9) << "Step " << parameters._step << " buildNewTracks took " << stopwatch.RealTime() << " seconds"
+                            << std::endl;
     stopwatch.Reset();
   }
   if (parameters._extend) {
     extendTracks(conformalTracks, kdClusters, nearestNeighbours, parameters);
     stopwatch.Stop();
-    streamlog_out(DEBUG7) << "Step " << parameters._step << "extendTracks took " << stopwatch.RealTime() << " seconds"
-                          << std::endl;
+    if (m_debugTime)
+      streamlog_out(DEBUG9) << "Step " << parameters._step << " extendTracks took " << stopwatch.RealTime() << " seconds"
+                            << std::endl;
     stopwatch.Reset();
   }
 
