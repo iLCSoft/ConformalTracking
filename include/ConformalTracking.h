@@ -11,6 +11,7 @@
 
 #include <EVENT/LCCollection.h>
 #include <EVENT/MCParticle.h>
+#include <EVENT/SimTrackerHit.h>
 #include <EVENT/TrackerHit.h>
 #include "lcio.h"
 
@@ -77,6 +78,7 @@ public:
   // Track finding
   void buildNewTracks(UniqueKDTracks&, SharedKDClusters&, UKDTree&, Parameters const&, bool radialSearch = false,
                       bool vertexToTracker = true);
+  bool neighbourIsCompatible(const SKDCluster& neighbourHit, const SKDCluster& seedHit);
   void extendTracks(UniqueKDTracks&, SharedKDClusters&, UKDTree&, Parameters const&);
   void combineCollections(SharedKDClusters&, UKDTree&, std::vector<int> const&, std::map<int, SharedKDClusters> const&);
 
@@ -102,11 +104,10 @@ public:
   double fitWithExtension(KDTrack, SharedKDClusters, double&, double&);
 
   // MC truth debug
-  double checkReal(UKDTrack&, std::map<SKDCluster, MCParticle*>, std::map<MCParticle*, bool>&,
-                   std::map<MCParticle*, SharedKDClusters>);
-  int  getUniqueHits(SharedKDClusters);
-  void checkReconstructionFailure(MCParticle*, std::map<MCParticle*, SharedKDClusters>, UKDTree&, Parameters const&);
-  void checkUnallowedTracks(UniqueCellularTracks, Parameters const&);
+  double checkReal(UKDTrack&, std::map<MCParticle*, bool>&, std::map<MCParticle*, SharedKDClusters>);
+  int    getUniqueHits(SharedKDClusters);
+  void   checkReconstructionFailure(MCParticle*, std::map<MCParticle*, SharedKDClusters>, UKDTree&, Parameters const&);
+  void   checkUnallowedTracks(UniqueCellularTracks, Parameters const&);
 
 protected:
   std::vector<Parameters> _stepParameters{};
@@ -144,6 +145,17 @@ protected:
   double m_magneticField           = 0.0;
 
   // Histograms
+  TH1F* m_X                 = nullptr;
+  TH1F* m_Y                 = nullptr;
+  TH1F* m_Z                 = nullptr;
+  TH1F* m_neighX            = nullptr;
+  TH1F* m_neighY            = nullptr;
+  TH1F* m_neighZ            = nullptr;
+  TH1F* m_slopeZ            = nullptr;
+  TH1F* m_slopeZ_true       = nullptr;
+  TH1F* m_slopeZ_true_first = nullptr;
+  TH2F* m_slopeZ_vs_pt_true = nullptr;
+
   TH1F* m_cellAngle           = nullptr;
   TH1F* m_cellDOCA            = nullptr;
   TH2F* m_cellAngleRadius     = nullptr;
@@ -189,6 +201,7 @@ protected:
 
   // Other constants
   double            m_thetaRange                 = 0.0;
+  double            m_slopeZRange                = 0.0;
   double            m_chi2cut                    = 0.0;
   double            m_maxCellAngle               = 0.0;
   double            m_maxCellAngleRZ             = 0.0;
@@ -199,11 +212,14 @@ protected:
   int               m_maxHitsInvFit              = 0;
   bool              m_enableTCVC                 = true;
   bool              m_debugPlots                 = false;
+  bool              m_debugTime                  = false;
   bool              m_retryTooManyTracks         = true;
   bool              m_sortTreeResults            = true;
   double            m_purity                     = 0.0;
   SKDCluster        debugSeed                    = nullptr;
   ConformalDebugger m_debugger{};
+  std::map<SKDCluster, MCParticle*>    kdParticles{};  // Link from conformal hit to MC particle
+  std::map<SKDCluster, SimTrackerHit*> kdSimHits{};    // Link from conformal hit to SimHit
 };
 
 // ---------------------------
