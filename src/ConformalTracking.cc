@@ -129,6 +129,8 @@ void ConformalTracking::registerParameters() {
   // Parameters for tracking
   registerProcessorParameter("RetryTooManyTracks", "retry with tightened parameters, when too many tracks are being created",
                              m_retryTooManyTracks, m_retryTooManyTracks);
+  registerProcessorParameter("TooManyTracks", "Number of tracks that is considered too many", m_tooManyTracks,
+                             m_tooManyTracks);
   registerProcessorParameter("SortTreeResults", "sort results from kdtree search", m_sortTreeResults, m_sortTreeResults);
   registerProcessorParameter("trackPurity", "Purity value used for checking if tracks are real or not", m_purity,
                              double(0.75));
@@ -2182,9 +2184,9 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
     if (nTracks > 10000) {
       streamlog_out(WARNING) << "WARNING: Going to create " << nTracks << " tracks " << std::endl;
     }
-    if (nTracks > 5e5) {
-      streamlog_out(ERROR) << "Too many tracks (" << nTracks << " > 1e6) are going to be created, tightening parameters"
-                           << std::endl;
+    if (nTracks > m_tooManyTracks) {
+      streamlog_out(ERROR) << "Too many tracks (" << nTracks << " > " << m_tooManyTracks
+                           << " are going to be created, tightening parameters" << std::endl;
       throw TooManyTracksException(this);
     }
     for (int itTrack = 0; itTrack < nTracks; itTrack++) {
@@ -2977,7 +2979,6 @@ void ConformalTracking::runStep(SharedKDClusters& kdClusters, UKDTree& nearestNe
   }
 
   if (parameters._build) {
-    double     factor          = 10;
     bool       caughtException = false;
     Parameters thisParameters(parameters);
     do {
@@ -2989,7 +2990,7 @@ void ConformalTracking::runStep(SharedKDClusters& kdClusters, UKDTree& nearestNe
         streamlog_out(MESSAGE) << "caught too many tracks, tightening parameters" << std::endl;
         caughtException = true;
         thisParameters.tighten();
-        if (not m_retryTooManyTracks && factor <= 0) {
+        if (not m_retryTooManyTracks || thisParameters._tightenStep > 10) {
           streamlog_out(ERROR) << "Skipping event" << std::endl;
           throw;
         }
