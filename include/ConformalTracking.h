@@ -210,6 +210,7 @@ protected:
   int               m_minClustersOnTrack         = 0;
   int               m_minClustersOnTrackAfterFit = 0;
   int               m_maxHitsInvFit              = 0;
+  int               m_tooManyTracks              = 5e5;
   bool              m_enableTCVC                 = true;
   bool              m_debugPlots                 = false;
   bool              m_debugTime                  = false;
