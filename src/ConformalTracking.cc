@@ -1041,11 +1041,11 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
         m_neighY->Fill(nhit->getY());
         m_neighZ->Fill(nhit->getZ());
 
-        double nhit_r   = sqrt(nhit->getX() * nhit->getX() + nhit->getY() * nhit->getY());
-        double khit_r   = sqrt(kdhit->getX() * kdhit->getX() + kdhit->getY() * kdhit->getY());
-        double distance = nhit_r - khit_r;
-        double deltaZ   = nhit->getZ() - kdhit->getZ();
-        double slopeZ   = deltaZ / distance;
+        double distanceX = nhit->getX() - kdhit->getX();
+        double distanceY = nhit->getY() - kdhit->getY();
+        double distance  = sqrt(distanceX * distanceX + distanceY * distanceY);
+        double deltaZ    = nhit->getZ() - kdhit->getZ();
+        double slopeZ    = deltaZ / distance;
         m_slopeZ->Fill(slopeZ);
 
         // Debug using the seed hit and the associated SimTrackerHit
@@ -1365,10 +1365,10 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
 
 // Check that it the neighbour has the z slope is in the range
 bool ConformalTracking::neighbourIsCompatible(const SKDCluster& neighbourHit, const SKDCluster& seedHit) {
-  double neighbourHit_r = sqrt(neighbourHit->getX() * neighbourHit->getX() + neighbourHit->getY() * neighbourHit->getY());
-  double seedHit_r      = sqrt(seedHit->getX() * seedHit->getX() + seedHit->getY() * seedHit->getY());
-  double distance       = neighbourHit_r - seedHit_r;
-  double deltaZ         = neighbourHit->getZ() - seedHit->getZ();
+  double distanceX = neighbourHit->getX() - seedHit->getX();
+  double distanceY = neighbourHit->getY() - seedHit->getY();
+  double distance  = sqrt(distanceX * distanceX + distanceY * distanceY);
+  double deltaZ    = neighbourHit->getZ() - seedHit->getZ();
   if (fabs(deltaZ / distance) > m_slopeZRange) {
     streamlog_out(DEBUG7) << "- z condition not met" << std::endl;
     if (debugSeed && seedHit == debugSeed)
