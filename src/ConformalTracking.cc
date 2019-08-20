@@ -1281,13 +1281,8 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
           streamlog_out(DEBUG9) << "- Track is a clone" << std::endl;
 
           // Calculate the new and existing chi2 values
-          double newchi2 =
-              (bestTrack->chi2ndofZS() * bestTrack->chi2ndofZS() + bestTrack->chi2ndof() * bestTrack->chi2ndof());
-          double oldchi2 = (conformalTrack->chi2ndofZS() * conformalTrack->chi2ndofZS() +
-                            conformalTrack->chi2ndof() * conformalTrack->chi2ndof());
-
-          //double deltachi2ZS = (bestTracks[itTrack]->chi2ndofZS() - conformalTracks[existingTrack]->chi2ndofZS());
-          //double deltachi2   = (bestTracks[itTrack]->chi2ndof() - conformalTracks[existingTrack]->chi2ndof());
+          double newchi2 = bestTrack->chi2ndofZS() + bestTrack->chi2ndof();
+          double oldchi2 = conformalTrack->chi2ndofZS() + conformalTrack->chi2ndof();
 
           // If the new track is an existing track + segment, take the new track
           if (nOverlappingHits == conformalTrack->m_clusters.size()) {
