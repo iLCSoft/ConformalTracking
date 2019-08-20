@@ -2301,8 +2301,9 @@ void ConformalTracking::getFittedTracks(UniqueKDTracks& finalTracks, UniqueCellu
       npoints++;
     }
     track->linearRegression(parameters._highPTfit);
-    track->linearRegressionConformal();               //FCC study
-    double chi2ndof = track->chi2() / (npoints - 2);  //FCC study
+    track->linearRegressionConformal();
+
+    double chi2ndofTOT = track->chi2ndof() + track->chi2ndofZS();
 
     // We try to see if there are spurious hits causing the chi2 to be very large. This would cause us to throw away
     // good tracks with perhaps just a single bad hit. Try to remove each hit and see if fitting without it causes a
@@ -2311,12 +2312,12 @@ void ConformalTracking::getFittedTracks(UniqueKDTracks& finalTracks, UniqueCellu
     // Loop over each hit (starting at the back, since we will use the 'erase' function to get rid of them)
     // and see if removing it improves the chi2/ndof
     double removed = 0;
-    if (chi2ndof > parameters._chi2cut &&
-        chi2ndof <
+    if (chi2ndofTOT > parameters._chi2cut &&
+        chi2ndofTOT <
             parameters
                 ._chi2cut) {  //CHANGE ME?? Upper limit to get rid of really terrible tracks (temp lower changed from 0 to parameters._chi2cut)
 
-      streamlog_out(DEBUG8) << "- Track " << candidateTrack.get() << ": chi2ndof > chi2cut. Try to fit without point"
+      streamlog_out(DEBUG8) << "- Track " << candidateTrack.get() << ": chi2ndofTOT > chi2cut. Try to fit without point"
                             << std::endl;
       for (int point = npoints - 1; point >= 0; point--) {
         // Stop if we would remove too many points on the track to meet the minimum hit requirement (or if the track has more
@@ -2325,14 +2326,14 @@ void ConformalTracking::getFittedTracks(UniqueKDTracks& finalTracks, UniqueCellu
           break;
 
         // Refit the track without this point
-        double newChi2ndof = fitWithoutPoint(*track, point);
+        double newChi2ndofTOT = fitWithoutPoint(*track, point);
 
         // If the chi2/ndof is significantly better, remove the point permanently CHANGE ME??
-        //        if( (chi2ndof - newChi2ndof) > 0 && (chi2ndof - newChi2ndof) > 1. ){
-        if ((newChi2ndof - chi2ndof) < chi2ndof) {
+        //        if( (chi2ndofTOT - newChi2ndofTOT) > 0 && (chi2ndofTOT - newChi2ndofTOT) > 1. ){
+        if ((newChi2ndofTOT - chi2ndofTOT) < chi2ndofTOT) {
           track->remove(point);
           removed++;
-          chi2ndof = newChi2ndof;
+          chi2ndofTOT = newChi2ndofTOT;
         }
       }
     }
@@ -2346,7 +2347,6 @@ void ConformalTracking::getFittedTracks(UniqueKDTracks& finalTracks, UniqueCellu
 
     // Store the track information
     trackContainer.push_back(std::move(track));
-    //    trackChi2ndofs.push_back(chi2ndof);
 
     candidateTrack.reset();
 
@@ -2504,13 +2504,12 @@ double ConformalTracking::fitWithExtension(KDTrack track, SharedKDClusters hits,
   // Add the point to the track
   for (auto const& hit : hits)
     track.add(hit);
-  //int npoints = track.nPoints();
 
   // Calculate the track chi2 with the final fitted values
   track.linearRegression();
   track.linearRegressionConformal();
 
-  double chi2ndof = sqrt(track.chi2ndofZS() * track.chi2ndofZS() + track.chi2ndof() * track.chi2ndof());
+  double chi2ndof = track.chi2ndofZS() + track.chi2ndof();
   newChi2         = track.chi2ndof();
   newChi2ZS       = track.chi2ndofZS();
   return chi2ndof;
@@ -2562,12 +2561,12 @@ double ConformalTracking::fitWithoutPoint(KDTrack track, int point) {
 
   // Calculate the track chi2 with the final fitted values
   track.linearRegression();
-  track.linearRegressionConformal();  // FCC study
+  track.linearRegressionConformal();
 
   double chi2ndof   = track.chi2ndof();
-  double chi2ndofZS = track.chi2ndofZS();  // FCC study
+  double chi2ndofZS = track.chi2ndofZS();
 
-  return sqrt(chi2ndof * chi2ndof + chi2ndofZS * chi2ndofZS);
+  return chi2ndof + chi2ndofZS;
 }
 
 //===================================
