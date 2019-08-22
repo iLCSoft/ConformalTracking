@@ -14,6 +14,7 @@ Parameters::Parameters(ParameterParser::ParsedParameters const& ps, std::vector<
       _chi2cut(ps._parameters.at("Chi2Cut")),
       _minClustersOnTrack(ps._parameters.at("MinClustersOnTrack")),
       _maxDistance(ps._parameters.at("MaxDistance")),
+      _maxSlopeZ(ps._parameters.at("SlopeZRange")),
       _highPTcut(ps._parameters.at("HighPTCut")),
       _highPTfit(findEntry(ps._flags, "HighPTFit")),
       _onlyZSchi2cut(findEntry(ps._flags, "OnlyZSchi2cut")),
