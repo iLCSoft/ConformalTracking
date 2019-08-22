@@ -248,53 +248,53 @@ void ConformalTracking::parseStepParameters() {
   int step = 0;
   // Build tracks in the vertex barrel
   Parameters initialParameters(m_vertexBarrelHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
-                               m_maxDistance, /*slopeZ range*/ m_slopeZRange, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
+                               m_maxDistance, m_slopeZRange, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
                                /*rSearch*/ false,
                                /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // Extend through the endcap
   Parameters parameters2(m_vertexEndcapHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
-                         m_maxDistance, /*slopeZ range*/ m_slopeZRange, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
+                         m_maxDistance, m_slopeZRange, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
                          /*rSearch*/ false, /*vtt*/ true,
                          /*kalmanFitForward*/ true, step++,
                          /*combine*/ true, /*build*/ false, /*extend*/ true, /*sort*/ false);
   // Make combined vertex tracks
   Parameters parametersTCVC(m_vertexCombinedHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
-                            m_maxDistance, /*slopeZ range*/ m_slopeZRange, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
+                            m_maxDistance, m_slopeZRange, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
                             /*rSearch*/ false, /*vtt*/ true,
                             /*kalmanFitForward*/ true, step++,
                             /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // Make leftover tracks in the vertex with lower requirements
   // 1. open the cell angles
   Parameters lowerCellAngleParameters(m_vertexCombinedHits, m_maxCellAngle * 5.0, m_maxCellAngleRZ * 5.0, m_chi2cut,
-                                      m_minClustersOnTrack, m_maxDistance, /*slopeZ range*/ m_slopeZRange, m_highPTcut,
+                                      m_minClustersOnTrack, m_maxDistance, m_slopeZRange, m_highPTcut,
                                       /*highPT*/ true, /*OnlyZS*/ false,
                                       /*rSearch*/ true, /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                       /*combine*/ not m_enableTCVC, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // 2. open further the cell angles and increase the chi2cut
   Parameters lowerCellAngleParameters2({}, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
-                                       m_minClustersOnTrack, m_maxDistance, /*slopeZ range*/ m_slopeZRange, m_highPTcut,
+                                       m_minClustersOnTrack, m_maxDistance, m_slopeZRange, m_highPTcut,
                                        /*highPT*/ true, /*OnlyZS*/ false,
                                        /*rSearch*/ true, /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                        /*combine*/ false, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // 3. min number of hits on the track = 4
 
   Parameters lowNumberHitsParameters({}, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
-                                     /*m_minClustersOnTrack*/ 4, m_maxDistance, /*slopeZ range*/ m_slopeZRange, m_highPTcut,
+                                     /*m_minClustersOnTrack*/ 4, m_maxDistance, m_slopeZRange, m_highPTcut,
                                      /*highPT*/ true,
                                      /*OnlyZS*/ false,
                                      /*rSearch*/ true, /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                      /*combine*/ false, /*build*/ true, /*extend*/ false, /*sort*/ true);
   // Extend through inner and outer trackers
   Parameters trackerParameters(m_trackerHits, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
-                               /*m_minClustersOnTrack*/ 4, m_maxDistance, /*slopeZ range*/ m_slopeZRange, /*highPTcut*/ 1.0,
+                               /*m_minClustersOnTrack*/ 4, m_maxDistance, m_slopeZRange, /*highPTcut*/ 1.0,
                                /*highPT*/ true,
                                /*OnlyZS*/ false,
                                /*rSearch*/ true, /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                /*combine*/ true, /*build*/ false, /*extend*/ true, /*sort*/ false);
   // Finally reconstruct displaced tracks
   Parameters displacedParameters(m_allHits, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 10.0,
-                                 /*m_minClustersOnTrack*/ 5, 0.015, /*slopeZ range*/ m_slopeZRange, m_highPTcut,
+                                 /*m_minClustersOnTrack*/ 5, 0.015, m_slopeZRange, m_highPTcut,
                                  /*highPT*/ false, /*OnlyZS*/ true,
                                  /*rSearch*/ true,
                                  /*vtt*/ false, /*kalmanFitForward*/ true, step++,
@@ -1365,13 +1365,13 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
   }
 }
 
-// Check that it the neighbour has the z slope is in the range
+// Check that the neighbour has the z slope in the required range compared to the seed
 bool ConformalTracking::neighbourIsCompatible(const SKDCluster& neighbourHit, const SKDCluster& seedHit,
                                               const double slopeZRange) {
-  double distanceX = neighbourHit->getX() - seedHit->getX();
-  double distanceY = neighbourHit->getY() - seedHit->getY();
-  double distance  = sqrt(distanceX * distanceX + distanceY * distanceY);
-  double deltaZ    = neighbourHit->getZ() - seedHit->getZ();
+  const double distanceX(neighbourHit->getX() - seedHit->getX());
+  const double distanceY(neighbourHit->getY() - seedHit->getY());
+  const double distance(sqrt(distanceX * distanceX + distanceY * distanceY));
+  const double deltaZ(neighbourHit->getZ() - seedHit->getZ());
   if (fabs(deltaZ / distance) > slopeZRange) {
     streamlog_out(DEBUG7) << "- z condition not met" << std::endl;
     if (debugSeed && seedHit == debugSeed)
