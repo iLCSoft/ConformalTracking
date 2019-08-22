@@ -20,6 +20,7 @@ public:
   double           _chi2cut;
   int              _minClustersOnTrack;
   double           _maxDistance;
+  double           _maxSlopeZ;  /// Cut on the slope in the longitudinal plane for seeding
   double           _highPTcut;
   bool             _highPTfit;
   bool             _onlyZSchi2cut;
@@ -40,19 +41,20 @@ public:
       "HighPTFit", "OnlyZSchi2cut", "RadialSearch", "VertexToTracker", "KalmanFitForward", "KalmanFitBackward",
   };
   const StringVec _existingParameters = {
-      "MaxCellAngle", "MaxCellAngleRZ", "Chi2Cut", "MinClustersOnTrack", "MaxDistance", "HighPTCut",
+      "MaxCellAngle", "MaxCellAngleRZ", "Chi2Cut", "MinClustersOnTrack", "MaxDistance", "SlopeZRange", "HighPTCut",
   };
 
   Parameters(std::vector<int> const& collections, double maxCellAngle, double maxCellAngleRZ, double chi2cut,
-             int minClustersOnTrack, double maxDistance, double highPTcut, bool highPTfit, bool onlyZSchi2cut,
-             bool radialSearch, bool vertexToTracker, bool kalmanFitForward, int step, bool combine, bool build, bool extend,
-             bool sortTracks)
+             int minClustersOnTrack, double maxDistance, double maxSlopeZ, double highPTcut, bool highPTfit,
+             bool onlyZSchi2cut, bool radialSearch, bool vertexToTracker, bool kalmanFitForward, int step, bool combine,
+             bool build, bool extend, bool sortTracks)
       : _collections(collections),
         _maxCellAngle(maxCellAngle),
         _maxCellAngleRZ(maxCellAngleRZ),
         _chi2cut(chi2cut),
         _minClustersOnTrack(minClustersOnTrack),
         _maxDistance(maxDistance),
+        _maxSlopeZ(maxSlopeZ),
         _highPTcut(highPTcut),
         _highPTfit(highPTfit),
         _onlyZSchi2cut(onlyZSchi2cut),

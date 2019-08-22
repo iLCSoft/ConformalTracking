@@ -78,7 +78,7 @@ public:
   // Track finding
   void buildNewTracks(UniqueKDTracks&, SharedKDClusters&, UKDTree&, Parameters const&, bool radialSearch = false,
                       bool vertexToTracker = true);
-  bool neighbourIsCompatible(const SKDCluster& neighbourHit, const SKDCluster& seedHit);
+  bool neighbourIsCompatible(const SKDCluster& neighbourHit, const SKDCluster& seedHit, const double slopeZRange);
   void extendTracks(UniqueKDTracks&, SharedKDClusters&, UKDTree&, Parameters const&);
   void combineCollections(SharedKDClusters&, UKDTree&, std::vector<int> const&, std::map<int, SharedKDClusters> const&);
 
@@ -201,11 +201,11 @@ protected:
 
   // Other constants
   double            m_thetaRange                 = 0.0;
-  double            m_slopeZRange                = 0.0;
   double            m_chi2cut                    = 0.0;
   double            m_maxCellAngle               = 0.0;
   double            m_maxCellAngleRZ             = 0.0;
   double            m_maxDistance                = 0.0;
+  double            m_slopeZRange                = 0.0;
   double            m_highPTcut                  = 0.0;
   int               m_minClustersOnTrack         = 0;
   int               m_minClustersOnTrackAfterFit = 0;

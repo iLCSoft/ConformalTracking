@@ -133,7 +133,6 @@ void ConformalTracking::registerParameters() {
   registerProcessorParameter("trackPurity", "Purity value used for checking if tracks are real or not", m_purity,
                              double(0.75));
   registerProcessorParameter("ThetaRange", "Angular range for initial cell seeding", m_thetaRange, double(0.1));
-  registerProcessorParameter("SlopeZRange", "Cut on the slope in the r-z plane for seeding", m_slopeZRange, double(10));
   registerProcessorParameter("MinClustersOnTrackAfterFit", "Final minimum number of track clusters",
                              m_minClustersOnTrackAfterFit, int(4));
   registerProcessorParameter("MaxHitInvertedFit", "Maximum number of track hits to try the inverted fit", m_maxHitsInvFit,
@@ -249,46 +248,54 @@ void ConformalTracking::parseStepParameters() {
   int step = 0;
   // Build tracks in the vertex barrel
   Parameters initialParameters(m_vertexBarrelHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
-                               m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false,
+                               m_maxDistance, /*slopeZ range*/ m_slopeZRange, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
+                               /*rSearch*/ false,
                                /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // Extend through the endcap
   Parameters parameters2(m_vertexEndcapHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
-                         m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false, /*vtt*/ true,
+                         m_maxDistance, /*slopeZ range*/ m_slopeZRange, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
+                         /*rSearch*/ false, /*vtt*/ true,
                          /*kalmanFitForward*/ true, step++,
                          /*combine*/ true, /*build*/ false, /*extend*/ true, /*sort*/ false);
   // Make combined vertex tracks
   Parameters parametersTCVC(m_vertexCombinedHits, m_maxCellAngle, m_maxCellAngleRZ, m_chi2cut, m_minClustersOnTrack,
-                            m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false, /*rSearch*/ false, /*vtt*/ true,
+                            m_maxDistance, /*slopeZ range*/ m_slopeZRange, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
+                            /*rSearch*/ false, /*vtt*/ true,
                             /*kalmanFitForward*/ true, step++,
                             /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // Make leftover tracks in the vertex with lower requirements
   // 1. open the cell angles
   Parameters lowerCellAngleParameters(m_vertexCombinedHits, m_maxCellAngle * 5.0, m_maxCellAngleRZ * 5.0, m_chi2cut,
-                                      m_minClustersOnTrack, m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
+                                      m_minClustersOnTrack, m_maxDistance, /*slopeZ range*/ m_slopeZRange, m_highPTcut,
+                                      /*highPT*/ true, /*OnlyZS*/ false,
                                       /*rSearch*/ true, /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                       /*combine*/ not m_enableTCVC, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // 2. open further the cell angles and increase the chi2cut
   Parameters lowerCellAngleParameters2({}, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
-                                       m_minClustersOnTrack, m_maxDistance, m_highPTcut, /*highPT*/ true, /*OnlyZS*/ false,
+                                       m_minClustersOnTrack, m_maxDistance, /*slopeZ range*/ m_slopeZRange, m_highPTcut,
+                                       /*highPT*/ true, /*OnlyZS*/ false,
                                        /*rSearch*/ true, /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                        /*combine*/ false, /*build*/ true, /*extend*/ false, /*sort*/ false);
   // 3. min number of hits on the track = 4
 
   Parameters lowNumberHitsParameters({}, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
-                                     /*m_minClustersOnTrack*/ 4, m_maxDistance, m_highPTcut, /*highPT*/ true,
+                                     /*m_minClustersOnTrack*/ 4, m_maxDistance, /*slopeZ range*/ m_slopeZRange, m_highPTcut,
+                                     /*highPT*/ true,
                                      /*OnlyZS*/ false,
                                      /*rSearch*/ true, /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                      /*combine*/ false, /*build*/ true, /*extend*/ false, /*sort*/ true);
   // Extend through inner and outer trackers
   Parameters trackerParameters(m_trackerHits, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 20.0,
-                               /*m_minClustersOnTrack*/ 4, m_maxDistance, /*highPTcut*/ 1.0, /*highPT*/ true,
+                               /*m_minClustersOnTrack*/ 4, m_maxDistance, /*slopeZ range*/ m_slopeZRange, /*highPTcut*/ 1.0,
+                               /*highPT*/ true,
                                /*OnlyZS*/ false,
                                /*rSearch*/ true, /*vtt*/ true, /*kalmanFitForward*/ true, step++,
                                /*combine*/ true, /*build*/ false, /*extend*/ true, /*sort*/ false);
   // Finally reconstruct displaced tracks
   Parameters displacedParameters(m_allHits, m_maxCellAngle * 10.0, m_maxCellAngleRZ * 10.0, m_chi2cut * 10.0,
-                                 /*m_minClustersOnTrack*/ 5, 0.015, m_highPTcut, /*highPT*/ false, /*OnlyZS*/ true,
+                                 /*m_minClustersOnTrack*/ 5, 0.015, /*slopeZ range*/ m_slopeZRange, m_highPTcut,
+                                 /*highPT*/ false, /*OnlyZS*/ true,
                                  /*rSearch*/ true,
                                  /*vtt*/ false, /*kalmanFitForward*/ true, step++,
                                  /*combine*/ true, /*build*/ true, /*extend*/ false, /*sort*/ false);
@@ -1022,7 +1029,7 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
       streamlog_out(DEBUG7) << "- Neighbour " << neighbour << ": [x,y,z] = [" << nhit->getX() << ", " << nhit->getY() << ", "
                             << nhit->getZ() << "]" << std::endl;
 
-      if (!neighbourIsCompatible(nhit, kdhit)) {
+      if (!neighbourIsCompatible(nhit, kdhit, parameters._maxSlopeZ)) {
         continue;
       }
 
@@ -1359,12 +1366,13 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
 }
 
 // Check that it the neighbour has the z slope is in the range
-bool ConformalTracking::neighbourIsCompatible(const SKDCluster& neighbourHit, const SKDCluster& seedHit) {
+bool ConformalTracking::neighbourIsCompatible(const SKDCluster& neighbourHit, const SKDCluster& seedHit,
+                                              const double slopeZRange) {
   double distanceX = neighbourHit->getX() - seedHit->getX();
   double distanceY = neighbourHit->getY() - seedHit->getY();
   double distance  = sqrt(distanceX * distanceX + distanceY * distanceY);
   double deltaZ    = neighbourHit->getZ() - seedHit->getZ();
-  if (fabs(deltaZ / distance) > m_slopeZRange) {
+  if (fabs(deltaZ / distance) > slopeZRange) {
     streamlog_out(DEBUG7) << "- z condition not met" << std::endl;
     if (debugSeed && seedHit == debugSeed)
       streamlog_out(DEBUG7) << "- z condition not met" << std::endl;
