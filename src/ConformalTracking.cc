@@ -595,7 +595,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   for (auto const& parameters : _stepParameters) {
     runStep(kdClusters, nearestNeighbours, conformalTracks, collectionClusters, parameters);
     streamlog_out(DEBUG9) << "STEP " << parameters._step << ": nr tracks = " << conformalTracks.size() << std::endl;
-    if (streamlog::out.write<DEBUG9>()) {
+    if (streamlog_level(DEBUG9)) {
       for (auto const& confTrack : conformalTracks) {
         streamlog_out(DEBUG9) << "- Track " << &confTrack << " has " << confTrack->m_clusters.size() << " hits" << std::endl;
         for (unsigned int ht = 0; ht < confTrack->m_clusters.size(); ht++) {
@@ -1188,7 +1188,7 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
       candidateTracksTemp.clear();
 
       streamlog_out(DEBUG7) << "- From cell, produced " << candidateTracks.size() << " candidate tracks" << std::endl;
-      if (streamlog::out.write<DEBUG9>()) {
+      if (streamlog_level(DEBUG9)) {
         for (auto& candidateTrack : candidateTracks) {
           streamlog_out(DEBUG7) << "--  track is made of " << candidateTrack->size() << " cells " << std::endl;
           for (unsigned int candidateCell = 0; candidateCell < candidateTrack->size(); candidateCell++) {
@@ -1345,7 +1345,7 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
           streamlog_out(DEBUG7) << "Pushing back best track with chi2/ndof " << bestTrack->chi2ndof() << std::endl;
         }
 
-        for (unsigned int cluster = 0; cluster < bestTrack->m_clusters.size() && streamlog::out.write<DEBUG9>(); cluster++) {
+        for (unsigned int cluster = 0; cluster < bestTrack->m_clusters.size() && streamlog_level(DEBUG9); cluster++) {
           streamlog_out(DEBUG9) << "-- Hit " << cluster << ": [x,y] = [" << bestTrack->m_clusters.at(cluster)->getX() << ", "
                                 << bestTrack->m_clusters.at(cluster)->getY() << "]" << std::endl;
         }
@@ -1914,7 +1914,7 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
           });
       //nearestNeighbours->allNeighboursInRadius(kdhit, parameters._maxDistance, results);
       streamlog_out(DEBUG9) << "- Found " << results.size() << " neighbours. " << std::endl;
-      if (streamlog::out.write<DEBUG9>()) {
+      if (streamlog_level(DEBUG9)) {
         for (auto const& neighbour : results) {
           streamlog_out(DEBUG9) << "-- Neighbour from allNeighboursInTheta : [x,y] = [" << neighbour->getX() << ", "
                                 << neighbour->getY() << "]; r = " << neighbour->getR() << "; [subdet,layer] = ["
@@ -2142,7 +2142,7 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
     } while (loop);  // end of track extension
 
     streamlog_out(DEBUG9) << "Track ends with " << track->m_clusters.size() << " hits" << std::endl;
-    if (streamlog::out.write<DEBUG9>()) {
+    if (streamlog_level(DEBUG9)) {
       for (unsigned int i = 0; i < track->m_clusters.size(); i++) {
         streamlog_out(DEBUG9) << "- Hit " << i << ": [x,y] = [" << track->m_clusters.at(i)->getX() << ", "
                               << track->m_clusters.at(i)->getY() << "], [subdet,layer] = ["
@@ -2248,7 +2248,7 @@ void ConformalTracking::createTracksNew(UniqueCellularTracks& finalcellularTrack
                              std::make_move_iterator(cellularTracks.end()));
 
   streamlog_out(DEBUG8) << "Number of finalcellularTracks = " << finalcellularTracks.size() << std::endl;
-  if (streamlog::out.write<DEBUG8>()) {
+  if (streamlog_level(DEBUG8)) {
     for (auto& cellTrack : finalcellularTracks) {
       streamlog_out(DEBUG8) << "- Finalcelltrack is made of " << cellTrack->size() << " cells " << std::endl;
       for (unsigned int finalcell = 0; finalcell < cellTrack->size(); finalcell++) {
@@ -2350,7 +2350,7 @@ void ConformalTracking::getFittedTracks(UniqueKDTracks& finalTracks, UniqueCellu
 
     streamlog_out(DEBUG8) << "- Track " << candidateTrack.get() << " has " << track->m_clusters.size() << " hits after fit"
                           << std::endl;
-    for (unsigned int cluster = 0; cluster < track->m_clusters.size() && streamlog::out.write<DEBUG8>(); cluster++) {
+    for (unsigned int cluster = 0; cluster < track->m_clusters.size() && streamlog_level(DEBUG8); cluster++) {
       streamlog_out(DEBUG8) << "-- Hit " << cluster << ": [x,y] = [" << track->m_clusters.at(cluster)->getX() << ", "
                             << track->m_clusters.at(cluster)->getY() << "]" << std::endl;
     }
@@ -2405,7 +2405,7 @@ void ConformalTracking::getLowestChi2(UniqueKDTracks& finalTracks, UniqueKDTrack
           });
 
   streamlog_out(DEBUG8) << "Final fitted tracks: " << finalTracks.size() << std::endl;
-  if (streamlog::out.write<DEBUG8>()) {
+  if (streamlog_level(DEBUG8)) {
     for (auto& itTrk : finalTracks) {
       streamlog_out(DEBUG8) << "- Track " << itTrk.get() << " has " << itTrk->m_clusters.size() << " hits" << std::endl;
       for (unsigned int cluster = 0; cluster < itTrk->m_clusters.size(); cluster++) {
