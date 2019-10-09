@@ -1,3 +1,12 @@
+# v01-09
+
+* 2019-08-22 Erica Brondolin ([PR#53](https://github.com/ilcsoft/conformaltracking/pull/53))
+  - Include cut in slope in z for CA building part to reduce number of combinatorics
+    - In ConformalTrackingV2: configurable via per step parameter slopeZRange
+    - Reduces CPU time
+  - Change sum of chi2 from square-root of the squared sum to linear sum
+  - No big changes expected in eff/fakes
+
 # v01-08
 
 * 2019-02-07 Emilia Leogrande ([PR#49](https://github.com/iLCSoft/ConformalTracking/pull/49))
