@@ -1,3 +1,19 @@
+# v01-10
+
+* 2019-10-08 Remi Ete ([PR#55](https://github.com/iLCSoft/ConformalTracking/pull/55))
+  - ConformalTracking processor: Use streamlog macros instead of raw calls
+
+* 2019-09-09 Andre Sailer ([PR#54](https://github.com/iLCSoft/ConformalTracking/pull/54))
+  - Add Parameter TooManyTracks to configure what is considered too many, defaults to 5e5
+  - Fix the abort logic so that after ten tries the event is actually skipped, or if retryTooManyTracks is False immediately, instead of never or until the number of created tracks is small enough
+
+* 2019-08-22 Erica Brondolin ([PR#53](https://github.com/iLCSoft/ConformalTracking/pull/53))
+  - Include cut in slope in z for CA building part to reduce number of combinatorics
+    - In ConformalTrackingV2: configurable via per step parameter slopeZRange
+    - Reduces CPU time
+  - Change sum of chi2 from square-root of the squared sum to linear sum
+  - No big changes expected in eff/fakes
+
 # v01-08
 
 * 2019-02-07 Emilia Leogrande ([PR#49](https://github.com/iLCSoft/ConformalTracking/pull/49))
