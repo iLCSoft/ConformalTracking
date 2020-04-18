@@ -48,8 +48,8 @@ public:
 
   // Gradient of the cell connecting two hits
   double getGradient() const { return m_gradient; }
-  void setGradient(double gradient) { m_gradient = gradient; }
-  double                  getGradientRZ() const { return m_gradientRZ; }
+  void   setGradient(double gradient) { m_gradient = gradient; }
+  double getGradientRZ() const { return m_gradientRZ; }
 
   // Angle between two cells. This is assumed to be less than 90 degrees
   inline double getAngle(SCell const& cell2) const { return getAngle(*(cell2.get())); }
@@ -89,9 +89,9 @@ public:
     if ((cell2->getWeight() + 1) > m_weight)
       m_weight = cell2->getWeight() + 1;
   }
-  void setTo(SCell const& cell2) { m_to.push_back(WCell(cell2)); }
-  WeakCells&              getFrom() { return m_from; }
-  WeakCells&              getTo() { return m_to; }
+  void       setTo(SCell const& cell2) { m_to.push_back(WCell(cell2)); }
+  WeakCells& getFrom() { return m_from; }
+  WeakCells& getTo() { return m_to; }
 
   double doca() const {
     double intercept = m_start->getV() - m_start->getU() * m_gradient;

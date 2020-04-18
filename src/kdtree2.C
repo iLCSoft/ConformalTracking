@@ -105,8 +105,8 @@ namespace kdtree2 {
   // building routines
   void KDTree::build_tree() {
     for (int i = 0; i < N; i++)
-      ind[i]   = i;
-    root       = build_tree_for_range(0, N - 1, 0);
+      ind[i] = i;
+    root = build_tree_for_range(0, N - 1, 0);
   }
 
   KDTreeNode* KDTree::build_tree_for_range(int l, int u, KDTreeNode* parent) {
@@ -193,13 +193,13 @@ namespace kdtree2 {
       node->right = build_tree_for_range(m + 1, u, node);
 
       if (node->right == 0) {
-        for (int i         = 0; i < dim; i++)
-          node->box[i]     = node->left->box[i];
+        for (int i = 0; i < dim; i++)
+          node->box[i] = node->left->box[i];
         node->cut_val      = node->left->box[c].upper;
         node->cut_val_left = node->cut_val_right = node->cut_val;
       } else if (node->left == 0) {
-        for (int i         = 0; i < dim; i++)
-          node->box[i]     = node->right->box[i];
+        for (int i = 0; i < dim; i++)
+          node->box[i] = node->right->box[i];
         node->cut_val      = node->right->box[c].upper;
         node->cut_val_left = node->cut_val_right = node->cut_val;
       } else {

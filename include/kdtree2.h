@@ -23,7 +23,9 @@ namespace kdtree2 {
   typedef boost::multi_array<double, 2>           KDTreeArray;
   typedef boost::const_multi_array_ref<double, 2> KDTreeROArray;  // read only ref
 
-  typedef struct { double lower, upper; } interval;
+  typedef struct {
+    double lower, upper;
+  } interval;
 
   // let the compiler know that this is a names of classes.
   class KDTreeNode;
@@ -154,12 +156,12 @@ namespace kdtree2 {
     static const int bucketsize = 12;  // global constant.
 
   private:
-    void set_data(KDTreeArray& din);
+    void        set_data(KDTreeArray& din);
     void        build_tree();  // builds the tree.  Used upon construction.
     KDTreeNode* build_tree_for_range(int l, int u, KDTreeNode* parent);
-    void select_on_coordinate(int c, int k, int l, int u);
-    int select_on_coordinate_value(int c, double alpha, int l, int u);
-    void spread_in_coordinate(int c, int l, int u, interval& interv);
+    void        select_on_coordinate(int c, int k, int l, int u);
+    int         select_on_coordinate_value(int c, double alpha, int l, int u);
+    void        spread_in_coordinate(int c, int l, int u, interval& interv);
   };
 
   //

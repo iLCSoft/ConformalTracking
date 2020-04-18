@@ -40,29 +40,35 @@ public:
   KDTree(const KDTree&) = delete;
   KDTree& operator=(const KDTree&) = delete;
 
-  void nearestNeighbours(SKDCluster const& pt, int N, SharedKDClusters& result,
-                         std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
-  void allNeighboursInRadius(SKDCluster const& pt, const double radius, SharedKDClusters& result,
-                             std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
-  void allNeighboursInTheta(SKDCluster const& pt, const double thetaRange, SharedKDClusters& result,
-                            std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
-  void allNeighboursInTheta(double theta, const double thetaRange, SharedKDClusters& result,
-                            std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
+  void nearestNeighbours(
+      SKDCluster const& pt, int N, SharedKDClusters& result,
+      std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
+  void allNeighboursInRadius(
+      SKDCluster const& pt, const double radius, SharedKDClusters& result,
+      std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
+  void allNeighboursInTheta(
+      SKDCluster const& pt, const double thetaRange, SharedKDClusters& result,
+      std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
+  void allNeighboursInTheta(
+      double theta, const double thetaRange, SharedKDClusters& result,
+      std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
 
 private:
-  void transformResults(KDTreeResultVector& vec, SharedKDClusters& result,
-                        std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
-  void transformThetaResults(KDTreeResultVector& vec, SharedKDClusters& result,
-                             std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
+  void transformResults(
+      KDTreeResultVector& vec, SharedKDClusters& result,
+      std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
+  void transformThetaResults(
+      KDTreeResultVector& vec, SharedKDClusters& result,
+      std::function<bool(SKDCluster const&)> const& filter = [](SKDCluster const&) { return false; });
 
-  static const int k;
+  static const int              k;
   boost::multi_array<double, 2> array{};
   boost::multi_array<double, 2> arrayTheta{};
-  kdtree2::KDTree* tree      = nullptr;
-  kdtree2::KDTree* treeTheta = nullptr;
-  SharedKDClusters det{};
-  std::map<double, SKDCluster> thetaLookup{};
-  bool sortTreeResults = true;
+  kdtree2::KDTree*              tree      = nullptr;
+  kdtree2::KDTree*              treeTheta = nullptr;
+  SharedKDClusters              det{};
+  std::map<double, SKDCluster>  thetaLookup{};
+  bool                          sortTreeResults = true;
 };
 
 bool distComparator(const kdtree2::KDTreeResult& a, const kdtree2::KDTreeResult& b);

@@ -145,7 +145,7 @@ public:
   void setError(double error) { m_error = error; }
   void setErrorS(double errorS) { m_errorS = errorS; }
   void setDeltaChi2(double deltaChi2) { m_deltaChi2 = deltaChi2; }
-  void                     remove() { m_removed = true; }
+  void remove() { m_removed = true; }
   void used(bool used) { m_used = used; }
 
   // Subdetector information
