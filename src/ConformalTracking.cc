@@ -393,7 +393,7 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   // Debug collections (not filled if debug off)
   std::map<MCParticle*, SharedKDClusters> particleHits;   // List of conformal hits on each MC particle
   std::map<MCParticle*, bool>             reconstructed;  // Check for MC particles
-  SharedKDClusters debugHits;                             // Debug hits for plotting
+  SharedKDClusters                        debugHits;      // Debug hits for plotting
   if (m_debugPlots) {
     m_debugger.clear();
     m_debugger.setRelations(relations);
@@ -896,7 +896,7 @@ void ConformalTracking::end() {
 
 // Combine collections
 void ConformalTracking::combineCollections(SharedKDClusters& kdClusters, UKDTree& nearestNeighbours,
-                                           std::vector<int> const& combination,
+                                           std::vector<int> const&                combination,
                                            std::map<int, SharedKDClusters> const& collectionClusters) {
   // Clear the input objects
   kdClusters.clear();
@@ -1148,7 +1148,7 @@ void ConformalTracking::buildNewTracks(UniqueKDTracks& conformalTracks, SharedKD
     // at the end (by minimum chi2 of a linear fit)
     std::map<SCell, bool> usedCells;
     std::map<SCell, bool> usedCells2;
-    UniqueKDTracks cellTracks;
+    UniqueKDTracks        cellTracks;
 
     // Sort Cells from highest to lowest weight
     std::sort(cells.begin(), cells.end(), sort_by_cellWeight);
@@ -1758,7 +1758,7 @@ void ConformalTracking::extendHighPT(UniqueKDTracks& conformalTracks, SharedKDCl
 
     // Now make all possible track extensions
     std::map<SCell, bool> usedCells2;
-    UniqueCellularTracks extensions;
+    UniqueCellularTracks  extensions;
 
     if (cells.size() == 1)
       continue;
@@ -1982,13 +1982,13 @@ void ConformalTracking::extendTracksPerLayer(UniqueKDTracks& conformalTracks, Sh
       }
 
       // Initialize variables for choosing the best neighbour in layer
-      SKDCluster bestCluster = nullptr;
+      SKDCluster              bestCluster          = nullptr;
       map<SKDCluster, double> bestClustersWithChi2 = {};
-      vector<SKDCluster> bestClusters = {};
-      double             bestChi2     = std::numeric_limits<double>::max();
-      double             chi2         = track->chi2ndof();
-      double             chi2zs       = track->chi2ndofZS();
-      KDTrack            tempTrack    = *track;
+      vector<SKDCluster>      bestClusters         = {};
+      double                  bestChi2             = std::numeric_limits<double>::max();
+      double                  chi2                 = track->chi2ndof();
+      double                  chi2zs               = track->chi2ndofZS();
+      KDTrack                 tempTrack            = *track;
 
       // Loop over neighbours
       for (auto const& neighbour : results) {
@@ -2278,7 +2278,7 @@ bool ConformalTracking::toBeUpdated(UniqueCellularTracks const& cellularTracks) 
 // a good track to be discarded. If several candidates have low chi2/ndof and are not clones (limited sharing of hits) then
 // return all of them. Given that there is no material scattering taken into account this helps retain low pt tracks, which
 // may have worse chi2/ndof than ghosts/real tracks with an additional unrelated hit from the low pt track.
-void ConformalTracking::getFittedTracks(UniqueKDTracks& finalTracks, UniqueCellularTracks& candidateTracks,
+void ConformalTracking::getFittedTracks(UniqueKDTracks& finalTracks, UniqueCellularTracks&      candidateTracks,
                                         std::map<SCell, bool>& /*usedCells*/, Parameters const& parameters) {
   streamlog_out(DEBUG8) << "***** getFittedTracks" << std::endl;
 
@@ -2636,9 +2636,9 @@ void ConformalTracking::checkUnallowedTracks(UniqueCellularTracks candidateTrack
 double ConformalTracking::checkReal(UKDTrack& track, std::map<MCParticle*, bool>& reconstructed,
                                     std::map<MCParticle*, SharedKDClusters> MCparticleHits) {
   // Store all mcparticles associated to this track
-  std::vector<MCParticle*> particles;
+  std::vector<MCParticle*>      particles;
   std::map<MCParticle*, double> particleHits;
-  double nHits = 0.;
+  double                        nHits = 0.;
 
   // Get the clusters from this track
   SharedKDClusters clusters = track->m_clusters;
@@ -2671,8 +2671,9 @@ double ConformalTracking::checkReal(UKDTrack& track, std::map<MCParticle*, bool>
   // Calculate the purity
   double purity = bestHits / nHits;
   streamlog_out(DEBUG9) << "Number of hits on track: " << nHits << ". Good hits: " << bestHits << ". Purity: " << purity
-                        << ". Pt: " << sqrt(bestParticle->getMomentum()[0] * bestParticle->getMomentum()[0] +
-                                            bestParticle->getMomentum()[1] * bestParticle->getMomentum()[1])
+                        << ". Pt: "
+                        << sqrt(bestParticle->getMomentum()[0] * bestParticle->getMomentum()[0] +
+                                bestParticle->getMomentum()[1] * bestParticle->getMomentum()[1])
                         << ". Pt estimate: " << track->pt() << ". Track chi2/ndof: " << track->chi2ndof()
                         << ". Chi2/ndof in SZ fit: " << track->chi2ndofZS() << std::endl;
 
@@ -2754,7 +2755,7 @@ int ConformalTracking::getUniqueHits(SharedKDClusters hits) {
 
 // Make the track in the same way as the pattern recognition would, but
 // without the inclusion of unassociated hits. See which criteria fail
-void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
+void ConformalTracking::checkReconstructionFailure(MCParticle*                             particle,
                                                    std::map<MCParticle*, SharedKDClusters> particleHits,
                                                    UKDTree& nearestNeighbours, Parameters const& parameters) {
   // Get the hits for this MC particle
@@ -2869,7 +2870,7 @@ void ConformalTracking::checkReconstructionFailure(MCParticle* particle,
   }
 
   // Now test the built-in functions to make CellularTracks from cells
-  UniqueCellularTracks cellularTracks;
+  UniqueCellularTracks  cellularTracks;
   std::map<SCell, bool> usedCells;
   createTracksNew(cellularTracks, cells.back(), usedCells);
 

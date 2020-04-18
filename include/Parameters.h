@@ -35,7 +35,10 @@ public:
   double           _tightenStep = 1;
 
   const StringVec _existingFunctions = {
-      "CombineCollections", "ExtendTracks", "BuildNewTracks", "SortTracks",
+      "CombineCollections",
+      "ExtendTracks",
+      "BuildNewTracks",
+      "SortTracks",
   };
   const StringVec _existingFlags = {
       "HighPTFit", "OnlyZSchi2cut", "RadialSearch", "VertexToTracker", "KalmanFitForward", "KalmanFitBackward",

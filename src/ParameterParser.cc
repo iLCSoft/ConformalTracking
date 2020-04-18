@@ -59,12 +59,12 @@ struct ParameterGrammar : qi::grammar<It, ParameterParser::PPVec(), Skipper> {
   }
 
 private:
-  qi::rule<It, PPVec(), Skipper>                 start{};
-  qi::rule<It, Parameters::StringVec(), Skipper> collections{}, flags{}, functions{};
-  qi::rule<It, Parameters::ParMap(), Skipper>    parameters{};
-  qi::rule<It, std::string(), Skipper>           name{}, stepName{}, key{};
+  qi::rule<It, PPVec(), Skipper>                          start{};
+  qi::rule<It, Parameters::StringVec(), Skipper>          collections{}, flags{}, functions{};
+  qi::rule<It, Parameters::ParMap(), Skipper>             parameters{};
+  qi::rule<It, std::string(), Skipper>                    name{}, stepName{}, key{};
   qi::rule<It, std::pair<std::string, double>(), Skipper> parPair{};
-  qi::rule<It, Skipper> spacer{}, equals{};
+  qi::rule<It, Skipper>                                   spacer{}, equals{};
 };
 
 void ParameterParser::parseParameters(std::vector<Parameters>& parameters, StringVec const& rawSteps,

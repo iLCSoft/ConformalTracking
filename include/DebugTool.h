@@ -12,10 +12,10 @@
 #include <algorithm>
 
 using EVENT::LCCollection;
-using EVENT::TrackerHitPlane;
-using EVENT::MCParticle;
 using EVENT::LCObjectVec;
+using EVENT::MCParticle;
 using EVENT::SimTrackerHit;
+using EVENT::TrackerHitPlane;
 
 // ------------------------------------------------------------------------------------
 // The ConformalDebugger is a helper class to find associations between MCTruth and the
@@ -85,9 +85,9 @@ public:
   //--- Get the particle that corresponds to the largest number of hits on this track
   MCParticle* getAssociatedParticle(UKDTrack& track) {
     // Temporarily store all mcparticles associated to this track
-    std::vector<MCParticle*> particles;
+    std::vector<MCParticle*>      particles;
     std::map<MCParticle*, double> particleHits;
-    double nHits = 0.;
+    double                        nHits = 0.;
 
     // Get the clusters from this track
     SharedKDClusters clusters = track->m_clusters;

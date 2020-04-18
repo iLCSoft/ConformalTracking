@@ -47,7 +47,7 @@ namespace ParameterParser {
     }
   };
   using PPVec = std::vector<ParsedParameters>;
-}  //namespace
+}  // namespace ParameterParser
 
 BOOST_FUSION_ADAPT_STRUCT(ParameterParser::ParsedParameters,
                           (std::string, _name)(Parameters::StringVec, _collections)(Parameters::ParMap, _parameters)(
@@ -58,5 +58,5 @@ namespace ParameterParser {
   void parseParameters(std::vector<Parameters>& parameters, std::vector<std::string> const& rawSteps,
                        std::vector<std::string> const& allCollections);
 
-}  //namespace
+}  // namespace ParameterParser
 #endif  // PARAMETERPARSER_H

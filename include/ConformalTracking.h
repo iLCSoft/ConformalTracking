@@ -70,7 +70,7 @@ public:
   // Cell creation
   SKDCluster extrapolateCell(Cell::SCell const&, double);
   void       extendSeedCells(SharedCells&, UKDTree&, bool, const SharedKDClusters&, Parameters const&,
-                       bool vertexToTracker = true);
+                             bool vertexToTracker = true);
 
   void runStep(SharedKDClusters&, UKDTree&, UniqueKDTracks&, std::map<int, SharedKDClusters> const&, Parameters const&);
   virtual void parseStepParameters();
@@ -200,25 +200,25 @@ protected:
   TH3F* m_xyzDistribution = nullptr;
 
   // Other constants
-  double            m_thetaRange                 = 0.0;
-  double            m_chi2cut                    = 0.0;
-  double            m_maxCellAngle               = 0.0;
-  double            m_maxCellAngleRZ             = 0.0;
-  double            m_maxDistance                = 0.0;
-  double            m_slopeZRange                = 1000.0;
-  double            m_highPTcut                  = 0.0;
-  int               m_minClustersOnTrack         = 0;
-  int               m_minClustersOnTrackAfterFit = 0;
-  int               m_maxHitsInvFit              = 0;
-  int               m_tooManyTracks              = 5e5;
-  bool              m_enableTCVC                 = true;
-  bool              m_debugPlots                 = false;
-  bool              m_debugTime                  = false;
-  bool              m_retryTooManyTracks         = true;
-  bool              m_sortTreeResults            = true;
-  double            m_purity                     = 0.0;
-  SKDCluster        debugSeed                    = nullptr;
-  ConformalDebugger m_debugger{};
+  double                               m_thetaRange                 = 0.0;
+  double                               m_chi2cut                    = 0.0;
+  double                               m_maxCellAngle               = 0.0;
+  double                               m_maxCellAngleRZ             = 0.0;
+  double                               m_maxDistance                = 0.0;
+  double                               m_slopeZRange                = 1000.0;
+  double                               m_highPTcut                  = 0.0;
+  int                                  m_minClustersOnTrack         = 0;
+  int                                  m_minClustersOnTrackAfterFit = 0;
+  int                                  m_maxHitsInvFit              = 0;
+  int                                  m_tooManyTracks              = 5e5;
+  bool                                 m_enableTCVC                 = true;
+  bool                                 m_debugPlots                 = false;
+  bool                                 m_debugTime                  = false;
+  bool                                 m_retryTooManyTracks         = true;
+  bool                                 m_sortTreeResults            = true;
+  double                               m_purity                     = 0.0;
+  SKDCluster                           debugSeed                    = nullptr;
+  ConformalDebugger                    m_debugger{};
   std::map<SKDCluster, MCParticle*>    kdParticles{};  // Link from conformal hit to MC particle
   std::map<SKDCluster, SimTrackerHit*> kdSimHits{};    // Link from conformal hit to SimHit
 };
