@@ -85,6 +85,10 @@ DISPLAY_STD_VARIABLES()
 
 ### FORMATTING ##############################################################
 # Set the source files to clang-format (FIXME: determine this better
+
+# Set the clang-format version required by the CI for correct formatting:
+SET(CLANG_FORMAT_VERSION "10")
+
 FILE(GLOB_RECURSE
      CHECK_CXX_SOURCE_FILES
         src/*.cc src/*.C include/*.h source/*
