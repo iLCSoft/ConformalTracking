@@ -8,6 +8,19 @@ ENDIF()
 
 # Adding clang-format check and formatter if found
 FIND_PROGRAM(CLANG_FORMAT "clang-format")
+
+EXEC_PROGRAM(${CLANG_FORMAT} ${CMAKE_CURRENT_SOURCE_DIR} ARGS --version OUTPUT_VARIABLE CLANG_VERSION)
+STRING(REGEX REPLACE ".*([0-9]+)\\.[0-9]+\\.[0-9]+.*" "\\1" CLANG_MAJOR_VERSION ${CLANG_VERSION})
+
+IF(${CLANG_MAJOR_VERSION} EQUAL ${CLANG_FORMAT_VERSION} OR DEFINED ${APPLE})
+    MESSAGE(WARNING "Found ${CLANG_FORMAT} version ${CLANG_MAJOR_VERSION}, this might lead to incompatible formatting")
+    MESSAGE(WARNING "Please use Clang ${CLANG_FORMAT_VERSION} for formatting")
+    RETURN()
+ELSE()
+    MESSAGE(STATUS "Found ${CLANG_FORMAT} version ${CLANG_FORMAT_VERSION}, adding formatting targets")
+ENDIF()
+
+
 IF(CLANG_FORMAT)
     ADD_CUSTOM_TARGET(
         format
