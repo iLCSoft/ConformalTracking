@@ -1,5 +1,5 @@
 # ConformalTracking
-[![Build Status](https://travis-ci.org/iLCSoft/ConformalTracking.svg?branch=master)](https://travis-ci.org/iLCSoft/ConformalTracking)
+[![Build Status](https://travis-ci.com/iLCSoft/ConformalTracking.svg?branch=master)](https://travis-ci.org/iLCSoft/ConformalTracking)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/12348/badge.svg)](https://scan.coverity.com/projects/ilcsoft-conformaltracking)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2708196.svg)](https://doi.org/10.5281/zenodo.2708196)
 
