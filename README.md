@@ -55,7 +55,7 @@ file. The parameter *Steps* takes a "Config" like String.  For example:
     @Functions : CombineCollections, ExtendTracks
     [Displaced]
     @Collections : VXDTrackerHits, VXDEndcapTrackerHits, ITrackerHits, OTrackerHits, ITrackerEndcapHits, OTrackerEndcapHits
-  * SlopeZRange    @Parameters : MaxCellAngle : 0.05; MaxCellAngleRZ : 0.05; Chi2Cut : 1000; MinClustersOnTrack : 5; MaxDistance : 0.015; SlopeZRange: 10.0; HighPTCut: 10.0;
+    @Parameters : MaxCellAngle : 0.05; MaxCellAngleRZ : 0.05; Chi2Cut : 1000; MinClustersOnTrack : 5; MaxDistance : 0.015; SlopeZRange: 10.0; HighPTCut: 10.0;
     @Flags : OnlyZSchi2cut, RadialSearch, KalmanFitBackward
     @Functions : CombineCollections, BuildNewTracks
 
@@ -64,7 +64,7 @@ Each steps starts with a *[Name]* in brackets. Following are the *@Collections*,
 present. The *@Collections* and *@Flags* can be empty. It does not make sense to
 leave the *@Functions* empty. The *@Parameters* needs to be present and all
 parameters need to be set. Parameters and values need to be separated by an
-equal sign, separation between parameters can be a comma, semicolon, or colon.
+equal sign or colon, separation between parameters can be a comma, semicolon, or colon.
 
 The *@Parameters* are
 
