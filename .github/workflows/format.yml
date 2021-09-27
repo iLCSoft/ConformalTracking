@@ -1,0 +1,21 @@
+name: Formatting
+on: [push, pull_request]
+
+jobs:
+  Format-Check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v2
+    - uses: cvmfs-contrib/github-action-cvmfs@v2
+    - uses: aidasoft/run-lcg-view@v3
+      with:
+        view-path: "/cvmfs/clicdp.cern.ch/iLCSoft/lcg/100/nightly/x86_64-centos7-clang11-opt"
+        setup-script: "init_ilcsoft.sh"
+        run: |
+          mkdir build
+          cd build
+          cmake -GNinja -C $ILCSOFT/ILCSoft.cmake -DCMAKE_CXX_FLAGS="-fdiagnostics-color=always -Werro" .. && \
+          ninja check-format
+
