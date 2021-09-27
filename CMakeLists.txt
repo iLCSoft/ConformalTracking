@@ -89,7 +89,7 @@ DISPLAY_STD_VARIABLES()
 # Set the source files to clang-format (FIXME: determine this better
 
 # Set the clang-format version required by the CI for correct formatting:
-SET(CLANG_FORMAT_VERSION "10")
+SET(CLANG_FORMAT_VERSION "11")
 
 FILE(GLOB_RECURSE
      CHECK_CXX_SOURCE_FILES
