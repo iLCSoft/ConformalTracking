@@ -1,3 +1,8 @@
+# v01-11
+
+* 2021-09-27 Andre Sailer ([PR#59](https://github.com/iLCSoft/ConformalTracking/pull/59))
+  - CI: Move to github actions
+
 # v01-10
 
 * 2019-10-08 Remi Ete ([PR#55](https://github.com/iLCSoft/ConformalTracking/pull/55))
