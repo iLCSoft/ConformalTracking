@@ -4,8 +4,15 @@
 #include "Parameters.h"
 
 //#define BOOST_SPIRIT_DEBUG
+
+// Prevent inclusing of boost/phoenix/stl/tuple.hpp
+// which is causing issues like
+// multiple definition of `boost::phoenix::placeholders::uarg3'; CMakeFiles/ConformalTracking.dir/ConformalTracking/src/ConformalTrackingV2.cc.o:(.bss+0x636): first defined here
+
+#define BOOST_PHOENIX_STL_TUPLE_H_
+
 #include <boost/fusion/include/std_pair.hpp>
-#include <boost/spirit/include/phoenix.hpp>
+#include <boost/phoenix.hpp>
 #include <boost/spirit/include/qi.hpp>
 
 #include <algorithm>
