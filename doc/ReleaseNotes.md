@@ -1,3 +1,9 @@
+# v01-11-01
+
+* 2023-05-25 Andre Sailer ([PR#60](https://github.com/iLCSoft/ConformalTracking/pull/60))
+  - ParameterParser: fix linking issue with recent versions of boost
+  - ParameterParser: move to non-deprecated header file location
+
 # v01-11
 
 * 2021-09-27 Andre Sailer ([PR#59](https://github.com/iLCSoft/ConformalTracking/pull/59))
