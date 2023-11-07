@@ -2988,13 +2988,13 @@ void ConformalTracking::runStep(SharedKDClusters& kdClusters, UKDTree& nearestNe
         buildNewTracks(conformalTracks, kdClusters, nearestNeighbours, thisParameters, parameters._radialSearch,
                        parameters._vertexToTracker);
       } catch (TooManyTracksException& e) {
-        streamlog_out(MESSAGE) << "caught too many tracks, tightening parameters" << std::endl;
-        caughtException = true;
-        thisParameters.tighten();
-        if (not m_retryTooManyTracks || thisParameters._tightenStep > 10) {
+        if (not m_retryTooManyTracks || thisParameters._tightenStep >= 10) {
           streamlog_out(ERROR) << "Skipping event" << std::endl;
           throw;
         }
+        streamlog_out(MESSAGE) << "caught too many tracks, tightening parameters" << std::endl;
+        thisParameters.tighten();
+        caughtException = true;
       }
     } while (caughtException);
 
