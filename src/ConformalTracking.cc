@@ -593,7 +593,12 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   UKDTree          nearestNeighbours = nullptr;
 
   for (auto const& parameters : _stepParameters) {
-    runStep(kdClusters, nearestNeighbours, conformalTracks, collectionClusters, parameters);
+    try {
+      runStep(kdClusters, nearestNeighbours, conformalTracks, collectionClusters, parameters);
+    } catch (const TooManyTracksException& e) {
+      streamlog_out(ERROR) << "Too many tracks in step: " << parameters._step << " skipping further steps" << std::endl;
+      break;
+    }
     streamlog_out(DEBUG9) << "STEP " << parameters._step << ": nr tracks = " << conformalTracks.size() << std::endl;
     if (streamlog_level(DEBUG9)) {
       for (auto const& confTrack : conformalTracks) {
