@@ -1,3 +1,8 @@
+# v01-12
+
+* 2023-11-08 Leonhard Reichenbach ([PR#62](https://github.com/ilcsoft/ConformalTracking/pull/62))
+  - Emit an error message and skip further steps when too many tracks are created instead of throwing a SkipEventException
+
 # v01-11-01
 
 * 2023-05-25 Andre Sailer ([PR#60](https://github.com/iLCSoft/ConformalTracking/pull/60))
