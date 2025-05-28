@@ -41,12 +41,12 @@ IF(CLANG_FORMAT)
         ${CLANG_FORMAT}
         -style=file
         -output-replacements-xml
-        ${CHECK_CXX_SOURCE_FILES} 
+        ${CHECK_CXX_SOURCE_FILES}
         # print output
-        | tee ${CMAKE_BINARY_DIR}/check_format_file.txt | grep -c "replacement " | 
+        | tee ${CMAKE_BINARY_DIR}/check_format_file.txt | grep -c "replacement " |
                 tr -d "[:cntrl:]" && echo " replacements necessary" && cat ${CMAKE_BINARY_DIR}/check_format_file.txt
         # WARNING: fix to stop with error if there are problems
-        COMMAND ! grep -c "replacement " 
+        COMMAND ! grep -c "replacement "
                   ${CMAKE_BINARY_DIR}/check_format_file.txt > /dev/null
         COMMENT "Checking format compliance"
     )

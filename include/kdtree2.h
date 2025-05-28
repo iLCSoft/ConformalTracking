@@ -101,7 +101,7 @@ namespace kdtree2 {
 
     KDTree(KDTreeArray& data_in, bool rearrange_in = true, int dim_in = -1);
 
-    KDTree(const KDTree&) = delete;
+    KDTree(const KDTree&)            = delete;
     KDTree& operator=(const KDTree&) = delete;
 
     // destructor
@@ -180,7 +180,7 @@ namespace kdtree2 {
     // destructor
     ~KDTreeNode();
 
-    KDTreeNode(const KDTreeNode&) = delete;
+    KDTreeNode(const KDTreeNode&)            = delete;
     KDTreeNode& operator=(const KDTreeNode&) = delete;
 
   private:

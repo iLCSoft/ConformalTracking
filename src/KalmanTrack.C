@@ -151,7 +151,7 @@ double KalmanTrack::addCluster(SKDCluster cluster) {
   /*
   double b = 1./(2.*m_conformalTrack->intercept());
   double a = -1.*b*m_conformalTrack->gradient();
- 
+
   double db = 0;
   double da = 0;
 
@@ -166,7 +166,7 @@ double KalmanTrack::addCluster(SKDCluster cluster) {
     dx = cluster->getErrorY();
     dy = cluster->getErrorX();
   }
-  
+
   double s = atan2(yMb,xMa);
   double ratio = yMb/xMa;
 
@@ -174,10 +174,10 @@ double KalmanTrack::addCluster(SKDCluster cluster) {
   double residualZ = (m_conformalTrack->gradientZS()*s + m_conformalTrack->interceptZS()) - cluster->getZ();
   double ds = errorS;
   double dz = cluster->getErrorZ();
-  
+
   double ds2 = (dz*dz) + (m_conformalTrack->gradientZS()*m_conformalTrack->gradientZS() * ds*ds);
   //    double ds2 = (m_gradientZS*m_gradientZS * dz*dz);
-  
+
   //    std::cout<<"- residual is "<<residualS<<std::endl;
   //    chi2 += (residualS*residualS)/(ds2);
   deltaChi2 += (residualZ*residualZ)/(ds2);

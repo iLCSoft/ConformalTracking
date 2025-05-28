@@ -23,7 +23,7 @@ public:
   KDTrack(Parameters const& par);
   ~KDTrack();
 
-  KDTrack(const KDTrack&) = default;
+  KDTrack(const KDTrack&)            = default;
   KDTrack& operator=(const KDTrack&) = delete;
 
   //--- Functions to add and remove clusters
@@ -36,7 +36,7 @@ public:
     m_nPoints++;
   }
   void remove(int clusterN) {
-    if(clusterN < 0 || clusterN >= int(m_clusters.size())) {
+    if (clusterN < 0 || clusterN >= int(m_clusters.size())) {
       throw std::out_of_range("KDTrack::remove: clusterN out of range");
     }
     m_clusters.erase(m_clusters.begin() + clusterN);

@@ -37,7 +37,7 @@ public:
   explicit KDTree(const SharedKDClusters& pts, double overlapTheta, bool sort);
   ~KDTree();
 
-  KDTree(const KDTree&) = delete;
+  KDTree(const KDTree&)            = delete;
   KDTree& operator=(const KDTree&) = delete;
 
   void nearestNeighbours(

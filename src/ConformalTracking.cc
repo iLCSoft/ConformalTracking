@@ -52,9 +52,9 @@ using namespace AIDA;
 ConformalTracking aConformalTracking;
 
 /*
- 
+
  Pattern recognition code for the CLIC detector, using conformal mapping and cellular automaton
- 
+
  */
 
 class TooManyTracksException : public marlin::SkipEventException {
@@ -625,55 +625,55 @@ void ConformalTracking::processEvent(LCEvent* evt) {
   /*std::sort(conformalTracks.begin(),conformalTracks.end(),sort_by_length);
 
     for(int existingTrack=0;existingTrack<conformalTracks.size();existingTrack++){
-        
+
         bool clone = false; bool saved = false;
-        
+
         for(int savedTrack=0;savedTrack<conformalTracksFinal.size();savedTrack++){
-            
+
         const int nOverlappingHits = overlappingHits(conformalTracks[existingTrack],conformalTracksFinal[savedTrack]);
         if( nOverlappingHits >= 2) {
             clone = true;
-            
+
             // Calculate the new and existing chi2 values
             double newchi2 = (conformalTracks[existingTrack]->chi2ndofZS()*conformalTracks[existingTrack]->chi2ndofZS() + conformalTracks[existingTrack]->chi2ndof()*conformalTracks[existingTrack]->chi2ndof());
             double oldchi2 = (conformalTracksFinal[savedTrack]->chi2ndofZS()*conformalTracksFinal[savedTrack]->chi2ndofZS() + conformalTracksFinal[savedTrack]->chi2ndof()*conformalTracksFinal[savedTrack]->chi2ndof());
-            
+
             double deltachi2ZS = (conformalTracks[existingTrack]->chi2ndofZS()-conformalTracksFinal[savedTrack]->chi2ndofZS());
             double deltachi2 = (conformalTracks[existingTrack]->chi2ndof()-conformalTracksFinal[savedTrack]->chi2ndof());
-            
+
             // If the new track is a subtrack of an existing track, don't consider it further (already try removing bad hits from tracks
             if(nOverlappingHits == conformalTracks[existingTrack]->m_clusters.size()) break;
-            
+
             // Otherwise take the longest if the delta chi2 is not too much
             else if(conformalTracks[existingTrack]->m_clusters.size() >= conformalTracksFinal[savedTrack]->m_clusters.size()){ // New track longer/equal in length
-                
+
                 // Increase in chi2 is too much (double)
                 if( (newchi2 - oldchi2) > oldchi2) break;
-                
+
                 // Otherwise take it
                 delete conformalTracksFinal[savedTrack];
                 conformalTracksFinal[savedTrack] = conformalTracks[existingTrack]; saved = true;
             }
             else if(conformalTracks[existingTrack]->m_clusters.size() < conformalTracksFinal[savedTrack]->m_clusters.size()){ // Old track longer
-                
+
                 // Must improve chi2 by factor two
                 if( (newchi2 - 0.5*oldchi2) > 0.) break;
-                
+
                 // Otherwise take it
                 delete conformalTracksFinal[savedTrack];
                 conformalTracksFinal[savedTrack] = conformalTracks[existingTrack]; saved = true;
             }
-            
+
             break;
         }
         }
-        
+
         if(!clone){
             conformalTracksFinal.push_back(conformalTracks[existingTrack]);
         }else{
             if(!saved) delete conformalTracks[existingTrack];
         }
-        
+
     }
 	//*/
 
@@ -2384,7 +2384,7 @@ void ConformalTracking::getLowestChi2(UniqueKDTracks& finalTracks, UniqueKDTrack
   //  double lowestChi2ndof = *std::min_element(trackChi2ndofs.begin(),trackChi2ndofs.end());
   UKDTrack& lowestChi2ndofTrack = trackContainer[0];
   double    lowestChi2ndof      = sqrt(lowestChi2ndofTrack->chi2ndof() * lowestChi2ndofTrack->chi2ndof() +
-                               lowestChi2ndofTrack->chi2ndofZS() * lowestChi2ndofTrack->chi2ndofZS());
+                                       lowestChi2ndofTrack->chi2ndofZS() * lowestChi2ndofTrack->chi2ndofZS());
 
   for (auto& itTrack : trackContainer) {
     double chi2ndof = sqrt(itTrack->chi2ndof() * itTrack->chi2ndof() + itTrack->chi2ndofZS() * itTrack->chi2ndofZS());
@@ -2535,12 +2535,12 @@ void ConformalTracking::fitWithPoint(KDTrack kdTrack, SKDCluster& hit, double& d
   double chi2   = kdTrack.chi2ndof();
   double chi2zs = kdTrack.chi2ndofZS();
   /*if(m_debugPlots){
-    
+
     double xMeasured = hit->getU();
     double yMeasured = hit->getV();
     double dx = hit->getErrorU();
     double dv = hit->getErrorV();
-    
+
     if(kdTrack.m_rotated){
       double newxMeasured = yMeasured;
       double newyMeasured = -1. * xMeasured;
@@ -2555,9 +2555,9 @@ void ConformalTracking::fitWithPoint(KDTrack kdTrack, SKDCluster& hit, double& d
     // Get the error on the hit position
     double term = kdTrack.m_gradient + 2. * kdTrack.m_quadratic * xMeasured;
     double dy2  = (dv * dv) + (term * term * dx * dx);
-    
+
     streamlog_out(DEBUG7)<<"- hit has delta chi2 of "<<(residualY * residualY) / (dy2)<<std::endl;
-    
+
   }*/
   kdTrack.add(hit);
   kdTrack.linearRegression();

@@ -1,43 +1,43 @@
 {
     "license": "GPL-3.0",
     "contributors": [
-    ], 
-    "notes": "webpage: http://github.com/ilcsoft/ConformalTracking", 
-    "language": "eng", 
-    "upload_type": "software", 
+    ],
+    "notes": "webpage: http://github.com/ilcsoft/ConformalTracking",
+    "language": "eng",
+    "upload_type": "software",
     "keywords": [
         "Track Reconstruction, ConformalTracking, Pattern Recognition"
     ],
     "creators": [
         {
-            "affiliation": "CERN", 
+            "affiliation": "CERN",
             "name": "Hynds, Daniel"
-        }, 
+        },
         {
-            "affiliation": "CERN", 
+            "affiliation": "CERN",
             "name": "Leogrande, Emilia"
-        }, 
+        },
         {
-            "affiliation": "CERN", 
+            "affiliation": "CERN",
             "name": "Petric, Marko"
-        }, 
+        },
         {
-            "affiliation": "CERN", 
+            "affiliation": "CERN",
             "name": "Sailer, Andre"
         },
         {
-            "affiliation": "CERN", 
+            "affiliation": "CERN",
             "name": "Brondolin, Erica"
         },
         {
-            "affiliation": "DESY", 
+            "affiliation": "DESY",
             "name": "Gaede, Frank"
         },
         {
-            "affiliation": "CERN", 
+            "affiliation": "CERN",
             "name": "Simoniello, Rosa"
-        } 
+        }
 
-    ], 
+    ],
     "access_right": "open"
 }

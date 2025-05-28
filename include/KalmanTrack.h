@@ -15,7 +15,7 @@
 class KalmanNode {
 public:
   // Constructor
-  KalmanNode(){};
+  KalmanNode() {};
   KalmanNode(SKDCluster measurement, bool rotated) {
     if (!rotated) {
       m_uMeasured     = measurement->getU();
@@ -29,7 +29,7 @@ public:
   };
 
   // Destructor
-  ~KalmanNode(){};
+  ~KalmanNode() {};
 
   // Functions
 
@@ -68,7 +68,7 @@ public:
   KalmanTrack();
   KalmanTrack(KDTrack*);
 
-  KalmanTrack(const KalmanTrack&) = default;
+  KalmanTrack(const KalmanTrack&)            = default;
   KalmanTrack& operator=(const KalmanTrack&) = default;
 
   // Destructor
