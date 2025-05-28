@@ -28,8 +28,8 @@ public:
 public:
   // Constructors, main initialisation is with two kd hits
   Cell() { m_weight = 0; }
-  Cell(const Cell&) = delete;
-  Cell(Cell&&)      = default;
+  Cell(const Cell&)            = delete;
+  Cell(Cell&&)                 = default;
   Cell& operator=(const Cell&) = delete;
 
   Cell(SKDCluster const& hit1, SKDCluster const& hit2)
