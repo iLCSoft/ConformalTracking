@@ -5,6 +5,7 @@
 #include "Parameters.h"
 
 #include <cmath>
+#include <stdexcept>
 
 class TH2F;
 
@@ -35,6 +36,9 @@ public:
     m_nPoints++;
   }
   void remove(int clusterN) {
+    if(clusterN < 0 || clusterN >= int(m_clusters.size())) {
+      throw std::out_of_range("KDTrack::remove: clusterN out of range");
+    }
     m_clusters.erase(m_clusters.begin() + clusterN);
     m_nPoints--;
   }
