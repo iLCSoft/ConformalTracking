@@ -112,7 +112,7 @@ int main() {
       } else {
         std::cout << "\\x" << std::setw(2) << std::setfill('0') << std::hex << static_cast<int>(c);
       }  //if
-    }    //while
+    }  //while
     std::cout << std::endl;
     return 1;
   }  //if

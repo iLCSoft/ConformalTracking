@@ -35,7 +35,7 @@ public:
 
   ConformalTracking();
   ConformalTracking(std::string const& procName);
-  ConformalTracking(const ConformalTracking&) = delete;
+  ConformalTracking(const ConformalTracking&)            = delete;
   ConformalTracking& operator=(const ConformalTracking&) = delete;
 
   // Initialisation - run at the beginning to start histograms, etc.
@@ -54,7 +54,7 @@ public:
   virtual void processEvent(LCEvent* evt);
 
   // Run at the end of each event
-  virtual void check(LCEvent*){};
+  virtual void check(LCEvent*) {};
 
   // Called at the very end for cleanup, histogram saving, etc.
   virtual void end();

@@ -155,7 +155,7 @@ double KDTrack::calculateChi2SZ(TH2F* histo, bool debug) {
     prevPhi = phi;
 
     /*if(phi < 0.) phi=(2.*M_PI-fabs(phi));
-    
+
     if(fabs(phi-prevPhi) > M_PI){
       if(prevPhi > M_PI) phi += (2.*M_PI);
       else phi = (2.*M_PI) - phi;

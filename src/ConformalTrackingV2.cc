@@ -11,9 +11,9 @@ using namespace std;
 ConformalTrackingV2 aConformalTrackingV2;
 
 /*
- 
+
  Pattern recognition code for the CLIC detector, using conformal mapping and cellular automaton
- 
+
  */
 
 ConformalTrackingV2::ConformalTrackingV2() : ConformalTracking("ConformalTrackingV2") {

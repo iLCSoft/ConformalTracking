@@ -8,7 +8,7 @@ public:
   virtual Processor* newProcessor() { return new ConformalTrackingV2; }
 
   ConformalTrackingV2();
-  ConformalTrackingV2(const ConformalTrackingV2&) = delete;
+  ConformalTrackingV2(const ConformalTrackingV2&)            = delete;
   ConformalTrackingV2& operator=(const ConformalTrackingV2&) = delete;
 
   // Called at the beginning of every run
