@@ -90,8 +90,7 @@ int main() {
   It                     startString = begin(configString), endString = end(configString);
   bool                   ok = qi::phrase_parse(startString, endString, myGrammar, qi::blank, parsed);
 
-  std::cout << "--- File ---"
-            << "\n";
+  std::cout << "--- File ---\n";
   std::cout << "parsed   = " << std::boolalpha << ok << "\n";
   if (ok) {
     std::cout << "Number " << parsed.size() << std::endl;
@@ -111,8 +110,8 @@ int main() {
         std::cout << c;
       } else {
         std::cout << "\\x" << std::setw(2) << std::setfill('0') << std::hex << static_cast<int>(c);
-      }  //if
-    }  //while
+      }
+    }
     std::cout << std::endl;
     return 1;
   }  //if
