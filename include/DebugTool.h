@@ -28,8 +28,8 @@ using SLCRelationNavigator = std::shared_ptr<UTIL::LCRelationNavigator>;
 class ConformalDebugger {
 public:
   //--- Constructor and destructor
-  ConformalDebugger() {};
-  ~ConformalDebugger() {};
+  ConformalDebugger()  = default;
+  ~ConformalDebugger() = default;
 
   ConformalDebugger(const ConformalDebugger&)            = delete;
   ConformalDebugger& operator=(const ConformalDebugger&) = delete;
