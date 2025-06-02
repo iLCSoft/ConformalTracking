@@ -53,9 +53,6 @@ public:
   // Run over each event - the main algorithm
   virtual void processEvent(LCEvent* evt);
 
-  // Run at the end of each event
-  virtual void check(LCEvent*) {};
-
   // Called at the very end for cleanup, histogram saving, etc.
   virtual void end();
 

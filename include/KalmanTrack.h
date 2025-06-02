@@ -15,7 +15,7 @@
 class KalmanNode {
 public:
   // Constructor
-  KalmanNode() {};
+  KalmanNode() = default;
   KalmanNode(SKDCluster measurement, bool rotated) {
     if (!rotated) {
       m_uMeasured     = measurement->getU();
@@ -29,7 +29,7 @@ public:
   };
 
   // Destructor
-  ~KalmanNode() {};
+  ~KalmanNode() = default;
 
   // Functions
 
