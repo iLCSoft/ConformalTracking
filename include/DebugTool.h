@@ -87,7 +87,6 @@ public:
     // Temporarily store all mcparticles associated to this track
     std::vector<MCParticle*>      particles;
     std::map<MCParticle*, double> particleHits;
-    double                        nHits = 0.;
 
     // Get the clusters from this track
     SharedKDClusters clusters = track->m_clusters;
@@ -96,7 +95,6 @@ public:
     for (size_t itCluster = 0; itCluster < clusters.size(); itCluster++) {
       // Get the hit
       SKDCluster cluster = clusters[itCluster];
-      nHits++;
 
       // If we already have hits on this particle, then just increment the counter
       if (particleHits.count(m_kdParticles[cluster]))
