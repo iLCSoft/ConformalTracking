@@ -1,3 +1,12 @@
+# v01-13
+
+* 2026-11-11 Juan Miguel Carceller ([PR#68](https://github.com/iLCSoft/ConformalTracking/pull/68))
+  - Require CMake 3.10 to fix `Compatibility with CMake < 3.5 has been removed from CMake.`
+
+* 2026-09-10 Thomas Madlener ([PR#67](https://github.com/iLCSoft/ConformalTracking/pull/67))
+  - Switch to the latest version of the key4hep-build workflow
+  - Fix gcc16 -Werror=unused-but-set-variable build failure by removing an unused counter in DebugTool.h
+
 # v01-12-01
 
 * 2025-06-02 jmcarcell ([PR#66](https://github.com/iLCSoft/ConformalTracking/pull/66))
